@@ -233,8 +233,8 @@ export default function BRollScreen() {
           style={[styles.uploadButton, { backgroundColor: colors.primary }]}
           onPress={() => setShowUploadModal(true)}
         >
-          <FontAwesome name="plus" size={14} color="#fff" />
-          <Text style={styles.uploadButtonText}>Upload</Text>
+          <FontAwesome name="plus" size={14} color={colors.primaryForeground} />
+          <Text style={[styles.uploadButtonText, { color: colors.primaryForeground }]}>Upload</Text>
         </TouchableOpacity>
       </View>
 
@@ -302,7 +302,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   uploadButtonText: {
-    color: "#fff",
     fontSize: 14,
     fontFamily: typography.fontFamily.chillaxMedium,
   },

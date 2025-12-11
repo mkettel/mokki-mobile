@@ -214,8 +214,8 @@ export default function ExpensesScreen() {
           style={[styles.addButton, { backgroundColor: colors.primary }]}
           onPress={() => setShowAddModal(true)}
         >
-          <FontAwesome name="plus" size={16} color="#fff" />
-          <Text style={styles.addButtonText}>Add</Text>
+          <FontAwesome name="plus" size={16} color={colors.primaryForeground} />
+          <Text style={[styles.addButtonText, { color: colors.primaryForeground }]}>Add</Text>
         </TouchableOpacity>
       </View>
 
@@ -345,7 +345,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   addButtonText: {
-    color: "#fff",
     fontSize: 14,
     fontFamily: typography.fontFamily.chillaxMedium,
   },

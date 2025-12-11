@@ -103,7 +103,7 @@ export default function MembersScreen() {
             onPress={() => setShowInviteModal(true)}
             style={[styles.inviteButton, { backgroundColor: colors.primary }]}
           >
-            <FontAwesome name="user-plus" size={14} color="#fff" />
+            <FontAwesome name="user-plus" size={14} color={colors.primaryForeground} />
           </TouchableOpacity>
         ) : (
           <View style={styles.headerSpacer} />

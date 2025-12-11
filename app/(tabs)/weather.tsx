@@ -124,8 +124,8 @@ export default function WeatherScreen() {
             style={[styles.manageButton, { backgroundColor: colors.primary }]}
             onPress={() => setShowResortPicker(true)}
           >
-            <FontAwesome name="plus" size={14} color="#fff" />
-            <Text style={styles.manageButtonText}>Add Resorts</Text>
+            <FontAwesome name="plus" size={14} color={colors.primaryForeground} />
+            <Text style={[styles.manageButtonText, { color: colors.primaryForeground }]}>Add Resorts</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.emptyContainer}>
@@ -140,8 +140,8 @@ export default function WeatherScreen() {
             style={[styles.addResortsButton, { backgroundColor: colors.primary }]}
             onPress={() => setShowResortPicker(true)}
           >
-            <FontAwesome name="plus" size={14} color="#fff" />
-            <Text style={styles.addResortsButtonText}>Add Resorts</Text>
+            <FontAwesome name="plus" size={14} color={colors.primaryForeground} />
+            <Text style={[styles.addResortsButtonText, { color: colors.primaryForeground }]}>Add Resorts</Text>
           </TouchableOpacity>
         </View>
 
@@ -300,7 +300,6 @@ const styles = StyleSheet.create({
   manageButtonText: {
     fontSize: 13,
     fontFamily: typography.fontFamily.chillaxMedium,
-    color: "#fff",
   },
   refreshButton: {
     width: 40,
@@ -321,7 +320,6 @@ const styles = StyleSheet.create({
   addResortsButtonText: {
     fontSize: 14,
     fontFamily: typography.fontFamily.chillaxMedium,
-    color: "#fff",
   },
   content: {
     flex: 1,
