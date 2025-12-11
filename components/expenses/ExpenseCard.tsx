@@ -139,7 +139,7 @@ export function ExpenseCard({
           <Text style={styles.payerAvatarText}>{getPayerInitial()}</Text>
         </View>
         <Text style={[styles.payerText, { color: colors.mutedForeground }]}>
-          Paid by {isPayer ? "you" : getPayerName()}
+          Paid to {isPayer ? "you" : getPayerName()}
         </Text>
         {expense.paid_by_profile?.venmo_handle && (
           <View style={[styles.venmoTag, { backgroundColor: colors.muted }]}>
