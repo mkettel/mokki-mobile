@@ -1,12 +1,19 @@
 import "react-native-url-polyfill/auto";
 import { createClient } from "@supabase/supabase-js";
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 import { Database } from "@/types/database";
 
-// Expo SecureStore adapter for Supabase auth
-const ExpoSecureStoreAdapter = {
+// Storage adapter that uses SecureStore on native and localStorage on web
+const StorageAdapter = {
   getItem: async (key: string): Promise<string | null> => {
     try {
+      if (Platform.OS === "web") {
+        if (typeof localStorage !== "undefined") {
+          return localStorage.getItem(key);
+        }
+        return null;
+      }
       return await SecureStore.getItemAsync(key);
     } catch {
       return null;
@@ -14,13 +21,25 @@ const ExpoSecureStoreAdapter = {
   },
   setItem: async (key: string, value: string): Promise<void> => {
     try {
+      if (Platform.OS === "web") {
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem(key, value);
+        }
+        return;
+      }
       await SecureStore.setItemAsync(key, value);
     } catch {
-      // Silently fail - SecureStore might not be available in some contexts
+      // Silently fail - storage might not be available in some contexts
     }
   },
   removeItem: async (key: string): Promise<void> => {
     try {
+      if (Platform.OS === "web") {
+        if (typeof localStorage !== "undefined") {
+          localStorage.removeItem(key);
+        }
+        return;
+      }
       await SecureStore.deleteItemAsync(key);
     } catch {
       // Silently fail
@@ -39,7 +58,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: ExpoSecureStoreAdapter,
+    storage: StorageAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

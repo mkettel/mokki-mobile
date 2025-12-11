@@ -36,10 +36,7 @@ export function HouseProvider({ children }: { children: React.ReactNode }) {
 
   // Fetch houses when user changes
   const fetchHouses = useCallback(async () => {
-    console.log("[HouseContext] fetchHouses called, user:", user?.id, user?.email);
-
     if (!user) {
-      console.log("[HouseContext] No user, clearing houses");
       setActiveHouseState(null);
       setHouses([]);
       setIsLoading(false);
@@ -54,21 +51,7 @@ export function HouseProvider({ children }: { children: React.ReactNode }) {
       await acceptAllPendingInvites(user.id, user.email || undefined);
 
       // Then fetch houses - pass user.id to avoid auth race condition
-      console.log("[HouseContext] Calling getActiveHouse with userId:", user.id);
       const { activeHouse, houses, error } = await getActiveHouse(user.id);
-
-      console.log("[HouseContext] getActiveHouse result:", {
-        activeHouse: activeHouse?.name,
-        housesCount: houses.length,
-        error: error?.message,
-      });
-
-      // DEBUG: Show alert with results
-      Alert.alert(
-        "Debug: House Fetch",
-        `User: ${user.email}\nUser ID: ${user.id}\nHouses found: ${houses.length}\nActive: ${activeHouse?.name || "none"}\nError: ${error?.message || "none"}`,
-        [{ text: "OK" }]
-      );
 
       if (error) {
         setError(error);
@@ -79,8 +62,7 @@ export function HouseProvider({ children }: { children: React.ReactNode }) {
         setHouses(houses);
       }
     } catch (err) {
-      console.error("[HouseContext] Error fetching houses:", err);
-      Alert.alert("Debug: Error", `Error: ${(err as Error).message}`);
+      console.error("Error fetching houses:", err);
       setError(err as Error);
     } finally {
       setIsLoading(false);

@@ -98,11 +98,6 @@ export async function getUserHouses(userId?: string): Promise<{
       .eq("user_id", userIdToUse)
       .eq("invite_status", "accepted");
 
-    // Debug logging
-    console.log("getUserHouses - user.id:", userIdToUse);
-    console.log("getUserHouses - raw data:", JSON.stringify(data, null, 2));
-    console.log("getUserHouses - error:", error);
-
     if (error) {
       console.error("Error fetching user houses:", error);
       return { houses: [], error };
@@ -116,8 +111,6 @@ export async function getUserHouses(userId?: string): Promise<{
         ...(item.houses as House),
         role: item.role as "admin" | "member",
       }));
-
-    console.log("getUserHouses - transformed houses:", houses.length);
 
     return { houses, error: null };
   } catch (error) {
