@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
@@ -16,7 +15,6 @@ import { useAuth } from "@/lib/context/auth";
 import { typography } from "@/constants/theme";
 import {
   getHouseStays,
-  getHouseEvents,
   createStay,
   updateStay,
   deleteStay,
@@ -25,13 +23,25 @@ import {
   StayWithExpense,
 } from "@/lib/api/stays";
 import {
+  getHouseEvents,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  getHouseMembersForEvents,
+  EventWithDetails,
+} from "@/lib/api/events";
+import {
   StaysCalendar,
   StaysList,
   AddStayModal,
   EditStayModal,
+  EventsList,
+  AddEventModal,
+  EditEventModal,
 } from "@/components/calendar";
+import type { Profile } from "@/types/database";
 
-type TabType = "calendar" | "stays";
+type TabType = "calendar" | "stays" | "events";
 
 export default function CalendarScreen() {
   const colors = useColors();
@@ -41,24 +51,33 @@ export default function CalendarScreen() {
 
   // Data state
   const [stays, setStays] = useState<StayWithExpense[]>([]);
-  const [events, setEvents] = useState<Array<{ id: string; name: string; event_date: string; end_date: string | null }>>([]);
+  const [events, setEvents] = useState<EventWithDetails[]>([]);
+  const [members, setMembers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // UI state
   const [activeTab, setActiveTab] = useState<TabType>("calendar");
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
+
+  // Stay modals
+  const [showAddStayModal, setShowAddStayModal] = useState(false);
+  const [showEditStayModal, setShowEditStayModal] = useState(false);
   const [editingStay, setEditingStay] = useState<StayWithExpense | null>(null);
+
+  // Event modals
+  const [showAddEventModal, setShowAddEventModal] = useState(false);
+  const [showEditEventModal, setShowEditEventModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<EventWithDetails | null>(null);
 
   // Fetch data
   const fetchData = useCallback(async () => {
     if (!activeHouse) return;
 
     try {
-      const [staysResult, eventsResult] = await Promise.all([
+      const [staysResult, eventsResult, membersResult] = await Promise.all([
         getHouseStays(activeHouse.id),
         getHouseEvents(activeHouse.id),
+        getHouseMembersForEvents(activeHouse.id),
       ]);
 
       if (staysResult.error) {
@@ -71,6 +90,12 @@ export default function CalendarScreen() {
         console.error("Error fetching events:", eventsResult.error);
       } else {
         setEvents(eventsResult.events);
+      }
+
+      if (membersResult.error) {
+        console.error("Error fetching members:", membersResult.error);
+      } else {
+        setMembers(membersResult.members);
       }
     } catch (error) {
       console.error("Error fetching calendar data:", error);
@@ -104,7 +129,6 @@ export default function CalendarScreen() {
       throw error;
     }
 
-    // Refresh data
     fetchData();
   };
 
@@ -122,7 +146,6 @@ export default function CalendarScreen() {
       throw error;
     }
 
-    // Refresh data
     fetchData();
   };
 
@@ -166,9 +189,92 @@ export default function CalendarScreen() {
     }
   };
 
-  const openEditModal = (stay: StayWithExpense) => {
+  const openEditStayModal = (stay: StayWithExpense) => {
     setEditingStay(stay);
-    setShowEditModal(true);
+    setShowEditStayModal(true);
+  };
+
+  // Event actions
+  const handleAddEvent = async (data: {
+    name: string;
+    description?: string;
+    eventDate: string;
+    eventTime?: string;
+    endDate?: string;
+    endTime?: string;
+    links?: string[];
+    participantIds?: string[];
+  }) => {
+    if (!activeHouse || !user) return;
+
+    const { error } = await createEvent(activeHouse.id, user.id, data);
+
+    if (error) {
+      throw error;
+    }
+
+    fetchData();
+  };
+
+  const handleEditEvent = async (data: {
+    name: string;
+    description?: string;
+    eventDate: string;
+    eventTime?: string;
+    endDate?: string;
+    endTime?: string;
+    links?: string[];
+    participantIds?: string[];
+  }) => {
+    if (!editingEvent) return;
+
+    const { error } = await updateEvent(editingEvent.id, data);
+
+    if (error) {
+      throw error;
+    }
+
+    fetchData();
+  };
+
+  const handleDeleteEvent = (event: EventWithDetails) => {
+    Alert.alert(
+      "Delete Event",
+      "Are you sure you want to delete this event? This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await deleteEvent(event.id);
+            if (error) {
+              Alert.alert("Error", error.message);
+            } else {
+              fetchData();
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const openEditEventModal = (event: EventWithDetails) => {
+    setEditingEvent(event);
+    setShowEditEventModal(true);
+  };
+
+  // Handle add button based on active tab
+  const handleAddPress = () => {
+    if (activeTab === "events") {
+      setShowAddEventModal(true);
+    } else {
+      setShowAddStayModal(true);
+    }
+  };
+
+  const getAddButtonText = () => {
+    return activeTab === "events" ? "Add Event" : "Add Stay";
   };
 
   if (isLoading) {
@@ -191,10 +297,10 @@ export default function CalendarScreen() {
         </View>
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: colors.primary }]}
-          onPress={() => setShowAddModal(true)}
+          onPress={handleAddPress}
         >
           <FontAwesome name="plus" size={16} color="#fff" />
-          <Text style={styles.addButtonText}>Add Stay</Text>
+          <Text style={styles.addButtonText}>{getAddButtonText()}</Text>
         </TouchableOpacity>
       </View>
 
@@ -242,6 +348,27 @@ export default function CalendarScreen() {
             Stays
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            activeTab === "events" && { backgroundColor: colors.background },
+          ]}
+          onPress={() => setActiveTab("events")}
+        >
+          <FontAwesome
+            name="star"
+            size={14}
+            color={activeTab === "events" ? colors.foreground : colors.mutedForeground}
+          />
+          <Text
+            style={[
+              styles.tabText,
+              { color: activeTab === "events" ? colors.foreground : colors.mutedForeground },
+            ]}
+          >
+            Events
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Content */}
@@ -250,34 +377,60 @@ export default function CalendarScreen() {
           <StaysCalendar
             stays={stays}
             events={events}
-            onStayPress={openEditModal}
+            onStayPress={openEditStayModal}
           />
-        ) : (
+        ) : activeTab === "stays" ? (
           <StaysList
             stays={stays}
-            onEditStay={openEditModal}
+            onEditStay={openEditStayModal}
             onDeleteStay={handleDeleteStay}
             onSettleGuestFee={handleSettleGuestFee}
             onUnsettleGuestFee={handleUnsettleGuestFee}
           />
+        ) : (
+          <EventsList
+            events={events}
+            currentUserId={user?.id || ""}
+            onEditEvent={openEditEventModal}
+            onDeleteEvent={handleDeleteEvent}
+          />
         )}
       </View>
 
-      {/* Modals */}
+      {/* Stay Modals */}
       <AddStayModal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        visible={showAddStayModal}
+        onClose={() => setShowAddStayModal(false)}
         onSubmit={handleAddStay}
       />
 
       <EditStayModal
-        visible={showEditModal}
+        visible={showEditStayModal}
         stay={editingStay}
         onClose={() => {
-          setShowEditModal(false);
+          setShowEditStayModal(false);
           setEditingStay(null);
         }}
         onSubmit={handleEditStay}
+      />
+
+      {/* Event Modals */}
+      <AddEventModal
+        visible={showAddEventModal}
+        onClose={() => setShowAddEventModal(false)}
+        onSubmit={handleAddEvent}
+        members={members}
+      />
+
+      <EditEventModal
+        visible={showEditEventModal}
+        event={editingEvent}
+        onClose={() => {
+          setShowEditEventModal(false);
+          setEditingEvent(null);
+        }}
+        onSubmit={handleEditEvent}
+        members={members}
       />
     </View>
   );
