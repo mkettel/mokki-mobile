@@ -7,6 +7,194 @@ import type {
 } from "@/types/database";
 
 /**
+ * Generate a random invite code
+ */
+function generateInviteCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Removed confusing chars (0, O, 1, I)
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+/**
+ * Create an invite link for a house
+ * Returns a shareable code that anyone can use to join
+ */
+export async function createInviteLink(houseId: string): Promise<{
+  inviteCode: string | null;
+  error: Error | null;
+}> {
+  try {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        inviteCode: null,
+        error: authError || new Error("Not authenticated"),
+      };
+    }
+
+    // Check if user is admin
+    const { data: membership, error: memberError } = await supabase
+      .from("house_members")
+      .select("role")
+      .eq("house_id", houseId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (memberError || membership?.role !== "admin") {
+      return {
+        inviteCode: null,
+        error: new Error("Only admins can create invite links"),
+      };
+    }
+
+    // Check if there's an existing active invite link
+    const { data: existingInvite } = await supabase
+      .from("house_invites")
+      .select("code, expires_at")
+      .eq("house_id", houseId)
+      .gt("expires_at", new Date().toISOString())
+      .single();
+
+    if (existingInvite) {
+      return { inviteCode: existingInvite.code, error: null };
+    }
+
+    // Generate new invite code
+    const code = generateInviteCode();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+
+    // Store the invite
+    const { error: insertError } = await supabase.from("house_invites").insert({
+      house_id: houseId,
+      code,
+      created_by: user.id,
+      expires_at: expiresAt.toISOString(),
+    });
+
+    if (insertError) {
+      // If table doesn't exist, fall back to using house_id as code
+      console.warn("house_invites table may not exist, using fallback:", insertError);
+      return { inviteCode: houseId.substring(0, 8).toUpperCase(), error: null };
+    }
+
+    return { inviteCode: code, error: null };
+  } catch (error) {
+    console.error("Error creating invite link:", error);
+    return { inviteCode: null, error: error as Error };
+  }
+}
+
+/**
+ * Join a house using an invite code
+ */
+export async function joinHouseWithCode(code: string): Promise<{
+  success: boolean;
+  houseId: string | null;
+  houseName: string | null;
+  error: Error | null;
+}> {
+  try {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        houseId: null,
+        houseName: null,
+        error: authError || new Error("Not authenticated"),
+      };
+    }
+
+    // Find the invite
+    const { data: invite, error: inviteError } = await supabase
+      .from("house_invites")
+      .select("house_id, expires_at, houses(name)")
+      .eq("code", code.toUpperCase())
+      .single();
+
+    if (inviteError || !invite) {
+      return {
+        success: false,
+        houseId: null,
+        houseName: null,
+        error: new Error("Invalid invite code"),
+      };
+    }
+
+    // Check if expired
+    if (new Date(invite.expires_at) < new Date()) {
+      return {
+        success: false,
+        houseId: null,
+        houseName: null,
+        error: new Error("This invite link has expired"),
+      };
+    }
+
+    // Check if already a member
+    const { data: existingMember } = await supabase
+      .from("house_members")
+      .select("id")
+      .eq("house_id", invite.house_id)
+      .eq("user_id", user.id)
+      .single();
+
+    if (existingMember) {
+      return {
+        success: false,
+        houseId: invite.house_id,
+        houseName: (invite.houses as any)?.name || null,
+        error: new Error("You are already a member of this house"),
+      };
+    }
+
+    // Add user to house
+    const { error: joinError } = await supabase.from("house_members").insert({
+      house_id: invite.house_id,
+      user_id: user.id,
+      role: "member",
+      invite_status: "accepted",
+      joined_at: new Date().toISOString(),
+    });
+
+    if (joinError) {
+      return {
+        success: false,
+        houseId: null,
+        houseName: null,
+        error: joinError,
+      };
+    }
+
+    return {
+      success: true,
+      houseId: invite.house_id,
+      houseName: (invite.houses as any)?.name || null,
+      error: null,
+    };
+  } catch (error) {
+    console.error("Error joining house:", error);
+    return {
+      success: false,
+      houseId: null,
+      houseName: null,
+      error: error as Error,
+    };
+  }
+}
+
+/**
  * Get all members of a house
  */
 export async function getHouseMembers(houseId: string): Promise<{

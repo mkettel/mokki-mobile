@@ -30,9 +30,9 @@ export function BalanceList({ balances, onSettleAll }: BalanceListProps) {
     }
 
     const amount = Math.abs(balance.netBalance).toFixed(2);
-    const note = encodeURIComponent("Settling up for house expenses");
+    const note = "Settling up for house expenses"; // Venmo handles spaces correctly without encoding
     const venmoUrl = `venmo://paycharge?txn=pay&recipients=${balance.venmoHandle}&amount=${amount}&note=${note}`;
-    const webUrl = `https://venmo.com/${balance.venmoHandle}?txn=pay&amount=${amount}&note=${note}`;
+    const webUrl = `https://venmo.com/${balance.venmoHandle}?txn=pay&amount=${amount}&note=${encodeURIComponent(note)}`;
 
     Linking.canOpenURL(venmoUrl)
       .then((supported) => {
