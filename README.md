@@ -85,3 +85,48 @@ This app connects to the same Supabase backend as the web app (`mokki/`):
 - `npm run ios` - Start iOS simulator
 - `npm run android` - Start Android emulator
 - `npm run web` - Start web version
+
+## Building & Deploying to TestFlight
+
+### Prerequisites
+
+- Apple Developer account ($99/year)
+- Expo account (free) - create at expo.dev
+
+### First-Time Setup
+
+1. Login to Expo:
+```bash
+npx eas-cli login
+```
+
+2. Configure EAS Build (creates eas.json):
+```bash
+npx eas-cli build:configure
+```
+
+### Building & Submitting
+
+**Full Build** (required for native code changes, new modules):
+```bash
+npx eas-cli build --platform ios
+npx eas-cli submit --platform ios
+```
+Takes ~15-20 minutes. Creates a new build and submits to TestFlight.
+
+**OTA Update** (for JS/React code changes only - much faster):
+```bash
+npx eas-cli update
+```
+Takes ~1-2 minutes. Users get the update next time they open the app. Use this for UI changes, bug fixes, new screens - anything that doesn't add native modules.
+
+### When to Use Which
+
+| Change Type | Command |
+|-------------|---------|
+| UI/styling changes | `npx eas-cli update` |
+| Bug fixes in JS code | `npx eas-cli update` |
+| New screens/components | `npx eas-cli update` |
+| New native module (e.g., expo-camera) | Full build + submit |
+| app.json changes | Full build + submit |
+| New environment variables | Full build + submit |

@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "mokki-mobile",
+    "name": "Mökki",
     "slug": "mokki-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mokkimobile",
+    "scheme": "mokki",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "fonts": [
@@ -24,7 +24,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.mokki-mobile"
+      "bundleIdentifier": "app.mokki.mobile"
     },
     "android": {
       "adaptiveIcon": {
@@ -58,6 +58,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b861798e-a373-438c-98f8-d8d181d16ef4"
+      }
     }
   }
 }
