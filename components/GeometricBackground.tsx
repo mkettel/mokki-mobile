@@ -1,7 +1,21 @@
 import React from "react";
-import { View, StyleSheet, useWindowDimensions } from "react-native";
-import Svg, { Polygon } from "react-native-svg";
+import { View, StyleSheet, useWindowDimensions, Platform, Image } from "react-native";
+import Svg, { Polygon, Defs, ClipPath, Image as SvgImage } from "react-native-svg";
 import { useColors } from "@/lib/context/theme";
+
+// Import the noise texture
+const noiseTexture = require("@/assets/images/noise-texture.png");
+
+// Get the URI for the noise texture (platform-specific)
+function getNoiseUri(): string {
+  if (Platform.OS === "web") {
+    // On web, the require returns the URI directly
+    return noiseTexture;
+  }
+  // On native, we need to resolve the asset source
+  const resolved = Image.resolveAssetSource(noiseTexture);
+  return resolved?.uri || "";
+}
 
 export function GeometricBackground() {
   const colors = useColors();
@@ -14,6 +28,7 @@ export function GeometricBackground() {
 
   // Mountain takes up bottom 65% of screen
   const mountainHeight = height * 0.65;
+  const mountainTop = height - mountainHeight;
 
   // The mountain shape points - creates a mountain silhouette
   const points = [
@@ -31,10 +46,29 @@ export function GeometricBackground() {
   return (
     <View style={styles.container} pointerEvents="none">
       <Svg width={width} height={height}>
+        <Defs>
+          <ClipPath id="mountainClip">
+            <Polygon points={points} translateY={mountainTop} />
+          </ClipPath>
+        </Defs>
+
+        {/* Base mountain shape */}
         <Polygon
           points={points}
           fill={colors.geometricBlue}
-          translateY={height - mountainHeight}
+          translateY={mountainTop}
+        />
+
+        {/* Noise texture overlay - clipped to mountain shape */}
+        <SvgImage
+          href={getNoiseUri()}
+          x={0}
+          y={mountainTop}
+          width={width}
+          height={mountainHeight}
+          preserveAspectRatio="xMidYMid slice"
+          clipPath="url(#mountainClip)"
+          opacity={0.3}
         />
       </Svg>
     </View>
