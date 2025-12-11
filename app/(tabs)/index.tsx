@@ -22,11 +22,11 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 // Navigation links matching web app exactly
 const links = [
   { href: "/(tabs)/calendar", label: "Reserve your bed" },
-  { href: "/(tabs)/weather", label: "Pow report" }, // TODO: snow-report screen
+  { href: "/(tabs)/weather", label: "Pow report" },
   { href: "/(tabs)/broll", label: "B-roll" },
-  { href: "/(tabs)/bulletin", label: "Bulletin board" }, // TODO: bulletin screen
+  { href: "/(tabs)/bulletin", label: "Bulletin board" },
   { href: "/(tabs)/expenses", label: "Pay up" },
-  { href: "/(tabs)/calendar", label: "Who's who" }, // TODO: members screen
+  { href: "/members", label: "Who's who" },
   { href: "/(tabs)/account", label: "About you" },
 ];
 
