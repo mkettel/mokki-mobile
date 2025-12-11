@@ -1,46 +1,42 @@
 import React from "react";
-import { View, StyleSheet, Dimensions } from "react-native";
-import Svg, { Polygon, Defs, Pattern, Rect, G } from "react-native-svg";
-import { lightColors } from "@/constants/theme";
-
-const { width, height } = Dimensions.get("window");
+import { View, StyleSheet, useWindowDimensions } from "react-native";
+import Svg, { Polygon } from "react-native-svg";
+import { useColors } from "@/lib/context/theme";
 
 export function GeometricBackground() {
-  // The mountain shape points - matching the web CSS clip-path
-  // polygon(0% 100%, 0% 50%, 20% 35%, 38% 0%, 55% 25%, 70% 15%, 85% 30%, 100% 40%, 100% 100%)
-  // Convert percentages to actual coordinates
-  const mountainHeight = height * 0.65; // 65vh equivalent
+  const colors = useColors();
+  const { width, height } = useWindowDimensions();
 
+  // Don't render until we have valid dimensions
+  if (width === 0 || height === 0) {
+    return null;
+  }
+
+  // Mountain takes up bottom 65% of screen
+  const mountainHeight = height * 0.65;
+
+  // The mountain shape points - creates a mountain silhouette
   const points = [
-    `0,${mountainHeight}`,           // 0% 100%
-    `0,${mountainHeight * 0.5}`,     // 0% 50%
-    `${width * 0.20},${mountainHeight * 0.35}`, // 20% 35%
-    `${width * 0.38},0`,             // 38% 0%
-    `${width * 0.55},${mountainHeight * 0.25}`, // 55% 25%
-    `${width * 0.70},${mountainHeight * 0.15}`, // 70% 15%
-    `${width * 0.85},${mountainHeight * 0.30}`, // 85% 30%
-    `${width},${mountainHeight * 0.40}`,        // 100% 40%
-    `${width},${mountainHeight}`,    // 100% 100%
-  ].join(" ");
+    [0, mountainHeight],                          // bottom-left
+    [0, mountainHeight * 0.5],                    // left edge, 50% up
+    [width * 0.20, mountainHeight * 0.35],        // first slope
+    [width * 0.38, 0],                            // highest peak
+    [width * 0.55, mountainHeight * 0.25],        // valley
+    [width * 0.70, mountainHeight * 0.15],        // second peak
+    [width * 0.85, mountainHeight * 0.30],        // slope down
+    [width, mountainHeight * 0.40],               // right edge
+    [width, mountainHeight],                      // bottom-right
+  ].map(([x, y]) => `${x},${y}`).join(" ");
 
   return (
     <View style={styles.container} pointerEvents="none">
-      <View style={styles.svgContainer}>
-        <Svg
-          width={width}
-          height={mountainHeight}
-          viewBox={`0 0 ${width} ${mountainHeight}`}
-          style={styles.svg}
-        >
-          {/* Main mountain shape */}
-          <Polygon
-            points={points}
-            fill={lightColors.geometricBlue}
-          />
-        </Svg>
-        {/* Noise overlay - using semi-transparent view for subtle texture effect */}
-        <View style={styles.noiseOverlay} />
-      </View>
+      <Svg width={width} height={height}>
+        <Polygon
+          points={points}
+          fill={colors.geometricBlue}
+          translateY={height - mountainHeight}
+        />
+      </Svg>
     </View>
   );
 }
@@ -48,20 +44,9 @@ export function GeometricBackground() {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
+    top: 0,
     bottom: 0,
     left: 0,
     right: 0,
-    zIndex: -1,
-  },
-  svgContainer: {
-    position: "relative",
-  },
-  svg: {
-    position: "absolute",
-    bottom: 0,
-  },
-  noiseOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
   },
 });

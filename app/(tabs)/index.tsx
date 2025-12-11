@@ -143,20 +143,16 @@ export default function HomeScreen() {
         {/* Navigation Links - Centered vertically, stacked in column */}
         <View style={styles.linksContainer}>
           {links.map((link, index) => (
-            <Animated.View
+            <TouchableOpacity
               key={link.label}
-              entering={FadeInDown.delay(400 + index * 80).duration(400)}
+              onPress={() => router.push(link.href as any)}
+              style={styles.linkButton}
+              activeOpacity={0.7}
             >
-              <TouchableOpacity
-                onPress={() => router.push(link.href as any)}
-                style={styles.linkButton}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.linkText, { color: colors.background }]}>
-                  {link.label}
-                </Text>
-              </TouchableOpacity>
-            </Animated.View>
+              <Text style={[styles.linkText, { color: colors.foreground }]}>
+                {link.label}
+              </Text>
+            </TouchableOpacity>
           ))}
         </View>
 
