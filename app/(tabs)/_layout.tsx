@@ -7,6 +7,7 @@ import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import { useAuth } from "@/lib/context/auth";
 import { useColors } from "@/lib/context/theme";
+import { useHouse } from "@/lib/context/house";
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>["name"];
@@ -18,13 +19,24 @@ function TabBarIcon(props: {
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const colors = useColors();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { houses, isLoading: houseLoading } = useHouse();
 
+  const isLoading = authLoading || houseLoading;
+
+  // Redirect to login if not authenticated
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!authLoading && !user) {
       router.replace("/(auth)/login");
     }
-  }, [user, isLoading]);
+  }, [user, authLoading]);
+
+  // Redirect to create-house if user has no houses
+  useEffect(() => {
+    if (!isLoading && user && houses.length === 0) {
+      router.replace("/create-house");
+    }
+  }, [user, houses, isLoading]);
 
   if (isLoading) {
     return (
@@ -34,7 +46,7 @@ export default function TabLayout() {
     );
   }
 
-  if (!user) {
+  if (!user || houses.length === 0) {
     return null;
   }
 

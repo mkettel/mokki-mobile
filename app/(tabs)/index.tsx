@@ -5,12 +5,15 @@ import {
   View,
   Text,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/lib/context/auth";
 import { useColors } from "@/lib/context/theme";
+import { useHouse } from "@/lib/context/house";
 import { GeometricBackground } from "@/components/GeometricBackground";
+import { TopBar } from "@/components/TopBar";
 import { typography } from "@/constants/theme";
 import Animated, {
   FadeIn,
@@ -82,21 +85,32 @@ function getHouseNameSize(name: string): number {
 export default function HomeScreen() {
   const { signOut } = useAuth();
   const colors = useColors();
+  const { activeHouse, isLoading } = useHouse();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // TODO: Replace with actual house name from context/API
-  const houseName = "MÖKKI";
+  // Get house name from context, or use fallback
+  const houseName = activeHouse?.name || "MÖKKI";
+
+  if (isLoading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.foreground} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <GeometricBackground />
 
+      {/* Top Bar with house switcher */}
+      <TopBar />
+
       <View
         style={[
           styles.content,
           {
-            paddingTop: insets.top + 40,
             paddingBottom: insets.bottom + 20,
           },
         ]}
@@ -172,6 +186,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   content: {
     flex: 1,
     paddingHorizontal: 24,
@@ -198,7 +217,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     // Position links in the mountain area (lower half of screen)
-    marginTop: SCREEN_HEIGHT * 0.05,
+    marginTop: SCREEN_HEIGHT * 0.02,
   },
   linkButton: {
     paddingVertical: 4,

@@ -13,6 +13,7 @@ import "react-native-reanimated";
 import { useColorScheme } from "@/components/useColorScheme";
 import { AuthProvider } from "@/lib/context/auth";
 import { ThemeProvider } from "@/lib/context/theme";
+import { HouseProvider } from "@/lib/context/house";
 import { lightColors, darkColors } from "@/constants/theme";
 
 export {
@@ -88,7 +89,9 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <RootLayoutNav />
+        <HouseProvider>
+          <RootLayoutNav />
+        </HouseProvider>
       </AuthProvider>
     </ThemeProvider>
   );
@@ -104,6 +107,7 @@ function RootLayoutNav() {
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="create-house" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />
       </Stack>
     </NavigationThemeProvider>
