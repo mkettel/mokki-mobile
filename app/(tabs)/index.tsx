@@ -17,14 +17,17 @@ import Animated, {
   FadeInDown,
 } from "react-native-reanimated";
 
-const { width } = Dimensions.get("window");
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-// Navigation links matching web app
+// Navigation links matching web app exactly
 const links = [
-  { href: "/(tabs)/calendar", label: "Reserve your bed", row: 1 },
-  { href: "/(tabs)/expenses", label: "Pay up", row: 1 },
-  { href: "/(tabs)/b-roll", label: "B-roll", row: 2 },
-  { href: "/(tabs)/account", label: "About you", row: 2 },
+  { href: "/(tabs)/calendar", label: "Reserve your bed" },
+  { href: "/(tabs)/calendar", label: "Pow report" }, // TODO: snow-report screen
+  { href: "/(tabs)/broll", label: "B-roll" },
+  { href: "/(tabs)/calendar", label: "Bulletin board" }, // TODO: bulletin screen
+  { href: "/(tabs)/expenses", label: "Pay up" },
+  { href: "/(tabs)/calendar", label: "Who's who" }, // TODO: members screen
+  { href: "/(tabs)/account", label: "About you" },
 ];
 
 function LiveClock({ color }: { color: string }) {
@@ -68,6 +71,7 @@ function LiveClock({ color }: { color: string }) {
 // Get responsive font size based on house name length
 function getHouseNameSize(name: string): number {
   const len = name.length;
+  // text-7xl = 72px on mobile in web app
   if (len <= 6) return 72;
   if (len <= 12) return 60;
   if (len <= 16) return 48;
@@ -76,16 +80,13 @@ function getHouseNameSize(name: string): number {
 }
 
 export default function HomeScreen() {
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
   // TODO: Replace with actual house name from context/API
   const houseName = "MÖKKI";
-
-  const row1Links = links.filter((l) => l.row === 1);
-  const row2Links = links.filter((l) => l.row === 2);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -100,7 +101,7 @@ export default function HomeScreen() {
           },
         ]}
       >
-        {/* House Name Header */}
+        {/* Header Section - House Name & Clock */}
         <View style={styles.header}>
           <Animated.Text
             entering={FadeInDown.duration(500)}
@@ -123,67 +124,41 @@ export default function HomeScreen() {
           </Animated.View>
         </View>
 
-        {/* Navigation Links */}
+        {/* Navigation Links - Centered vertically, stacked in column */}
         <View style={styles.linksContainer}>
-          {/* Row 1 */}
-          <View style={styles.linkRow}>
-            {row1Links.map((link, index) => (
-              <Animated.View
-                key={link.label}
-                entering={FadeInDown.delay(400 + index * 100).duration(400)}
+          {links.map((link, index) => (
+            <Animated.View
+              key={link.label}
+              entering={FadeInDown.delay(400 + index * 80).duration(400)}
+            >
+              <TouchableOpacity
+                onPress={() => router.push(link.href as any)}
+                style={styles.linkButton}
+                activeOpacity={0.7}
               >
-                <TouchableOpacity
-                  onPress={() => router.push(link.href as any)}
-                  style={styles.linkButton}
+                <Text
+                  style={[
+                    styles.linkText,
+                    { color: colors.background },
+                  ]}
                 >
-                  <Text
-                    style={[
-                      styles.linkText,
-                      { color: colors.background },
-                    ]}
-                  >
-                    {link.label}
-                  </Text>
-                </TouchableOpacity>
-              </Animated.View>
-            ))}
-          </View>
-
-          {/* Row 2 */}
-          <View style={styles.linkRow}>
-            {row2Links.map((link, index) => (
-              <Animated.View
-                key={link.label}
-                entering={FadeInDown.delay(600 + index * 100).duration(400)}
-              >
-                <TouchableOpacity
-                  onPress={() => router.push(link.href as any)}
-                  style={styles.linkButton}
-                >
-                  <Text
-                    style={[
-                      styles.linkText,
-                      { color: colors.background },
-                    ]}
-                  >
-                    {link.label}
-                  </Text>
-                </TouchableOpacity>
-              </Animated.View>
-            ))}
-          </View>
+                  {link.label}
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+          ))}
         </View>
 
-        {/* Sign Out Button - temporary for testing */}
+        {/* Temporary Sign Out - remove later */}
         <Animated.View
-          entering={FadeIn.delay(800).duration(400)}
+          entering={FadeIn.delay(1000).duration(400)}
           style={styles.footer}
         >
           <TouchableOpacity
-            style={[styles.signOutButton, { borderColor: colors.foreground }]}
+            style={[styles.signOutButton, { borderColor: colors.mutedForeground }]}
             onPress={signOut}
           >
-            <Text style={[styles.signOutText, { color: colors.foreground }]}>
+            <Text style={[styles.signOutText, { color: colors.mutedForeground }]}>
               Sign Out
             </Text>
           </TouchableOpacity>
@@ -200,13 +175,13 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    justifyContent: "space-between",
   },
   header: {
     alignItems: "center",
+    marginTop: 10,
   },
   houseName: {
-    fontWeight: "bold",
+    fontFamily: typography.fontFamily.chillaxBold,
     textAlign: "center",
     textTransform: "uppercase",
     letterSpacing: 2,
@@ -216,43 +191,37 @@ const styles = StyleSheet.create({
   },
   clockText: {
     fontSize: 14,
+    fontFamily: typography.fontFamily.chillax,
   },
   linksContainer: {
     flex: 1,
     justifyContent: "center",
-    gap: 16,
-    maxWidth: 500,
-    alignSelf: "center",
-    width: "100%",
-  },
-  linkRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    flexWrap: "wrap",
-    gap: 8,
+    // Position links in the mountain area (lower half of screen)
+    marginTop: SCREEN_HEIGHT * 0.05,
   },
   linkButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
   },
   linkText: {
-    fontSize: width > 400 ? 32 : 26,
+    fontSize: 36,
     fontFamily: typography.fontFamily.boskaMedium,
     textTransform: "uppercase",
+    textAlign: "center",
   },
   footer: {
     alignItems: "center",
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
   signOutButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
     borderWidth: 1,
   },
   signOutText: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 12,
+    fontFamily: typography.fontFamily.chillax,
   },
 });

@@ -6,6 +6,7 @@ import { ActivityIndicator, View } from "react-native";
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import { useAuth } from "@/lib/context/auth";
+import { useColors } from "@/lib/context/theme";
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>["name"];
@@ -16,6 +17,7 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const colors = useColors();
   const { user, isLoading } = useAuth();
 
   useEffect(() => {
@@ -26,8 +28,8 @@ export default function TabLayout() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.foreground} />
       </View>
     );
   }
@@ -40,13 +42,19 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        headerShown: true,
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.background,
+          borderTopColor: colors.border,
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Home",
+          // Hide tab bar on home screen - navigation is in the content
+          tabBarStyle: { display: "none" },
           tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
         }}
       />
