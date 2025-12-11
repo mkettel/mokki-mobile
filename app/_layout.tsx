@@ -1,29 +1,72 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider as NavigationThemeProvider,
+} from "@react-navigation/native";
+import { useFonts } from "expo-font";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
+import "react-native-reanimated";
 
-import { useColorScheme } from '@/components/useColorScheme';
+import { useColorScheme } from "@/components/useColorScheme";
+import { AuthProvider } from "@/lib/context/auth";
+import { ThemeProvider } from "@/lib/context/theme";
+import { lightColors, darkColors } from "@/constants/theme";
 
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
-} from 'expo-router';
+} from "expo-router";
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
+  initialRouteName: "(auth)",
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+// Custom navigation theme to match Mokki colors
+const MokkiLightTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: lightColors.primary,
+    background: lightColors.background,
+    card: lightColors.card,
+    text: lightColors.foreground,
+    border: lightColors.border,
+    notification: lightColors.destructive,
+  },
+};
+
+const MokkiDarkTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: darkColors.primary,
+    background: darkColors.background,
+    card: darkColors.card,
+    text: darkColors.foreground,
+    border: darkColors.border,
+    notification: darkColors.destructive,
+  },
+};
+
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+    // Chillax - main UI font (sans-serif)
+    "Chillax-Regular": require("../assets/fonts/Chillax-Regular.ttf"),
+    "Chillax-Medium": require("../assets/fonts/Chillax-Medium.ttf"),
+    "Chillax-Semibold": require("../assets/fonts/Chillax-Semibold.ttf"),
+    "Chillax-Bold": require("../assets/fonts/Chillax-Bold.ttf"),
+    // Boska - navigation links font (serif)
+    "Boska-Regular": require("../assets/fonts/Boska-Regular.ttf"),
+    "Boska-Medium": require("../assets/fonts/Boska-Medium.ttf"),
+    "Boska-Bold": require("../assets/fonts/Boska-Bold.ttf"),
     ...FontAwesome.font,
   });
 
@@ -42,18 +85,27 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
+    </ThemeProvider>
+  );
 }
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <NavigationThemeProvider
+      value={colorScheme === "dark" ? MokkiDarkTheme : MokkiLightTheme}
+    >
       <Stack>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="modal" options={{ presentation: "modal" }} />
       </Stack>
-    </ThemeProvider>
+    </NavigationThemeProvider>
   );
 }
