@@ -9,13 +9,13 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "fonts": [
-      "./assets/fonts/Chillax-Regular.ttf",
-      "./assets/fonts/Chillax-Medium.ttf",
-      "./assets/fonts/Chillax-Semibold.ttf",
-      "./assets/fonts/Chillax-Bold.ttf",
-      "./assets/fonts/Boska-Regular.ttf",
-      "./assets/fonts/Boska-Medium.ttf",
-      "./assets/fonts/Boska-Bold.ttf"
+      "./assets/fonts/Chillax-Regular.otf",
+      "./assets/fonts/Chillax-Medium.otf",
+      "./assets/fonts/Chillax-Semibold.otf",
+      "./assets/fonts/Chillax-Bold.otf",
+      "./assets/fonts/Boska-Regular.otf",
+      "./assets/fonts/Boska-Medium.otf",
+      "./assets/fonts/Boska-Bold.otf"
     ],
     "splash": {
       "image": "./assets/images/splash-icon.png",
@@ -23,7 +23,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.mokki-mobile"
     },
     "android": {
       "adaptiveIcon": {
@@ -39,7 +40,21 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/Chillax-Regular.otf",
+            "./assets/fonts/Chillax-Medium.otf",
+            "./assets/fonts/Chillax-Semibold.otf",
+            "./assets/fonts/Chillax-Bold.otf",
+            "./assets/fonts/Boska-Regular.otf",
+            "./assets/fonts/Boska-Medium.otf",
+            "./assets/fonts/Boska-Bold.otf"
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

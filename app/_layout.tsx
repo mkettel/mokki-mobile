@@ -60,14 +60,14 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     // Chillax - main UI font (sans-serif)
-    "Chillax-Regular": require("../assets/fonts/Chillax-Regular.ttf"),
-    "Chillax-Medium": require("../assets/fonts/Chillax-Medium.ttf"),
-    "Chillax-Semibold": require("../assets/fonts/Chillax-Semibold.ttf"),
-    "Chillax-Bold": require("../assets/fonts/Chillax-Bold.ttf"),
+    "Chillax-Regular": require("../assets/fonts/Chillax-Regular.otf"),
+    "Chillax-Medium": require("../assets/fonts/Chillax-Medium.otf"),
+    "Chillax-Semibold": require("../assets/fonts/Chillax-Semibold.otf"),
+    "Chillax-Bold": require("../assets/fonts/Chillax-Bold.otf"),
     // Boska - navigation links font (serif)
-    "Boska-Regular": require("../assets/fonts/Boska-Regular.ttf"),
-    "Boska-Medium": require("../assets/fonts/Boska-Medium.ttf"),
-    "Boska-Bold": require("../assets/fonts/Boska-Bold.ttf"),
+    "Boska-Regular": require("../assets/fonts/Boska-Regular.otf"),
+    "Boska-Medium": require("../assets/fonts/Boska-Medium.otf"),
+    "Boska-Bold": require("../assets/fonts/Boska-Bold.otf"),
     ...FontAwesome.font,
   });
 
