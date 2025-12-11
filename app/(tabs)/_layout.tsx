@@ -98,6 +98,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="weather"
+        options={{
+          title: "Snow",
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="snowflake-o" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="broll"
         options={{
           title: "B-Roll",

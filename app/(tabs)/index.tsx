@@ -1,33 +1,30 @@
-import { useState, useEffect } from "react";
-import {
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  Text,
-  Dimensions,
-  ActivityIndicator,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { useAuth } from "@/lib/context/auth";
-import { useColors } from "@/lib/context/theme";
-import { useHouse } from "@/lib/context/house";
 import { GeometricBackground } from "@/components/GeometricBackground";
 import { TopBar } from "@/components/TopBar";
 import { typography } from "@/constants/theme";
-import Animated, {
-  FadeIn,
-  FadeInDown,
-} from "react-native-reanimated";
+import { useAuth } from "@/lib/context/auth";
+import { useHouse } from "@/lib/context/house";
+import { useColors } from "@/lib/context/theme";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 // Navigation links matching web app exactly
 const links = [
   { href: "/(tabs)/calendar", label: "Reserve your bed" },
-  { href: "/(tabs)/calendar", label: "Pow report" }, // TODO: snow-report screen
+  { href: "/(tabs)/weather", label: "Pow report" }, // TODO: snow-report screen
   { href: "/(tabs)/broll", label: "B-roll" },
-  { href: "/(tabs)/calendar", label: "Bulletin board" }, // TODO: bulletin screen
+  { href: "/(tabs)/bulletin", label: "Bulletin board" }, // TODO: bulletin screen
   { href: "/(tabs)/expenses", label: "Pay up" },
   { href: "/(tabs)/calendar", label: "Who's who" }, // TODO: members screen
   { href: "/(tabs)/account", label: "About you" },
@@ -94,7 +91,12 @@ export default function HomeScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.foreground} />
       </View>
     );
@@ -111,7 +113,7 @@ export default function HomeScreen() {
         style={[
           styles.content,
           {
-            paddingBottom: insets.bottom + 20,
+            paddingBottom: insets.bottom + 40,
           },
         ]}
       >
@@ -150,12 +152,7 @@ export default function HomeScreen() {
                 style={styles.linkButton}
                 activeOpacity={0.7}
               >
-                <Text
-                  style={[
-                    styles.linkText,
-                    { color: colors.background },
-                  ]}
-                >
+                <Text style={[styles.linkText, { color: colors.background }]}>
                   {link.label}
                 </Text>
               </TouchableOpacity>
@@ -164,19 +161,6 @@ export default function HomeScreen() {
         </View>
 
         {/* Temporary Sign Out - remove later */}
-        <Animated.View
-          entering={FadeIn.delay(1000).duration(400)}
-          style={styles.footer}
-        >
-          <TouchableOpacity
-            style={[styles.signOutButton, { borderColor: colors.mutedForeground }]}
-            onPress={signOut}
-          >
-            <Text style={[styles.signOutText, { color: colors.mutedForeground }]}>
-              Sign Out
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
       </View>
     </View>
   );
@@ -217,14 +201,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     // Position links in the mountain area (lower half of screen)
-    marginTop: SCREEN_HEIGHT * 0.02,
+    marginTop: SCREEN_HEIGHT * 0.14,
   },
   linkButton: {
     paddingVertical: 4,
     paddingHorizontal: 8,
   },
   linkText: {
-    fontSize: 36,
+    fontSize: 28,
     fontFamily: typography.fontFamily.boskaMedium,
     textTransform: "uppercase",
     textAlign: "center",

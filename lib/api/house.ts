@@ -252,6 +252,33 @@ export async function createHouse(name: string): Promise<{
 }
 
 /**
+ * Update house favorite resort IDs
+ */
+export async function updateHouseFavoriteResorts(
+  houseId: string,
+  resortIds: string[]
+): Promise<{
+  success: boolean;
+  error: Error | null;
+}> {
+  try {
+    const { error } = await supabase
+      .from("houses")
+      .update({ favorite_resort_ids: resortIds })
+      .eq("id", houseId);
+
+    if (error) {
+      return { success: false, error };
+    }
+
+    return { success: true, error: null };
+  } catch (error) {
+    console.error("Error updating favorite resorts:", error);
+    return { success: false, error: error as Error };
+  }
+}
+
+/**
  * Accept all pending invites for the current user
  * @param userId - Optional user ID to use
  * @param userEmail - Optional user email to use
