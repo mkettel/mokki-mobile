@@ -1,9 +1,12 @@
 import { GeometricBackground } from "@/components/GeometricBackground";
 import { TopBar } from "@/components/TopBar";
+import { WeatherIcon } from "@/components/weather";
 import { typography } from "@/constants/theme";
 import { useAuth } from "@/lib/context/auth";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
+import { getResort, getResortWeather } from "@/lib/api/weather";
+import type { OpenMeteoCurrentWeather } from "@/types/database";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -14,7 +17,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  SlideInRight,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -30,7 +37,12 @@ const links = [
   { href: "/(tabs)/account", label: "About you" },
 ];
 
-function LiveClock({ color }: { color: string }) {
+interface LiveClockProps {
+  color: string;
+  weather?: OpenMeteoCurrentWeather | null;
+}
+
+function LiveClock({ color, weather }: LiveClockProps) {
   const [time, setTime] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -62,9 +74,29 @@ function LiveClock({ color }: { color: string }) {
   };
 
   return (
-    <Text style={[styles.clockText, { color }]}>
-      {formatDate(time)} · {formatTime(time)}
-    </Text>
+    <View style={styles.clockRow}>
+      <Text style={[styles.clockText, { color }]}>
+        {formatDate(time)} · {formatTime(time)}
+      </Text>
+      {weather && (
+        <>
+          <Text style={[styles.clockText, { color }]}> · </Text>
+          <Animated.View
+            entering={SlideInRight.duration(400).delay(400)}
+            style={styles.weatherContainer}
+          >
+            <WeatherIcon
+              code={weather.weather_code}
+              isDay={weather.is_day}
+              size={14}
+            />
+            <Text style={[styles.clockText, { color }]}>
+              {Math.round(weather.temperature)}°F
+            </Text>
+          </Animated.View>
+        </>
+      )}
+    </View>
   );
 }
 
@@ -85,6 +117,31 @@ export default function HomeScreen() {
   const { activeHouse, isLoading } = useHouse();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [currentWeather, setCurrentWeather] = useState<OpenMeteoCurrentWeather | null>(null);
+
+  // Fetch weather for the linked resort
+  useEffect(() => {
+    const fetchWeather = async () => {
+      if (!activeHouse?.resort_id) {
+        setCurrentWeather(null);
+        return;
+      }
+
+      try {
+        const { resort } = await getResort(activeHouse.resort_id);
+        if (resort) {
+          const { weather } = await getResortWeather(resort);
+          if (weather) {
+            setCurrentWeather(weather.current);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching weather for home:", error);
+      }
+    };
+
+    fetchWeather();
+  }, [activeHouse?.resort_id]);
 
   // Get house name from context, or use fallback
   const houseName = activeHouse?.name || "MÖKKI";
@@ -136,7 +193,7 @@ export default function HomeScreen() {
             entering={FadeIn.delay(400).duration(500)}
             style={styles.clockContainer}
           >
-            <LiveClock color={colors.foreground} />
+            <LiveClock color={colors.foreground} weather={currentWeather} />
           </Animated.View>
         </View>
 
@@ -188,9 +245,18 @@ const styles = StyleSheet.create({
   clockContainer: {
     marginTop: 2,
   },
+  clockRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   clockText: {
     fontSize: 14,
     fontFamily: typography.fontFamily.chillax,
+  },
+  weatherContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   linksContainer: {
     flex: 1,
