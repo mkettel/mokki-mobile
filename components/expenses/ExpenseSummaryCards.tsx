@@ -70,8 +70,7 @@ export function ExpenseSummaryCards({ summary }: ExpenseSummaryCardsProps) {
               {card.label}
             </Text>
             <Text style={[styles.amount, { color: card.color }]}>
-              {card.prefix || ""}
-              {formatCurrency(card.amount)}
+              {card.prefix || ""}{formatCurrency(card.amount)}
             </Text>
           </View>
         </View>
@@ -83,17 +82,17 @@ export function ExpenseSummaryCards({ summary }: ExpenseSummaryCardsProps) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: "column",
-    gap: 25,
+    gap: 10,
     paddingHorizontal: 4,
   },
   card: {
-    flex: 1,
     borderRadius: 0,
     padding: 12,
     borderLeftWidth: 3,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    minHeight: 50,
   },
   iconContainer: {
     width: 32,
@@ -103,15 +102,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cardContent: {
-    flex: 1,
+    marginLeft: 4,
   },
   label: {
-    fontSize: 10,
+    fontSize: 13,
     fontFamily: typography.fontFamily.chillax,
     marginBottom: 2,
   },
   amount: {
-    fontSize: 14,
+    fontSize: 18,
     fontFamily: typography.fontFamily.chillaxSemibold,
   },
 });

@@ -1,15 +1,15 @@
+import { borderRadius, typography } from "@/constants/theme";
+import { useColors, useTheme } from "@/lib/context/theme";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useState } from "react";
 import {
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
   TouchableOpacity,
   View,
-  Text,
-  Modal,
-  StyleSheet,
-  Pressable,
 } from "react-native";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useTheme, useColors } from "@/lib/context/theme";
-import { typography, borderRadius } from "@/constants/theme";
 
 type ThemeOption = "light" | "dark" | "system";
 
@@ -89,12 +89,7 @@ export function ThemeSwitcher() {
                   color={colors.foreground}
                   style={styles.optionIcon}
                 />
-                <Text
-                  style={[
-                    styles.optionText,
-                    { color: colors.foreground },
-                  ]}
-                >
+                <Text style={[styles.optionText, { color: colors.foreground }]}>
                   {option.label}
                 </Text>
                 {theme === option.value && (
