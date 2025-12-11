@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   View,
   Text,
   TouchableOpacity,
@@ -25,15 +24,44 @@ import {
   PasswordInput,
   Label,
 } from "@/components/ui";
+import { FontAwesome } from "@expo/vector-icons";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
+  const {
+    signIn,
+    biometricSupported,
+    biometricEnabled,
+    biometricName,
+    signInWithBiometric,
+  } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+
+  // Auto-prompt biometric on mount if enabled
+  useEffect(() => {
+    if (biometricEnabled && biometricSupported) {
+      handleBiometricLogin();
+    }
+  }, [biometricEnabled, biometricSupported]);
+
+  const handleBiometricLogin = async () => {
+    setIsBiometricLoading(true);
+    setError(null);
+
+    const { error: biometricError } = await signInWithBiometric();
+    setIsBiometricLoading(false);
+
+    if (biometricError) {
+      setError(biometricError.message);
+    } else {
+      router.replace("/(tabs)");
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -132,11 +160,39 @@ export default function LoginScreen() {
                   <Button
                     onPress={handleLogin}
                     loading={isLoading}
-                    disabled={isLoading}
+                    disabled={isLoading || isBiometricLoading}
                     style={styles.submitButton}
                   >
                     {isLoading ? "Logging in..." : "Login"}
                   </Button>
+
+                  {/* Biometric Login Button */}
+                  {biometricSupported && biometricEnabled && (
+                    <TouchableOpacity
+                      onPress={handleBiometricLogin}
+                      disabled={isBiometricLoading || isLoading}
+                      style={[
+                        styles.biometricButton,
+                        { borderColor: colors.border },
+                      ]}
+                    >
+                      <FontAwesome
+                        name={biometricName === "Face ID" ? "smile-o" : "hand-stop-o"}
+                        size={20}
+                        color={colors.foreground}
+                      />
+                      <Text
+                        style={[
+                          styles.biometricButtonText,
+                          { color: colors.foreground },
+                        ]}
+                      >
+                        {isBiometricLoading
+                          ? "Authenticating..."
+                          : `Login with ${biometricName}`}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
 
                   {/* Sign Up Link */}
                   <View style={styles.footer}>
@@ -206,6 +262,19 @@ const styles = StyleSheet.create({
   submitButton: {
     width: "100%",
     marginTop: 8,
+  },
+  biometricButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 8,
+  },
+  biometricButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   footer: {
     flexDirection: "row",

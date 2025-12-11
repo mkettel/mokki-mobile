@@ -45,7 +45,7 @@ export function GeometricBackground() {
   const points = [
     [0, mountainHeight], // bottom-left
     [0, mountainHeight * 0.5], // left edge, 50% up
-    [width * 0.2, mountainHeight * 0.35], // first slope
+    [width * 0.14, mountainHeight * 0.35], // first slope
     [width * 0.38, 0], // highest peak
     [width * 0.55, mountainHeight * 0.25], // valley
     [width * 0.7, mountainHeight * 0.15], // second peak

@@ -268,14 +268,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     // Position links in the mountain area (lower half of screen)
-    marginTop: SCREEN_HEIGHT * 0.18,
+    marginTop: SCREEN_HEIGHT * 0.22,
   },
   linkButton: {
     paddingVertical: 4,
     paddingHorizontal: 8,
   },
   linkText: {
-    fontSize: 28,
+    fontSize: 30,
     fontFamily: typography.fontFamily.boskaMedium,
     textTransform: "uppercase",
     textAlign: "center",

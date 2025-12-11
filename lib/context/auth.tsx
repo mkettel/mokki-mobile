@@ -1,6 +1,18 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { Session, User } from "@supabase/supabase-js";
+import {
+  authenticateWithBiometric,
+  disableBiometricLogin,
+  enableBiometricLogin,
+  getBiometricCredentials,
+  getBiometricName,
+  getBiometricType,
+  isBiometricLoginEnabled,
+  isBiometricSupported,
+  updateBiometricToken,
+  type BiometricType,
+} from "@/lib/biometric";
 import { supabase } from "@/lib/supabase/client";
+import { Session, User } from "@supabase/supabase-js";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 type AuthContextType = {
   user: User | null;
@@ -10,6 +22,14 @@ type AuthContextType = {
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
+  // Biometric auth
+  biometricType: BiometricType;
+  biometricName: string;
+  biometricSupported: boolean;
+  biometricEnabled: boolean;
+  signInWithBiometric: () => Promise<{ error: Error | null }>;
+  enableBiometric: () => Promise<{ error: Error | null }>;
+  disableBiometric: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,6 +38,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [biometricType, setBiometricType] = useState<BiometricType>("none");
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+
+  const biometricName = getBiometricName(biometricType);
+
+  // Initialize biometric state
+  useEffect(() => {
+    const initBiometric = async () => {
+      const supported = await isBiometricSupported();
+      setBiometricSupported(supported);
+
+      if (supported) {
+        const type = await getBiometricType();
+        setBiometricType(type);
+
+        const enabled = await isBiometricLoginEnabled();
+        setBiometricEnabled(enabled);
+      }
+    };
+
+    initBiometric();
+  }, []);
 
   useEffect(() => {
     // Get initial session
@@ -30,10 +73,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
+
+      // Update stored refresh token if biometric is enabled
+      if (session?.refresh_token) {
+        await updateBiometricToken(session.refresh_token);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -64,6 +112,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error as Error | null };
   };
 
+  // Sign in using biometric authentication
+  const signInWithBiometric = async (): Promise<{ error: Error | null }> => {
+    try {
+      // First, authenticate with biometrics
+      const authResult = await authenticateWithBiometric();
+      if (!authResult.success) {
+        return { error: new Error(authResult.error || "Authentication failed") };
+      }
+
+      // Get stored credentials
+      const { refreshToken } = await getBiometricCredentials();
+      if (!refreshToken) {
+        // Clear biometric state if no token found
+        await disableBiometricLogin();
+        setBiometricEnabled(false);
+        return { error: new Error("No saved credentials. Please sign in with your password.") };
+      }
+
+      // Use refresh token to get new session
+      const { error } = await supabase.auth.refreshSession({
+        refresh_token: refreshToken,
+      });
+
+      if (error) {
+        // Token might be expired, clear biometric login
+        await disableBiometricLogin();
+        setBiometricEnabled(false);
+        return { error: new Error("Session expired. Please sign in with your password.") };
+      }
+
+      return { error: null };
+    } catch (err) {
+      return { error: err as Error };
+    }
+  };
+
+  // Enable biometric login for current user
+  const enableBiometric = async (): Promise<{ error: Error | null }> => {
+    if (!session?.refresh_token || !user?.email) {
+      return { error: new Error("No active session") };
+    }
+
+    const success = await enableBiometricLogin(user.email, session.refresh_token);
+    if (success) {
+      setBiometricEnabled(true);
+      return { error: null };
+    }
+
+    return { error: new Error("Failed to enable biometric login") };
+  };
+
+  // Disable biometric login
+  const disableBiometric = async () => {
+    await disableBiometricLogin();
+    setBiometricEnabled(false);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -74,6 +179,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         signOut,
         resetPassword,
+        biometricType,
+        biometricName,
+        biometricSupported,
+        biometricEnabled,
+        signInWithBiometric,
+        enableBiometric,
+        disableBiometric,
       }}
     >
       {children}

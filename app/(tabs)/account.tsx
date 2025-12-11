@@ -16,6 +16,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -23,10 +24,19 @@ import {
 
 export default function AccountScreen() {
   const colors = useColors();
-  const { user, signOut } = useAuth();
+  const {
+    user,
+    signOut,
+    biometricSupported,
+    biometricEnabled,
+    biometricName,
+    enableBiometric,
+    disableBiometric,
+  } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBiometricToggling, setIsBiometricToggling] = useState(false);
 
   const loadProfile = useCallback(async () => {
     setIsLoading(true);
@@ -73,6 +83,25 @@ export default function AccountScreen() {
         { text: "Sign Out", style: "destructive", onPress: doSignOut },
       ]);
     }
+  };
+
+  const handleBiometricToggle = async (value: boolean) => {
+    setIsBiometricToggling(true);
+
+    if (value) {
+      const { error } = await enableBiometric();
+      if (error) {
+        if (Platform.OS === "web") {
+          window.alert(error.message);
+        } else {
+          Alert.alert("Error", error.message);
+        }
+      }
+    } else {
+      await disableBiometric();
+    }
+
+    setIsBiometricToggling(false);
   };
 
   if (isLoading) {
@@ -156,6 +185,39 @@ export default function AccountScreen() {
           </View>
           <FontAwesome name="chevron-right" size={14} color={colors.mutedForeground} />
         </TouchableOpacity>
+
+        {/* Security Settings */}
+        {biometricSupported && Platform.OS !== "web" && (
+          <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.settingsTitle, { color: colors.foreground }]}>
+              Security
+            </Text>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <FontAwesome
+                  name={biometricName === "Face ID" ? "smile-o" : "hand-stop-o"}
+                  size={20}
+                  color={colors.foreground}
+                />
+                <View style={styles.settingText}>
+                  <Text style={[styles.settingLabel, { color: colors.foreground }]}>
+                    {biometricName}
+                  </Text>
+                  <Text style={[styles.settingDescription, { color: colors.mutedForeground }]}>
+                    Quick sign-in with {biometricName}
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={biometricEnabled}
+                onValueChange={handleBiometricToggle}
+                disabled={isBiometricToggling}
+                trackColor={{ false: colors.muted, true: colors.primary }}
+                thumbColor="#fff"
+              />
+            </View>
+          </View>
+        )}
 
         {/* Sign Out Section */}
         <View style={styles.signOutSection}>
@@ -261,6 +323,42 @@ const styles = StyleSheet.create({
   linkButtonText: {
     fontSize: 15,
     fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  settingsCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginTop: 16,
+  },
+  settingsTitle: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.chillaxSemibold,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  settingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  settingInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  settingText: {
+    flex: 1,
+  },
+  settingLabel: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  settingDescription: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily.chillax,
+    marginTop: 2,
   },
   signOutSection: {
     marginTop: 24,
