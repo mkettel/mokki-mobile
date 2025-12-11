@@ -149,8 +149,8 @@ export function AvatarPicker({
           onPress={pickImage}
           disabled={isLoading}
         >
-          <FontAwesome name="camera" size={14} color="#fff" />
-          <Text style={styles.buttonText}>
+          <FontAwesome name="camera" size={14} color={colors.primaryForeground} />
+          <Text style={[styles.buttonText, { color: colors.primaryForeground }]}>
             {avatarUrl ? "Change Photo" : "Add Photo"}
           </Text>
         </TouchableOpacity>
@@ -207,7 +207,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   buttonText: {
-    color: "#fff",
     fontSize: 14,
     fontFamily: typography.fontFamily.chillaxMedium,
   },

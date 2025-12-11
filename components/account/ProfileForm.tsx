@@ -208,11 +208,11 @@ export function ProfileForm({ profile, onProfileUpdate }: ProfileFormProps) {
         disabled={!hasChanges || isSaving}
       >
         {isSaving ? (
-          <ActivityIndicator size="small" color="#fff" />
+          <ActivityIndicator size="small" color={colors.primaryForeground} />
         ) : (
           <>
-            <FontAwesome name="check" size={16} color="#fff" />
-            <Text style={styles.saveButtonText}>Save Changes</Text>
+            <FontAwesome name="check" size={16} color={colors.primaryForeground} />
+            <Text style={[styles.saveButtonText, { color: colors.primaryForeground }]}>Save Changes</Text>
           </>
         )}
       </TouchableOpacity>
@@ -272,7 +272,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   saveButtonText: {
-    color: "#fff",
     fontSize: 15,
     fontFamily: typography.fontFamily.chillaxMedium,
   },

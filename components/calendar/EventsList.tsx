@@ -1,16 +1,16 @@
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Linking,
-} from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
-import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
 import type { EventWithDetails } from "@/lib/api/events";
+import { useColors } from "@/lib/context/theme";
+import { FontAwesome } from "@expo/vector-icons";
+import React from "react";
+import {
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface EventsListProps {
   events: EventWithDetails[];
@@ -134,7 +134,11 @@ export function EventsList({
   const getStatusBadge = (status: EventStatus) => {
     const configs = {
       today: { bg: "#fbbf24", text: "#78350f", label: "Today" },
-      upcoming: { bg: colors.muted, text: colors.foreground, label: "Upcoming" },
+      upcoming: {
+        bg: colors.muted,
+        text: colors.foreground,
+        label: "Upcoming",
+      },
       past: { bg: colors.muted, text: colors.mutedForeground, label: "Past" },
     };
     return configs[status];
@@ -153,7 +157,10 @@ export function EventsList({
     return profile.display_name || profile.email.split("@")[0];
   };
 
-  const getParticipantInitial = (profile: { display_name: string | null; email: string }) => {
+  const getParticipantInitial = (profile: {
+    display_name: string | null;
+    email: string;
+  }) => {
     const name = profile.display_name || profile.email;
     return name.charAt(0).toUpperCase();
   };
@@ -161,7 +168,11 @@ export function EventsList({
   if (displayEvents.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <FontAwesome name="calendar-o" size={48} color={colors.mutedForeground} />
+        <FontAwesome
+          name="calendar-o"
+          size={48}
+          color={colors.mutedForeground}
+        />
         <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
           No events yet
         </Text>
@@ -190,13 +201,16 @@ export function EventsList({
                 backgroundColor: colors.card,
                 borderColor: "#fbbf24",
                 borderLeftWidth: 4,
+                borderRadius: 0,
               },
             ]}
           >
             {/* Header row */}
             <View style={styles.cardHeader}>
               {/* Calendar icon */}
-              <View style={[styles.iconContainer, { backgroundColor: "#fef3c7" }]}>
+              <View
+                style={[styles.iconContainer, { backgroundColor: "#fef3c7" }]}
+              >
                 <FontAwesome name="calendar" size={18} color="#d97706" />
               </View>
 
@@ -210,14 +224,21 @@ export function EventsList({
                     {event.name}
                   </Text>
                   <View
-                    style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: statusConfig.bg },
+                    ]}
                   >
-                    <Text style={[styles.statusText, { color: statusConfig.text }]}>
+                    <Text
+                      style={[styles.statusText, { color: statusConfig.text }]}
+                    >
                       {statusConfig.label}
                     </Text>
                   </View>
                 </View>
-                <Text style={[styles.createdBy, { color: colors.mutedForeground }]}>
+                <Text
+                  style={[styles.createdBy, { color: colors.mutedForeground }]}
+                >
                   by {getCreatorName(event)}
                 </Text>
               </View>
@@ -260,7 +281,9 @@ export function EventsList({
                 size={12}
                 color={colors.mutedForeground}
               />
-              <Text style={[styles.dateText, { color: colors.mutedForeground }]}>
+              <Text
+                style={[styles.dateText, { color: colors.mutedForeground }]}
+              >
                 {formatEventDate(event)}
                 {timeRange && ` · ${timeRange}`}
               </Text>
@@ -282,7 +305,10 @@ export function EventsList({
                 {event.links.map((link, index) => (
                   <TouchableOpacity
                     key={index}
-                    style={[styles.linkBadge, { backgroundColor: colors.muted }]}
+                    style={[
+                      styles.linkBadge,
+                      { backgroundColor: colors.muted },
+                    ]}
                     onPress={() => Linking.openURL(link)}
                   >
                     <FontAwesome
@@ -299,40 +325,61 @@ export function EventsList({
             )}
 
             {/* Participants */}
-            {event.event_participants && event.event_participants.length > 0 && (
-              <View style={[styles.participantsRow, { borderTopColor: colors.border }]}>
-                <Text style={[styles.participantsLabel, { color: colors.mutedForeground }]}>
-                  Tagged:
-                </Text>
-                <View style={styles.participantAvatars}>
-                  {event.event_participants.slice(0, 5).map((participant, index) => (
-                    <View
-                      key={participant.id}
-                      style={[
-                        styles.participantAvatar,
-                        { backgroundColor: colors.primary, marginLeft: index > 0 ? -8 : 0 },
-                      ]}
-                    >
-                      <Text style={styles.participantInitial}>
-                        {getParticipantInitial(participant.profiles)}
-                      </Text>
-                    </View>
-                  ))}
-                  {event.event_participants.length > 5 && (
-                    <View
-                      style={[
-                        styles.participantAvatar,
-                        { backgroundColor: colors.muted, marginLeft: -8 },
-                      ]}
-                    >
-                      <Text style={[styles.participantCount, { color: colors.foreground }]}>
-                        +{event.event_participants.length - 5}
-                      </Text>
-                    </View>
-                  )}
+            {event.event_participants &&
+              event.event_participants.length > 0 && (
+                <View
+                  style={[
+                    styles.participantsRow,
+                    { borderTopColor: colors.border },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.participantsLabel,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
+                    Tagged:
+                  </Text>
+                  <View style={styles.participantAvatars}>
+                    {event.event_participants
+                      .slice(0, 5)
+                      .map((participant, index) => (
+                        <View
+                          key={participant.id}
+                          style={[
+                            styles.participantAvatar,
+                            {
+                              backgroundColor: colors.primary,
+                              marginLeft: index > 0 ? -8 : 0,
+                            },
+                          ]}
+                        >
+                          <Text style={styles.participantInitial}>
+                            {getParticipantInitial(participant.profiles)}
+                          </Text>
+                        </View>
+                      ))}
+                    {event.event_participants.length > 5 && (
+                      <View
+                        style={[
+                          styles.participantAvatar,
+                          { backgroundColor: colors.muted, marginLeft: -8 },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.participantCount,
+                            { color: colors.foreground },
+                          ]}
+                        >
+                          +{event.event_participants.length - 5}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
           </View>
         );
       })}
@@ -340,7 +387,9 @@ export function EventsList({
       {/* Show more indicator */}
       {!showAll && categorizedEvents.past.length > 0 && (
         <View style={styles.showMoreContainer}>
-          <Text style={[styles.showMoreText, { color: colors.mutedForeground }]}>
+          <Text
+            style={[styles.showMoreText, { color: colors.mutedForeground }]}
+          >
             + {categorizedEvents.past.length} past event
             {categorizedEvents.past.length > 1 ? "s" : ""}
           </Text>
