@@ -1,18 +1,317 @@
-import { StyleSheet } from "react-native";
-import { Text, View } from "@/components/Themed";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { FontAwesome } from "@expo/vector-icons";
+import { useColors } from "@/lib/context/theme";
+import { useHouse } from "@/lib/context/house";
+import { useAuth } from "@/lib/context/auth";
+import { typography } from "@/constants/theme";
+import {
+  getHouseExpenses,
+  getUserBalances,
+  getHouseMembersForExpenses,
+  createExpense,
+  updateExpense,
+  deleteExpense,
+  settleExpenseSplit,
+  unsettleExpenseSplit,
+  settleAllWithUser,
+} from "@/lib/api/expenses";
+import {
+  ExpenseSummaryCards,
+  BalanceList,
+  ExpenseList,
+  AddExpenseModal,
+  EditExpenseModal,
+} from "@/components/expenses";
+import type {
+  ExpenseWithDetails,
+  ExpenseBalanceData,
+  ExpenseCategory,
+  Profile,
+} from "@/types/database";
+
+type TabType = "balances" | "expenses";
 
 export default function ExpensesScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Expenses</Text>
-      <Text style={styles.subtitle}>
-        Track and split expenses with your crew
-      </Text>
-      <View style={styles.placeholder}>
-        <Text style={styles.placeholderText}>
-          Expense tracking coming in Phase 4
-        </Text>
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { activeHouse } = useHouse();
+  const { user } = useAuth();
+
+  // Data state
+  const [expenses, setExpenses] = useState<ExpenseWithDetails[]>([]);
+  const [balanceData, setBalanceData] = useState<ExpenseBalanceData | null>(null);
+  const [members, setMembers] = useState<Profile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // UI state
+  const [activeTab, setActiveTab] = useState<TabType>("balances");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<ExpenseWithDetails | null>(null);
+
+  // Fetch data
+  const fetchData = useCallback(async () => {
+    if (!activeHouse || !user) return;
+
+    try {
+      const [expensesResult, balancesResult, membersResult] = await Promise.all([
+        getHouseExpenses(activeHouse.id),
+        getUserBalances(activeHouse.id, user.id),
+        getHouseMembersForExpenses(activeHouse.id),
+      ]);
+
+      if (expensesResult.error) {
+        console.error("Error fetching expenses:", expensesResult.error);
+      } else {
+        setExpenses(expensesResult.expenses);
+      }
+
+      if (balancesResult.error) {
+        console.error("Error fetching balances:", balancesResult.error);
+      } else if (balancesResult.data) {
+        setBalanceData(balancesResult.data);
+      }
+
+      if (membersResult.error) {
+        console.error("Error fetching members:", membersResult.error);
+      } else {
+        setMembers(membersResult.members);
+      }
+    } catch (error) {
+      console.error("Error fetching expense data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeHouse, user]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Expense actions
+  const handleAddExpense = async (data: {
+    title: string;
+    amount: number;
+    description?: string;
+    category: ExpenseCategory;
+    date: string;
+    splits: { userId: string; amount: number }[];
+  }) => {
+    if (!activeHouse || !user) return;
+
+    const { error } = await createExpense(activeHouse.id, user.id, data);
+
+    if (error) {
+      throw error;
+    }
+
+    fetchData();
+  };
+
+  const handleEditExpense = async (data: {
+    title: string;
+    amount: number;
+    description?: string;
+    category: ExpenseCategory;
+    date: string;
+    splits: { userId: string; amount: number }[];
+  }) => {
+    if (!editingExpense) return;
+
+    const { error } = await updateExpense(editingExpense.id, data);
+
+    if (error) {
+      throw error;
+    }
+
+    fetchData();
+  };
+
+  const handleDeleteExpense = (expense: ExpenseWithDetails) => {
+    Alert.alert(
+      "Delete Expense",
+      "Are you sure you want to delete this expense? This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await deleteExpense(expense.id);
+            if (error) {
+              Alert.alert("Error", error.message);
+            } else {
+              fetchData();
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSettleSplit = async (splitId: string) => {
+    const { error } = await settleExpenseSplit(splitId);
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      fetchData();
+    }
+  };
+
+  const handleUnsettleSplit = async (splitId: string) => {
+    const { error } = await unsettleExpenseSplit(splitId);
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      fetchData();
+    }
+  };
+
+  const handleSettleAllWithUser = async (userId: string) => {
+    if (!activeHouse || !user) return;
+
+    const { error } = await settleAllWithUser(activeHouse.id, user.id, userId);
+
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      fetchData();
+    }
+  };
+
+  const openEditModal = (expense: ExpenseWithDetails) => {
+    setEditingExpense(expense);
+    setShowEditModal(true);
+  };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.foreground} />
       </View>
+    );
+  }
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      {/* Header */}
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <View>
+          <Text style={[styles.title, { color: colors.foreground }]}>Expenses</Text>
+          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+            {activeHouse?.name || "No house selected"}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.addButton, { backgroundColor: colors.primary }]}
+          onPress={() => setShowAddModal(true)}
+        >
+          <FontAwesome name="plus" size={16} color="#fff" />
+          <Text style={styles.addButtonText}>Add</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Summary Cards */}
+      {balanceData && (
+        <View style={styles.summaryContainer}>
+          <ExpenseSummaryCards summary={balanceData.summary} />
+        </View>
+      )}
+
+      {/* Tab switcher */}
+      <View style={[styles.tabContainer, { backgroundColor: colors.muted }]}>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            activeTab === "balances" && { backgroundColor: colors.background },
+          ]}
+          onPress={() => setActiveTab("balances")}
+        >
+          <FontAwesome
+            name="users"
+            size={14}
+            color={activeTab === "balances" ? colors.foreground : colors.mutedForeground}
+          />
+          <Text
+            style={[
+              styles.tabText,
+              { color: activeTab === "balances" ? colors.foreground : colors.mutedForeground },
+            ]}
+          >
+            Balances
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            activeTab === "expenses" && { backgroundColor: colors.background },
+          ]}
+          onPress={() => setActiveTab("expenses")}
+        >
+          <FontAwesome
+            name="list"
+            size={14}
+            color={activeTab === "expenses" ? colors.foreground : colors.mutedForeground}
+          />
+          <Text
+            style={[
+              styles.tabText,
+              { color: activeTab === "expenses" ? colors.foreground : colors.mutedForeground },
+            ]}
+          >
+            All Expenses
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Content */}
+      <View style={styles.content}>
+        {activeTab === "balances" ? (
+          <BalanceList
+            balances={balanceData?.balances || []}
+            onSettleAll={handleSettleAllWithUser}
+          />
+        ) : (
+          <ExpenseList
+            expenses={expenses}
+            currentUserId={user?.id || ""}
+            onEditExpense={openEditModal}
+            onDeleteExpense={handleDeleteExpense}
+            onSettleSplit={handleSettleSplit}
+            onUnsettleSplit={handleUnsettleSplit}
+          />
+        )}
+      </View>
+
+      {/* Modals */}
+      <AddExpenseModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSubmit={handleAddExpense}
+        members={members}
+        currentUserId={user?.id || ""}
+      />
+
+      <EditExpenseModal
+        visible={showEditModal}
+        expense={editingExpense}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingExpense(null);
+        }}
+        onSubmit={handleEditExpense}
+        members={members}
+        currentUserId={user?.id || ""}
+      />
     </View>
   );
 }
@@ -20,28 +319,68 @@ export default function ExpensesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginTop: 20,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginTop: 4,
-    marginBottom: 24,
-  },
-  placeholder: {
+  loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    borderRadius: 12,
   },
-  placeholderText: {
-    fontSize: 16,
-    color: "#999",
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  title: {
+    fontSize: 24,
+    fontFamily: typography.fontFamily.chillaxBold,
+  },
+  subtitle: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.chillax,
+    marginTop: 2,
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 8,
+  },
+  addButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  summaryContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  tabContainer: {
+    flexDirection: "row",
+    marginHorizontal: 20,
+    marginBottom: 12,
+    padding: 4,
+    borderRadius: 10,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  tabText: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
   },
 });
