@@ -6,10 +6,9 @@ import type {
   MediaType,
   Profile,
 } from "@/types/database";
-import { format, isToday, isYesterday } from "date-fns";
-import * as FileSystem from "expo-file-system/legacy";
-import { Platform } from "react-native";
 import { decode } from "base64-arraybuffer";
+import { format, isToday, isYesterday } from "date-fns";
+import { Platform } from "react-native";
 
 // File size limits
 export const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -158,6 +157,7 @@ export async function uploadBRollMedia(
   userId: string,
   file: {
     uri: string;
+    base64?: string | null;
     fileName: string;
     mimeType: string;
     fileSize: number;
@@ -194,8 +194,18 @@ export async function uploadBRollMedia(
 
     let uploadError: Error | null = null;
 
-    if (Platform.OS === "web") {
-      // Web: use fetch to get blob
+    // Use base64 if available (more reliable on mobile), otherwise fetch as blob
+    if (file.base64 && Platform.OS !== "web") {
+      // Mobile with base64: decode and upload as ArrayBuffer
+      const { error } = await supabase.storage
+        .from("broll")
+        .upload(storagePath, decode(file.base64), {
+          contentType: file.mimeType,
+          cacheControl: "3600",
+        });
+      uploadError = error;
+    } else {
+      // Web or fallback: fetch and upload as blob
       const response = await fetch(file.uri);
       const blob = await response.blob();
 
@@ -206,42 +216,6 @@ export async function uploadBRollMedia(
           cacheControl: "3600",
         });
       uploadError = error;
-    } else {
-      // Mobile: handle different URI formats
-      let fileUri = file.uri;
-
-      // If URI is not a file:// URI, copy to cache directory first
-      if (!fileUri.startsWith("file://")) {
-        const cacheDir = FileSystem.cacheDirectory;
-        const cachedFile = `${cacheDir}upload_${timestamp}_${sanitizedFileName}`;
-        await FileSystem.copyAsync({
-          from: fileUri,
-          to: cachedFile,
-        });
-        fileUri = cachedFile;
-      }
-
-      // Read file as base64 and decode to ArrayBuffer
-      const base64 = await FileSystem.readAsStringAsync(fileUri, {
-        encoding: "base64",
-      });
-
-      const { error } = await supabase.storage
-        .from("broll")
-        .upload(storagePath, decode(base64), {
-          contentType: file.mimeType,
-          cacheControl: "3600",
-        });
-      uploadError = error;
-
-      // Clean up cached file if we created one
-      if (fileUri !== file.uri) {
-        try {
-          await FileSystem.deleteAsync(fileUri, { idempotent: true });
-        } catch {
-          // Ignore cleanup errors
-        }
-      }
     }
 
     if (uploadError) {

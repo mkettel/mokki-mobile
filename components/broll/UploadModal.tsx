@@ -20,6 +20,7 @@ import {
 
 interface SelectedMedia {
   uri: string;
+  base64?: string | null;
   fileName: string;
   mimeType: string;
   fileSize: number;
@@ -71,15 +72,17 @@ export function UploadModal({ visible, onClose, onUpload }: UploadModalProps) {
       allowsEditing: false,
       quality: 0.8,
       exif: true,
+      base64: true,
     });
 
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
-      const fileName = asset.fileName || `media_${Date.now()}`;
+      const fileName = asset.fileName || `media_${Date.now()}.jpg`;
       const mimeType = asset.mimeType || (asset.type === "video" ? "video/mp4" : "image/jpeg");
 
       setSelectedMedia({
         uri: asset.uri,
+        base64: asset.base64,
         fileName,
         mimeType,
         fileSize: asset.fileSize || 0,
@@ -107,6 +110,7 @@ export function UploadModal({ visible, onClose, onUpload }: UploadModalProps) {
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: false,
       quality: 0.8,
+      base64: true,
     });
 
     if (!result.canceled && result.assets[0]) {
@@ -116,6 +120,7 @@ export function UploadModal({ visible, onClose, onUpload }: UploadModalProps) {
 
       setSelectedMedia({
         uri: asset.uri,
+        base64: asset.base64,
         fileName,
         mimeType,
         fileSize: asset.fileSize || 0,

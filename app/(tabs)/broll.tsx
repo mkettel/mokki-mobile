@@ -114,6 +114,7 @@ export default function BRollScreen() {
 
   const handleUpload = async (media: {
     uri: string;
+    base64?: string | null;
     fileName: string;
     mimeType: string;
     fileSize: number;
@@ -129,6 +130,7 @@ export default function BRollScreen() {
       user.id,
       {
         uri: media.uri,
+        base64: media.base64,
         fileName: media.fileName,
         mimeType: media.mimeType,
         fileSize: media.fileSize,
