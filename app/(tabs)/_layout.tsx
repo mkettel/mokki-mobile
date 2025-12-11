@@ -89,6 +89,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="bulletin"
+        options={{
+          title: "Bulletin",
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="thumb-tack" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="broll"
         options={{
           title: "B-Roll",
