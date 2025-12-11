@@ -1,4 +1,5 @@
 import { InviteModal, MemberList } from "@/components/members";
+import { TopBar } from "@/components/TopBar";
 import { typography } from "@/constants/theme";
 import { getHouseMembers, isUserAdmin } from "@/lib/api/members";
 import { useAuth } from "@/lib/context/auth";
@@ -17,11 +18,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function MembersScreen() {
   const colors = useColors();
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
   const { activeHouse } = useHouse();
@@ -66,12 +65,15 @@ export default function MembersScreen() {
 
   if (!activeHouse) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <TopBar />
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <FontAwesome name="chevron-left" size={18} color={colors.foreground} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>Members</Text>
+          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+            Who's who
+          </Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.centered}>
@@ -85,13 +87,17 @@ export default function MembersScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <TopBar />
+
+      {/* Header with back and invite buttons */}
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <FontAwesome name="chevron-left" size={18} color={colors.foreground} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Members</Text>
+        <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+          Who's who
+        </Text>
         {isAdmin ? (
           <TouchableOpacity
             onPress={() => setShowInviteModal(true)}
@@ -175,17 +181,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
+    paddingHorizontal: 15,
     paddingVertical: 12,
-    borderBottomWidth: 1,
   },
   backButton: {
     padding: 8,
     width: 40,
   },
-  headerTitle: {
-    fontSize: 17,
-    fontFamily: typography.fontFamily.chillaxSemibold,
+  subtitle: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillax,
   },
   headerSpacer: {
     width: 40,

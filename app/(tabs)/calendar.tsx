@@ -7,12 +7,12 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
-import { useColors } from "@/lib/context/theme";
-import { useHouse } from "@/lib/context/house";
-import { useAuth } from "@/lib/context/auth";
+import { TopBar } from "@/components/TopBar";
 import { typography } from "@/constants/theme";
+import { useAuth } from "@/lib/context/auth";
+import { useHouse } from "@/lib/context/house";
+import { useColors } from "@/lib/context/theme";
 import {
   getHouseStays,
   createStay,
@@ -45,7 +45,6 @@ type TabType = "calendar" | "stays" | "events";
 
 export default function CalendarScreen() {
   const colors = useColors();
-  const insets = useSafeAreaInsets();
   const { activeHouse } = useHouse();
   const { user } = useAuth();
 
@@ -280,21 +279,21 @@ export default function CalendarScreen() {
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <TopBar />
         <ActivityIndicator size="large" color={colors.foreground} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View>
-          <Text style={[styles.title, { color: colors.foreground }]}>Calendar</Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            {activeHouse?.name || "No house selected"}
-          </Text>
-        </View>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <TopBar />
+
+      {/* Header with action button */}
+      <View style={styles.header}>
+        <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+          Reserve your bed
+        </Text>
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: colors.primary }]}
           onPress={handleAddPress}
@@ -449,18 +448,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontFamily: typography.fontFamily.chillaxBold,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: typography.fontFamily.chillax,
-    marginTop: 2,
+    maxWidth: "70%",
   },
   addButton: {
     flexDirection: "row",

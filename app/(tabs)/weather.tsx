@@ -8,11 +8,11 @@ import {
   ScrollView,
   RefreshControl,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
-import { useColors } from "@/lib/context/theme";
-import { useHouse } from "@/lib/context/house";
+import { TopBar } from "@/components/TopBar";
 import { typography } from "@/constants/theme";
+import { useHouse } from "@/lib/context/house";
+import { useColors } from "@/lib/context/theme";
 import {
   getMultipleWeatherReports,
   clearWeatherCache,
@@ -29,7 +29,6 @@ import type { WeatherReport } from "@/types/database";
 
 export default function WeatherScreen() {
   const colors = useColors();
-  const insets = useSafeAreaInsets();
   const { activeHouse, refreshHouses } = useHouse();
 
   // Data state
@@ -106,6 +105,7 @@ export default function WeatherScreen() {
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <TopBar />
         <ActivityIndicator size="large" color={colors.foreground} />
       </View>
     );
@@ -114,14 +114,12 @@ export default function WeatherScreen() {
   // No resorts configured
   if (reports.length === 0) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <View>
-            <Text style={[styles.title, { color: colors.foreground }]}>Snow Report</Text>
-            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-              {activeHouse?.name || "No house selected"}
-            </Text>
-          </View>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <TopBar />
+        <View style={styles.header}>
+          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+            Pow report
+          </Text>
           <TouchableOpacity
             style={[styles.manageButton, { backgroundColor: colors.primary }]}
             onPress={() => setShowResortPicker(true)}
@@ -158,15 +156,14 @@ export default function WeatherScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View>
-          <Text style={[styles.title, { color: colors.foreground }]}>Snow Report</Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            {activeHouse?.name || "No house selected"}
-          </Text>
-        </View>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <TopBar />
+
+      {/* Header with action buttons */}
+      <View style={styles.header}>
+        <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+          Pow report
+        </Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={[styles.manageButton, { backgroundColor: colors.muted }]}
@@ -279,18 +276,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontFamily: typography.fontFamily.chillaxBold,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: typography.fontFamily.chillax,
-    marginTop: 2,
+    maxWidth: "50%",
   },
   headerButtons: {
     flexDirection: "row",

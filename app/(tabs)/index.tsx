@@ -183,10 +183,10 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.chillaxBold,
     textAlign: "center",
     textTransform: "uppercase",
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
   clockContainer: {
-    marginTop: 8,
+    marginTop: 2,
   },
   clockText: {
     fontSize: 14,
