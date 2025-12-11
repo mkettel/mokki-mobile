@@ -8,6 +8,15 @@
     "scheme": "mokkimobile",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "fonts": [
+      "./assets/fonts/Chillax-Regular.ttf",
+      "./assets/fonts/Chillax-Medium.ttf",
+      "./assets/fonts/Chillax-Semibold.ttf",
+      "./assets/fonts/Chillax-Bold.ttf",
+      "./assets/fonts/Boska-Regular.ttf",
+      "./assets/fonts/Boska-Medium.ttf",
+      "./assets/fonts/Boska-Bold.ttf"
+    ],
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",

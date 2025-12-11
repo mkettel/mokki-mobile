@@ -8,6 +8,7 @@ import {
   Alert,
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
+import { PageContainer } from "@/components/PageContainer";
 import { TopBar } from "@/components/TopBar";
 import { typography } from "@/constants/theme";
 import { useAuth } from "@/lib/context/auth";
@@ -286,7 +287,7 @@ export default function CalendarScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <PageContainer>
       <TopBar />
 
       {/* Header with action button */}
@@ -431,7 +432,7 @@ export default function CalendarScreen() {
         onSubmit={handleEditEvent}
         members={members}
       />
-    </View>
+    </PageContainer>
   );
 }
 

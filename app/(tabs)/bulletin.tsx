@@ -9,6 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
+import { PageContainer } from "@/components/PageContainer";
 import { TopBar } from "@/components/TopBar";
 import { typography } from "@/constants/theme";
 import { useAuth } from "@/lib/context/auth";
@@ -180,7 +181,7 @@ export default function BulletinScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <PageContainer>
       <TopBar />
 
       {/* Header with action button */}
@@ -272,7 +273,7 @@ export default function BulletinScreen() {
         }}
         onSubmit={editingItem ? handleEditItem : handleAddItem}
       />
-    </View>
+    </PageContainer>
   );
 }
 

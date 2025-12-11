@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
+import { PageContainer } from "@/components/PageContainer";
 import { TopBar } from "@/components/TopBar";
 import { typography } from "@/constants/theme";
 import { useHouse } from "@/lib/context/house";
@@ -156,7 +157,7 @@ export default function WeatherScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <PageContainer>
       <TopBar />
 
       {/* Header with action buttons */}
@@ -259,7 +260,7 @@ export default function WeatherScreen() {
         onClose={() => setShowResortPicker(false)}
         onSave={handleSaveResorts}
       />
-    </View>
+    </PageContainer>
   );
 }
 

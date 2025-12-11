@@ -1,3 +1,4 @@
+import { PageContainer } from "@/components/PageContainer";
 import { TopBar } from "@/components/TopBar";
 import { AvatarPicker, ProfileForm } from "@/components/account";
 import { typography } from "@/constants/theme";
@@ -7,6 +8,7 @@ import { useColors } from "@/lib/context/theme";
 import type { Profile } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -22,6 +24,7 @@ import {
 export default function AccountScreen() {
   const colors = useColors();
   const { user, signOut } = useAuth();
+  const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -107,7 +110,7 @@ export default function AccountScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <PageContainer>
       <TopBar />
       <ScrollView
         style={styles.scrollView}
@@ -140,6 +143,20 @@ export default function AccountScreen() {
           <ProfileForm profile={profile} onProfileUpdate={handleProfileUpdate} />
         </View>
 
+        {/* House Members Link */}
+        <TouchableOpacity
+          style={[styles.linkButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+          onPress={() => router.push("/members")}
+        >
+          <View style={styles.linkButtonContent}>
+            <FontAwesome name="users" size={18} color={colors.foreground} />
+            <Text style={[styles.linkButtonText, { color: colors.foreground }]}>
+              House Members
+            </Text>
+          </View>
+          <FontAwesome name="chevron-right" size={14} color={colors.mutedForeground} />
+        </TouchableOpacity>
+
         {/* Sign Out Section */}
         <View style={styles.signOutSection}>
           <TouchableOpacity
@@ -157,7 +174,7 @@ export default function AccountScreen() {
           </Text>
         </View>
       </ScrollView>
-    </View>
+    </PageContainer>
   );
 }
 
@@ -226,6 +243,24 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     marginVertical: 20,
+  },
+  linkButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 16,
+  },
+  linkButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  linkButtonText: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxMedium,
   },
   signOutSection: {
     marginTop: 24,

@@ -1,3 +1,4 @@
+import { PageContainer } from "@/components/PageContainer";
 import { TopBar } from "@/components/TopBar";
 import { MediaGrid, MediaViewer, UploadModal } from "@/components/broll";
 import { typography } from "@/constants/theme";
@@ -219,7 +220,7 @@ export default function BRollScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <PageContainer>
       <TopBar />
 
       {/* Header with upload button */}
@@ -272,7 +273,7 @@ export default function BRollScreen() {
         onUpdateCaption={handleUpdateCaption}
         onDelete={handleDelete}
       />
-    </View>
+    </PageContainer>
   );
 }
 
