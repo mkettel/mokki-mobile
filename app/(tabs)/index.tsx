@@ -1,11 +1,11 @@
 import { GeometricBackground } from "@/components/GeometricBackground";
 import { TopBar } from "@/components/TopBar";
 import { WeatherIcon } from "@/components/weather";
-import { typography } from "@/constants/theme";
+import { darkColors, lightColors, typography } from "@/constants/theme";
+import { getResort, getResortWeather } from "@/lib/api/weather";
 import { useAuth } from "@/lib/context/auth";
 import { useHouse } from "@/lib/context/house";
-import { useColors } from "@/lib/context/theme";
-import { getResort, getResortWeather } from "@/lib/api/weather";
+import { useColors, useTheme } from "@/lib/context/theme";
 import type { OpenMeteoCurrentWeather } from "@/types/database";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -114,10 +114,15 @@ function getHouseNameSize(name: string): number {
 export default function HomeScreen() {
   const { signOut } = useAuth();
   const colors = useColors();
+  const { isDark } = useTheme();
   const { activeHouse, isLoading } = useHouse();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [currentWeather, setCurrentWeather] = useState<OpenMeteoCurrentWeather | null>(null);
+  const [currentWeather, setCurrentWeather] =
+    useState<OpenMeteoCurrentWeather | null>(null);
+
+  // Link text color: cream in light mode, black in dark mode
+  const linkTextColor = isDark ? darkColors.background : lightColors.background;
 
   // Fetch weather for the linked resort
   useEffect(() => {
@@ -206,7 +211,7 @@ export default function HomeScreen() {
               style={styles.linkButton}
               activeOpacity={0.7}
             >
-              <Text style={[styles.linkText, { color: colors.foreground }]}>
+              <Text style={[styles.linkText, { color: linkTextColor }]}>
                 {link.label}
               </Text>
             </TouchableOpacity>
@@ -263,7 +268,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     // Position links in the mountain area (lower half of screen)
-    marginTop: SCREEN_HEIGHT * 0.14,
+    marginTop: SCREEN_HEIGHT * 0.18,
   },
   linkButton: {
     paddingVertical: 4,
