@@ -1,7 +1,18 @@
-import React from "react";
-import { View, StyleSheet, useWindowDimensions, Platform, Image } from "react-native";
-import Svg, { Polygon, Defs, ClipPath, Image as SvgImage } from "react-native-svg";
 import { useColors } from "@/lib/context/theme";
+import React from "react";
+import {
+  Image,
+  Platform,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import Svg, {
+  ClipPath,
+  Defs,
+  Polygon,
+  Image as SvgImage,
+} from "react-native-svg";
 
 // Import the noise texture
 const noiseTexture = require("@/assets/images/noise-texture.png");
@@ -32,16 +43,18 @@ export function GeometricBackground() {
 
   // The mountain shape points - creates a mountain silhouette
   const points = [
-    [0, mountainHeight],                          // bottom-left
-    [0, mountainHeight * 0.5],                    // left edge, 50% up
-    [width * 0.20, mountainHeight * 0.35],        // first slope
-    [width * 0.38, 0],                            // highest peak
-    [width * 0.55, mountainHeight * 0.25],        // valley
-    [width * 0.70, mountainHeight * 0.15],        // second peak
-    [width * 0.85, mountainHeight * 0.30],        // slope down
-    [width, mountainHeight * 0.40],               // right edge
-    [width, mountainHeight],                      // bottom-right
-  ].map(([x, y]) => `${x},${y}`).join(" ");
+    [0, mountainHeight], // bottom-left
+    [0, mountainHeight * 0.5], // left edge, 50% up
+    [width * 0.2, mountainHeight * 0.35], // first slope
+    [width * 0.38, 0], // highest peak
+    [width * 0.55, mountainHeight * 0.25], // valley
+    [width * 0.7, mountainHeight * 0.15], // second peak
+    [width * 0.85, mountainHeight * 0.3], // slope down
+    [width, mountainHeight * 0.4], // right edge
+    [width, mountainHeight], // bottom-right
+  ]
+    .map(([x, y]) => `${x},${y}`)
+    .join(" ");
 
   return (
     <View style={styles.container} pointerEvents="none">
@@ -68,7 +81,7 @@ export function GeometricBackground() {
           height={mountainHeight}
           preserveAspectRatio="xMidYMid slice"
           clipPath="url(#mountainClip)"
-          opacity={0.3}
+          opacity={0.25}
         />
       </Svg>
     </View>
