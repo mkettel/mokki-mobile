@@ -7,6 +7,9 @@ import type {
   Profile,
 } from "@/types/database";
 import { format, isToday, isYesterday } from "date-fns";
+import * as FileSystem from "expo-file-system/legacy";
+import { Platform } from "react-native";
+import { decode } from "base64-arraybuffer";
 
 // File size limits
 export const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -189,17 +192,57 @@ export async function uploadBRollMedia(
     const sanitizedFileName = file.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
     const storagePath = `${houseId}/${userId}/${timestamp}_${sanitizedFileName}`;
 
-    // Fetch the file as a blob
-    const response = await fetch(file.uri);
-    const blob = await response.blob();
+    let uploadError: Error | null = null;
 
-    // Upload to Supabase storage
-    const { error: uploadError } = await supabase.storage
-      .from("broll")
-      .upload(storagePath, blob, {
-        contentType: file.mimeType,
-        cacheControl: "3600",
+    if (Platform.OS === "web") {
+      // Web: use fetch to get blob
+      const response = await fetch(file.uri);
+      const blob = await response.blob();
+
+      const { error } = await supabase.storage
+        .from("broll")
+        .upload(storagePath, blob, {
+          contentType: file.mimeType,
+          cacheControl: "3600",
+        });
+      uploadError = error;
+    } else {
+      // Mobile: handle different URI formats
+      let fileUri = file.uri;
+
+      // If URI is not a file:// URI, copy to cache directory first
+      if (!fileUri.startsWith("file://")) {
+        const cacheDir = FileSystem.cacheDirectory;
+        const cachedFile = `${cacheDir}upload_${timestamp}_${sanitizedFileName}`;
+        await FileSystem.copyAsync({
+          from: fileUri,
+          to: cachedFile,
+        });
+        fileUri = cachedFile;
+      }
+
+      // Read file as base64 and decode to ArrayBuffer
+      const base64 = await FileSystem.readAsStringAsync(fileUri, {
+        encoding: "base64",
       });
+
+      const { error } = await supabase.storage
+        .from("broll")
+        .upload(storagePath, decode(base64), {
+          contentType: file.mimeType,
+          cacheControl: "3600",
+        });
+      uploadError = error;
+
+      // Clean up cached file if we created one
+      if (fileUri !== file.uri) {
+        try {
+          await FileSystem.deleteAsync(fileUri, { idempotent: true });
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    }
 
     if (uploadError) {
       return { item: null, error: uploadError };
