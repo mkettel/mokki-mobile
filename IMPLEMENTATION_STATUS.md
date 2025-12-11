@@ -17,6 +17,7 @@ React Native (Expo) mobile app for Mökki, porting the Next.js web app functiona
 - [x] Forgot password flow
 - [x] Auth context with session management
 - [x] Protected route redirects
+- [x] Platform-aware storage (SecureStore on native, localStorage on web)
 
 ### Theming
 - [x] Theme provider with light/dark/system modes
@@ -90,24 +91,52 @@ React Native (Expo) mobile app for Mökki, porting the Next.js web app functiona
 
 ---
 
-## Phase 3: Calendar & Stays (NOT STARTED)
+## Phase 3: Calendar & Stays (COMPLETE)
 
-### Calendar View
-- [ ] Monthly calendar component
-- [ ] Date range selection for stays
-- [ ] Visual indicators for booked dates
+### Stays API Layer (`lib/api/stays.ts`)
+- [x] `getHouseStays(houseId)` - fetch all stays for a house
+- [x] `getStay(stayId)` - fetch single stay with details
+- [x] `getUpcomingStays(houseId, limit)` - fetch upcoming stays
+- [x] `createStay(houseId, userId, data)` - book a stay
+- [x] `updateStay(stayId, userId, data)` - modify stay
+- [x] `deleteStay(stayId)` - cancel stay
+- [x] `settleGuestFee(splitId)` - mark guest fee as paid
+- [x] `unsettleGuestFee(splitId)` - mark guest fee as unpaid
+- [x] `getHouseEvents(houseId)` - fetch house events for calendar
+- [x] Guest fee auto-creation when guests > 0
 
-### Stays API
-- [ ] `getStays(houseId, dateRange)` - fetch stays
-- [ ] `createStay(houseId, dates, userId)` - book a stay
-- [ ] `updateStay(stayId, dates)` - modify stay
-- [ ] `deleteStay(stayId)` - cancel stay
+### Calendar Components (`components/calendar/`)
+- [x] `StaysCalendar` - Month grid view with stays and events
+  - Month navigation (prev/next/today)
+  - Color-coded stays by user
+  - Event badges
+  - Guest count indicators
+  - Legend
+- [x] `StaysList` - Detailed list view of stays
+  - Categorized: Current, Upcoming, Past
+  - User avatar and name
+  - Status badges
+  - Guest count display
+  - Date range formatting
+  - Guest fee info with paid/unpaid status
+  - Edit/Delete actions (owner only, non-past)
+  - Mark Paid/Unmark buttons
+- [x] `AddStayModal` - Create new stay
+  - Date pickers (check-in, check-out)
+  - Notes input
+  - Guest count with +/- buttons
+  - Guest fee preview calculation
+- [x] `EditStayModal` - Modify existing stay
+  - Same fields as AddStayModal
+  - Pre-populated with current values
 
-### Stay Management
-- [ ] Book stay modal/screen
-- [ ] View upcoming stays
-- [ ] Edit/cancel stays
-- [ ] Conflict detection
+### Calendar Tab Screen (`app/(tabs)/calendar.tsx`)
+- [x] Tab switcher (Calendar / Stays views)
+- [x] Add Stay button
+- [x] Loading state
+- [x] Data fetching with error handling
+- [x] CRUD operations wired up
+- [x] Guest fee settlement actions
 
 ---
 
@@ -181,7 +210,8 @@ React Native (Expo) mobile app for Mökki, porting the Next.js web app functiona
 ```
 lib/
 ├── api/
-│   └── house.ts          # House CRUD operations
+│   ├── house.ts          # House CRUD operations
+│   └── stays.ts          # Stays CRUD + guest fees
 ├── context/
 │   ├── auth.tsx          # Auth state management
 │   ├── house.tsx         # House state management
@@ -191,6 +221,11 @@ lib/
 
 components/
 ├── ui/                   # Reusable UI components
+├── calendar/             # Calendar-related components
+│   ├── StaysCalendar.tsx
+│   ├── StaysList.tsx
+│   ├── AddStayModal.tsx
+│   └── EditStayModal.tsx
 ├── TopBar.tsx            # Top navigation bar
 ├── HouseSwitcher.tsx     # House dropdown
 ├── ThemeSwitcher.tsx     # Theme toggle
@@ -202,15 +237,19 @@ app/
 ├── create-house.tsx      # New house creation
 ├── (auth)/               # Auth screens
 └── (tabs)/               # Main app screens
+    ├── calendar.tsx      # Calendar & stays
+    └── ...
 ```
 
 ### Known Issues (Resolved)
 - **Auth race condition**: `supabase.auth.getUser()` returning null when called immediately after auth context updates. Fixed by passing userId from context to API functions.
+- **Web session persistence**: `expo-secure-store` doesn't work on web. Fixed by using platform-aware storage adapter (localStorage on web, SecureStore on native).
 
 ### Dependencies
 - `@react-native-async-storage/async-storage` - Active house persistence
+- `@react-native-community/datetimepicker` - Date pickers for stays
 - `@supabase/supabase-js` - Database client
-- `expo-secure-store` - Secure token storage
+- `expo-secure-store` - Secure token storage (native)
 - `expo-router` - File-based navigation
 - `react-native-reanimated` - Animations
 
@@ -218,7 +257,7 @@ app/
 
 ## Next Steps (Recommended Order)
 
-1. **Calendar & Stays** - Core functionality, high user value
+1. ~~**Calendar & Stays**~~ - COMPLETE
 2. **Expenses** - Second most used feature
 3. **B-Roll Gallery** - Media upload/viewing
 4. **Weather/Snow** - External API integration

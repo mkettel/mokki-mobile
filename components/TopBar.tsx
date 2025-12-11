@@ -1,11 +1,11 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
+import { useColors } from "@/lib/context/theme";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HouseSwitcher } from "./HouseSwitcher";
-import { ThemeSwitcher } from "./ThemeSwitcher";
 import { SnowToggle } from "./SnowToggle";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 export function TopBar() {
   const colors = useColors();
@@ -50,6 +50,8 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingBottom: 12,
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
   },
   topRow: {
     flexDirection: "row",
