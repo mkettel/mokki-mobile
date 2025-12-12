@@ -27,7 +27,11 @@
       "bundleIdentifier": "app.mokki.mobile",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "associatedDomains": [
+        "applinks:mokkiski.com",
+        "applinks:www.mokkiski.com"
+      ]
     },
     "android": {
       "adaptiveIcon": {

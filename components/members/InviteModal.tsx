@@ -72,8 +72,7 @@ export function InviteModal({
   };
 
   const getInviteUrl = () => {
-    // For now, use a simple format. Later this can be a real deep link
-    return `https://mokki.app/join/${inviteCode}`;
+    return `https://mokkiski.com/invite/${inviteCode}`;
   };
 
   const handleShare = async () => {
@@ -169,8 +168,10 @@ export function InviteModal({
                 style={[styles.retryButton, { backgroundColor: colors.primary }]}
                 onPress={generateInviteCode}
               >
-                <FontAwesome name="refresh" size={14} color="#fff" />
-                <Text style={styles.retryButtonText}>Try Again</Text>
+                <FontAwesome name="refresh" size={14} color={colors.primaryForeground} />
+                <Text style={[styles.retryButtonText, { color: colors.primaryForeground }]}>
+                  Try Again
+                </Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -230,8 +231,10 @@ export function InviteModal({
                 style={[styles.shareButton, { backgroundColor: colors.primary }]}
                 onPress={handleShare}
               >
-                <FontAwesome name="share" size={16} color="#fff" />
-                <Text style={styles.shareButtonText}>Share Invite</Text>
+                <FontAwesome name="share" size={16} color={colors.primaryForeground} />
+                <Text style={[styles.shareButtonText, { color: colors.primaryForeground }]}>
+                  Share Invite
+                </Text>
               </TouchableOpacity>
 
               <Text style={[styles.note, { color: colors.mutedForeground }]}>
@@ -314,7 +317,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   retryButtonText: {
-    color: "#fff",
     fontSize: 14,
     fontFamily: typography.fontFamily.chillaxMedium,
   },
@@ -393,7 +395,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   shareButtonText: {
-    color: "#fff",
     fontSize: 15,
     fontFamily: typography.fontFamily.chillaxMedium,
   },
