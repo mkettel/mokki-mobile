@@ -105,7 +105,7 @@ function getHouseNameSize(name: string): number {
   const len = name.length;
   // text-7xl = 72px on mobile in web app
   if (len <= 6) return 72;
-  if (len <= 12) return 60;
+  if (len <= 12) return 56;
   if (len <= 16) return 48;
   if (len <= 20) return 40;
   return 32;

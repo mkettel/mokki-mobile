@@ -1,25 +1,38 @@
-import React, { useState } from "react";
-import {
-  TouchableOpacity,
-  View,
-  Text,
-  Modal,
-  StyleSheet,
-  Pressable,
-  ScrollView,
-} from "react-native";
-import { useRouter } from "expo-router";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { borderRadius, typography } from "@/constants/theme";
+import { HouseWithRole } from "@/lib/api/house";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
-import { typography, borderRadius } from "@/constants/theme";
-import { HouseWithRole } from "@/lib/api/house";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+// Get font size based on house name length
+function getHouseNameFontSize(name: string): number {
+  const length = name.length;
+  if (length <= 9) return 16; // Short names: full size
+  if (length <= 12) return 14; // Medium names: slightly smaller
+  if (length <= 16) return 12; // Long names: smaller
+  return 11; // Very long names: smallest
+}
 
 export function HouseSwitcher() {
   const { activeHouse, houses, setActiveHouse } = useHouse();
   const colors = useColors();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+
+  const houseNameFontSize = activeHouse
+    ? getHouseNameFontSize(activeHouse.name)
+    : 16;
 
   const handleSelectHouse = async (house: HouseWithRole) => {
     await setActiveHouse(house);
@@ -43,7 +56,10 @@ export function HouseSwitcher() {
         hitSlop={{ top: 10, bottom: 10, left: 5, right: 10 }}
       >
         <Text
-          style={[styles.houseName, { color: colors.foreground }]}
+          style={[
+            styles.houseName,
+            { color: colors.foreground, fontSize: houseNameFontSize },
+          ]}
           numberOfLines={1}
         >
           {activeHouse.name}
@@ -73,10 +89,7 @@ export function HouseSwitcher() {
             ]}
           >
             <Text
-              style={[
-                styles.dropdownTitle,
-                { color: colors.mutedForeground },
-              ]}
+              style={[styles.dropdownTitle, { color: colors.mutedForeground }]}
             >
               Switch House
             </Text>
@@ -95,7 +108,10 @@ export function HouseSwitcher() {
                 >
                   <View style={styles.houseInfo}>
                     <Text
-                      style={[styles.houseOptionName, { color: colors.foreground }]}
+                      style={[
+                        styles.houseOptionName,
+                        { color: colors.foreground },
+                      ]}
                       numberOfLines={1}
                     >
                       {house.name}
@@ -134,9 +150,7 @@ export function HouseSwitcher() {
                 color={colors.foreground}
                 style={styles.createIcon}
               />
-              <Text
-                style={[styles.createText, { color: colors.foreground }]}
-              >
+              <Text style={[styles.createText, { color: colors.foreground }]}>
                 Create New House
               </Text>
             </TouchableOpacity>
@@ -151,11 +165,11 @@ const styles = StyleSheet.create({
   trigger: {
     flexDirection: "row",
     alignItems: "center",
-    maxWidth: 150,
+    maxWidth: 180,
   },
   houseName: {
-    fontSize: 16,
     fontFamily: typography.fontFamily.chillaxMedium,
+    flexShrink: 1,
   },
   chevron: {
     marginLeft: 6,
