@@ -113,30 +113,34 @@ npx eas-cli build:configure
 
 ### Building & Submitting
 
-**Full Build** (required for native code changes, new modules):
+**Full Build** (current approach):
 
 ```bash
-npx eas-cli build --platform ios
-npx eas-cli submit --platform ios
+eas build --platform ios --profile production
+eas submit --platform ios
 ```
 
-Takes ~15-20 minutes. Creates a new build and submits to TestFlight.
+This creates a complete new app binary and submits to TestFlight. Takes ~15-20 minutes for the build, then 5-10 minutes for Apple processing.
 
-**OTA Update** (for JS/React code changes only - much faster):
+**Note on External TestFlight Review:**
+- First build sent to external testers requires Apple review (24-48 hours)
+- Subsequent builds are available within minutes after Apple processing
+
+### Future: OTA Updates
+
+Currently, all changes require a full build. In the future, we can set up **OTA (over-the-air) updates** using `expo-updates` for faster deployment of JS-only changes:
 
 ```bash
-npx eas-cli update
+# After expo-updates is configured:
+eas update --branch production
 ```
 
-Takes ~1-2 minutes. Users get the update next time they open the app. Use this for UI changes, bug fixes, new screens - anything that doesn't add native modules.
+This would allow instant updates (~1-2 minutes) for UI changes, bug fixes, and new screens without going through TestFlight. Native module changes would still require a full build.
 
-### When to Use Which
+**To enable OTA updates later:**
+1. Install expo-updates: `npx expo install expo-updates`
+2. Configure in app.json with update URL
+3. Build a new TestFlight version with expo-updates enabled
+4. Then `eas update` will push to existing installs
 
-| Change Type                           | Command              |
-| ------------------------------------- | -------------------- |
-| UI/styling changes                    | `npx eas-cli update` |
-| Bug fixes in JS code                  | `npx eas-cli update` |
-| New screens/components                | `npx eas-cli update` |
-| New native module (e.g., expo-camera) | Full build + submit  |
-| app.json changes                      | Full build + submit  |
-| New environment variables             | Full build + submit  |
+For now, stick with full builds until the app stabilizes.
