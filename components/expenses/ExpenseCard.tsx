@@ -44,6 +44,12 @@ export function ExpenseCard({
   const unsettledCount =
     expense.expense_splits?.filter((s) => !s.settled).length || 0;
 
+  // Check if expense is fully settled (all splits paid)
+  const isFullySettled =
+    expense.expense_splits &&
+    expense.expense_splits.length > 0 &&
+    expense.expense_splits.every((s) => s.settled);
+
   const getPayerName = () => {
     const profile = expense.paid_by_profile;
     if (!profile) return "Unknown";
@@ -116,7 +122,14 @@ export function ExpenseCard({
       {/* Title and amount */}
       <View style={styles.mainRow}>
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.foreground }]} numberOfLines={1}>
+          <Text
+            style={[
+              styles.title,
+              { color: isFullySettled ? colors.mutedForeground : colors.foreground },
+              isFullySettled && styles.settledTitle,
+            ]}
+            numberOfLines={1}
+          >
             {expense.title || expense.description}
           </Text>
           {expense.description && expense.title && (
@@ -301,6 +314,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  settledTitle: {
+    textDecorationLine: "line-through",
   },
   description: {
     fontSize: 13,
