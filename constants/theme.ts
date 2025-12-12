@@ -85,7 +85,7 @@ export const darkColors = {
   accentForeground: "#FAFAFA", // hsl(0, 0%, 98%)
 
   // Destructive
-  destructive: "#7F1D1D", // hsl(0, 62.8%, 30.6%)
+  destructive: "#B82E2E", // hsl(0, 58.80%, 54.30%) - lighter for dark mode
   destructiveForeground: "#FAFAFA", // hsl(0, 0%, 98%)
 
   // Border and input

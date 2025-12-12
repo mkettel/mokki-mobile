@@ -1,22 +1,22 @@
-import React, { useState, useMemo } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  TextInput,
-  Platform,
-  KeyboardAvoidingView,
-  ScrollView,
-  Alert,
-} from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { FontAwesome } from "@expo/vector-icons";
-import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
 import { EXPENSE_CATEGORIES, formatAmount } from "@/lib/api/expenses";
-import type { Profile, ExpenseCategory } from "@/types/database";
+import { useColors } from "@/lib/context/theme";
+import type { ExpenseCategory, Profile } from "@/types/database";
+import { FontAwesome } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import React, { useMemo, useState } from "react";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { ReceiptPicker, type ReceiptFile } from "./ReceiptPicker";
 
 interface AddExpenseModalProps {
@@ -59,7 +59,9 @@ export function AddExpenseModal({
   // Split state
   const [splitMode, setSplitMode] = useState<SplitMode>("even");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
+  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>(
+    {}
+  );
 
   // Receipt state
   const [receipt, setReceipt] = useState<ReceiptFile | null>(null);
@@ -80,7 +82,9 @@ export function AddExpenseModal({
 
     if (splitMode === "even") {
       const perPerson = formatAmount(amount / selectedMembers.length);
-      const remainder = formatAmount(amount - perPerson * selectedMembers.length);
+      const remainder = formatAmount(
+        amount - perPerson * selectedMembers.length
+      );
 
       return selectedMembers.map((userId, index) => ({
         userId,
@@ -126,12 +130,18 @@ export function AddExpenseModal({
     }
 
     if (selectedMembers.length === 0) {
-      Alert.alert("Required", "Please select at least one member to split with");
+      Alert.alert(
+        "Required",
+        "Please select at least one member to split with"
+      );
       return;
     }
 
     if (!isBalanced) {
-      Alert.alert("Invalid Splits", "Split amounts must equal the total expense amount");
+      Alert.alert(
+        "Invalid Splits",
+        "Split amounts must equal the total expense amount"
+      );
       return;
     }
 
@@ -213,7 +223,9 @@ export function AddExpenseModal({
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Title */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.foreground }]}>Title *</Text>
+            <Text style={[styles.label, { color: colors.foreground }]}>
+              Title *
+            </Text>
             <TextInput
               style={[
                 styles.textInput,
@@ -232,7 +244,9 @@ export function AddExpenseModal({
 
           {/* Amount */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.foreground }]}>Amount *</Text>
+            <Text style={[styles.label, { color: colors.foreground }]}>
+              Amount *
+            </Text>
             <View
               style={[
                 styles.amountContainer,
@@ -242,7 +256,11 @@ export function AddExpenseModal({
                 },
               ]}
             >
-              <Text style={[styles.dollarSign, { color: colors.mutedForeground }]}>$</Text>
+              <Text
+                style={[styles.dollarSign, { color: colors.mutedForeground }]}
+              >
+                $
+              </Text>
               <TextInput
                 style={[styles.amountInput, { color: colors.foreground }]}
                 value={amountStr}
@@ -256,7 +274,9 @@ export function AddExpenseModal({
 
           {/* Category */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.foreground }]}>Category</Text>
+            <Text style={[styles.label, { color: colors.foreground }]}>
+              Category
+            </Text>
             <TouchableOpacity
               style={[
                 styles.selectButton,
@@ -264,8 +284,11 @@ export function AddExpenseModal({
               ]}
               onPress={() => setShowCategoryPicker(!showCategoryPicker)}
             >
-              <Text style={[styles.selectButtonText, { color: colors.foreground }]}>
-                {EXPENSE_CATEGORIES.find((c) => c.value === category)?.label || "Other"}
+              <Text
+                style={[styles.selectButtonText, { color: colors.foreground }]}
+              >
+                {EXPENSE_CATEGORIES.find((c) => c.value === category)?.label ||
+                  "Other"}
               </Text>
               <FontAwesome
                 name={showCategoryPicker ? "chevron-up" : "chevron-down"}
@@ -274,25 +297,46 @@ export function AddExpenseModal({
               />
             </TouchableOpacity>
             {showCategoryPicker && (
-              <View style={[styles.pickerDropdown, { backgroundColor: colors.card }]}>
+              <View
+                style={[
+                  styles.pickerDropdown,
+                  { backgroundColor: colors.card },
+                ]}
+              >
                 {EXPENSE_CATEGORIES.map((cat) => (
                   <TouchableOpacity
                     key={cat.value}
                     style={[
                       styles.pickerOption,
-                      category === cat.value && { backgroundColor: colors.muted },
+                      category === cat.value && {
+                        backgroundColor: colors.muted,
+                      },
                     ]}
                     onPress={() => {
                       setCategory(cat.value);
                       setShowCategoryPicker(false);
                     }}
                   >
-                    <View style={[styles.categoryDot, { backgroundColor: cat.color }]} />
-                    <Text style={[styles.pickerOptionText, { color: colors.foreground }]}>
+                    <View
+                      style={[
+                        styles.categoryDot,
+                        { backgroundColor: cat.color },
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.pickerOptionText,
+                        { color: colors.foreground },
+                      ]}
+                    >
                       {cat.label}
                     </Text>
                     {category === cat.value && (
-                      <FontAwesome name="check" size={14} color={colors.primary} />
+                      <FontAwesome
+                        name="check"
+                        size={14}
+                        color={colors.primary}
+                      />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -302,7 +346,9 @@ export function AddExpenseModal({
 
           {/* Date */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.foreground }]}>Date</Text>
+            <Text style={[styles.label, { color: colors.foreground }]}>
+              Date
+            </Text>
             <TouchableOpacity
               style={[
                 styles.selectButton,
@@ -310,8 +356,17 @@ export function AddExpenseModal({
               ]}
               onPress={() => setShowDatePicker(true)}
             >
-              <FontAwesome name="calendar" size={14} color={colors.mutedForeground} />
-              <Text style={[styles.selectButtonText, { color: colors.foreground, flex: 1 }]}>
+              <FontAwesome
+                name="calendar"
+                size={14}
+                color={colors.mutedForeground}
+              />
+              <Text
+                style={[
+                  styles.selectButtonText,
+                  { color: colors.foreground, flex: 1 },
+                ]}
+              >
                 {formatDate(date)}
               </Text>
             </TouchableOpacity>
@@ -378,7 +433,12 @@ export function AddExpenseModal({
                   <Text
                     style={[
                       styles.splitModeText,
-                      { color: splitMode === "even" ? "#fff" : colors.mutedForeground },
+                      {
+                        color:
+                          splitMode === "even"
+                            ? colors.primaryForeground
+                            : colors.mutedForeground,
+                      },
                     ]}
                   >
                     Even
@@ -387,14 +447,21 @@ export function AddExpenseModal({
                 <TouchableOpacity
                   style={[
                     styles.splitModeButton,
-                    splitMode === "custom" && { backgroundColor: colors.primary },
+                    splitMode === "custom" && {
+                      backgroundColor: colors.primary,
+                    },
                   ]}
                   onPress={() => setSplitMode("custom")}
                 >
                   <Text
                     style={[
                       styles.splitModeText,
-                      { color: splitMode === "custom" ? "#fff" : colors.mutedForeground },
+                      {
+                        color:
+                          splitMode === "custom"
+                            ? colors.primaryForeground
+                            : colors.mutedForeground,
+                      },
                     ]}
                   >
                     Custom
@@ -406,12 +473,16 @@ export function AddExpenseModal({
             {/* Quick select buttons */}
             <View style={styles.quickSelectRow}>
               <TouchableOpacity onPress={selectAllMembers}>
-                <Text style={[styles.quickSelectText, { color: colors.primary }]}>
+                <Text
+                  style={[styles.quickSelectText, { color: colors.primary }]}
+                >
                   Select All
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={selectNoneMembers}>
-                <Text style={[styles.quickSelectText, { color: colors.primary }]}>
+                <Text
+                  style={[styles.quickSelectText, { color: colors.primary }]}
+                >
                   Select None
                 </Text>
               </TouchableOpacity>
@@ -431,8 +502,12 @@ export function AddExpenseModal({
                     style={[
                       styles.memberRow,
                       {
-                        backgroundColor: isSelected ? colors.muted : "transparent",
-                        borderColor: isSelected ? colors.primary : colors.border,
+                        backgroundColor: isSelected
+                          ? colors.muted
+                          : "transparent",
+                        borderColor: isSelected
+                          ? colors.primary
+                          : colors.border,
                       },
                     ]}
                     onPress={() => toggleMember(member.id)}
@@ -442,8 +517,12 @@ export function AddExpenseModal({
                         style={[
                           styles.memberCheckbox,
                           {
-                            backgroundColor: isSelected ? colors.primary : "transparent",
-                            borderColor: isSelected ? colors.primary : colors.border,
+                            backgroundColor: isSelected
+                              ? colors.primary
+                              : "transparent",
+                            borderColor: isSelected
+                              ? colors.primary
+                              : colors.border,
                           },
                         ]}
                       >
@@ -451,12 +530,27 @@ export function AddExpenseModal({
                           <FontAwesome name="check" size={10} color="#fff" />
                         )}
                       </View>
-                      <View style={[styles.memberAvatar, { backgroundColor: colors.muted }]}>
-                        <Text style={[styles.memberAvatarText, { color: colors.foreground }]}>
+                      <View
+                        style={[
+                          styles.memberAvatar,
+                          { backgroundColor: colors.muted },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.memberAvatarText,
+                            { color: colors.foreground },
+                          ]}
+                        >
                           {getInitial(member)}
                         </Text>
                       </View>
-                      <Text style={[styles.memberName, { color: colors.foreground }]}>
+                      <Text
+                        style={[
+                          styles.memberName,
+                          { color: colors.foreground },
+                        ]}
+                      >
                         {getDisplayName(member)}
                       </Text>
                     </View>
@@ -467,17 +561,31 @@ export function AddExpenseModal({
                           <View
                             style={[
                               styles.customAmountInput,
-                              { backgroundColor: colors.background, borderColor: colors.border },
+                              {
+                                backgroundColor: colors.background,
+                                borderColor: colors.border,
+                              },
                             ]}
                           >
-                            <Text style={[styles.dollarSignSmall, { color: colors.mutedForeground }]}>
+                            <Text
+                              style={[
+                                styles.dollarSignSmall,
+                                { color: colors.mutedForeground },
+                              ]}
+                            >
                               $
                             </Text>
                             <TextInput
-                              style={[styles.customInput, { color: colors.foreground }]}
+                              style={[
+                                styles.customInput,
+                                { color: colors.foreground },
+                              ]}
                               value={customAmounts[member.id] || ""}
                               onChangeText={(val) =>
-                                setCustomAmounts({ ...customAmounts, [member.id]: val })
+                                setCustomAmounts({
+                                  ...customAmounts,
+                                  [member.id]: val,
+                                })
                               }
                               placeholder="0.00"
                               placeholderTextColor={colors.mutedForeground}
@@ -485,7 +593,12 @@ export function AddExpenseModal({
                             />
                           </View>
                         ) : (
-                          <Text style={[styles.splitAmountText, { color: colors.foreground }]}>
+                          <Text
+                            style={[
+                              styles.splitAmountText,
+                              { color: colors.foreground },
+                            ]}
+                          >
                             ${splitAmount?.toFixed(2) || "0.00"}
                           </Text>
                         )}
@@ -541,7 +654,12 @@ export function AddExpenseModal({
             onPress={handleSubmit}
             disabled={isLoading || !isBalanced || selectedMembers.length === 0}
           >
-            <Text style={[styles.submitButtonText, { color: colors.primaryForeground }]}>
+            <Text
+              style={[
+                styles.submitButtonText,
+                { color: colors.primaryForeground },
+              ]}
+            >
               {isLoading ? "Adding..." : "Add Expense"}
             </Text>
           </TouchableOpacity>

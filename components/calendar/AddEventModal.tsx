@@ -455,7 +455,7 @@ export function AddEventModal({
                         styles.participantChipText,
                         {
                           color: selectedParticipants.includes(member.id)
-                            ? "#fff"
+                            ? colors.primaryForeground
                             : colors.foreground,
                         },
                       ]}
@@ -463,7 +463,7 @@ export function AddEventModal({
                       {getDisplayName(member)}
                     </Text>
                     {selectedParticipants.includes(member.id) && (
-                      <FontAwesome name="check" size={12} color="#fff" />
+                      <FontAwesome name="check" size={12} color={colors.primaryForeground} />
                     )}
                   </TouchableOpacity>
                 ))}

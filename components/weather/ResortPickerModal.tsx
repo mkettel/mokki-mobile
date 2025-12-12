@@ -1,6 +1,6 @@
 import { typography } from "@/constants/theme";
-import { useColors } from "@/lib/context/theme";
 import { getAllResorts } from "@/lib/api/weather";
+import { useColors } from "@/lib/context/theme";
 import type { Resort } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
@@ -111,7 +111,12 @@ export function ResortPickerModal({
               <Text
                 style={[
                   styles.saveButtonText,
-                  { opacity: hasChanges() ? 1 : 0.5 },
+                  {
+                    opacity: hasChanges() ? 1 : 0.5,
+                    color: hasChanges()
+                      ? colors.primaryForeground
+                      : colors.mutedForeground,
+                  },
                 ]}
               >
                 Save
@@ -122,7 +127,9 @@ export function ResortPickerModal({
 
         {/* Description */}
         <View style={styles.description}>
-          <Text style={[styles.descriptionText, { color: colors.mutedForeground }]}>
+          <Text
+            style={[styles.descriptionText, { color: colors.mutedForeground }]}
+          >
             Select the resorts you want to track weather and snow reports for.
           </Text>
         </View>
@@ -134,7 +141,11 @@ export function ResortPickerModal({
           </View>
         ) : resorts.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <FontAwesome name="map-marker" size={48} color={colors.mutedForeground} />
+            <FontAwesome
+              name="map-marker"
+              size={48}
+              color={colors.mutedForeground}
+            />
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
               No resorts available
             </Text>
@@ -189,7 +200,11 @@ export function ResortPickerModal({
                     ]}
                   >
                     {isSelected && (
-                      <FontAwesome name="check" size={12} color="#fff" />
+                      <FontAwesome
+                        name="check"
+                        size={12}
+                        color={colors.primaryForeground}
+                      />
                     )}
                   </View>
                 </TouchableOpacity>
@@ -200,7 +215,12 @@ export function ResortPickerModal({
         )}
 
         {/* Selected count */}
-        <View style={[styles.footer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+        <View
+          style={[
+            styles.footer,
+            { backgroundColor: colors.card, borderTopColor: colors.border },
+          ]}
+        >
           <Text style={[styles.footerText, { color: colors.mutedForeground }]}>
             {selected.size} resort{selected.size !== 1 ? "s" : ""} selected
           </Text>
@@ -237,7 +257,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   saveButtonText: {
-    color: "#fff",
     fontSize: 14,
     fontFamily: typography.fontFamily.chillaxMedium,
   },

@@ -5,3 +5,4 @@ export { EditStayModal } from "./EditStayModal";
 export { EventsList } from "./EventsList";
 export { AddEventModal } from "./AddEventModal";
 export { EditEventModal } from "./EditEventModal";
+export { EventDetailModal } from "./EventDetailModal";

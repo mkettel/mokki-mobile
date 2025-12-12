@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  TextInput,
-  Platform,
-  KeyboardAvoidingView,
-  ScrollView,
-  Alert,
-} from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { FontAwesome } from "@expo/vector-icons";
-import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
-import type { Profile } from "@/types/database";
 import type { EventWithDetails } from "@/lib/api/events";
+import { useColors } from "@/lib/context/theme";
+import type { Profile } from "@/types/database";
+import { FontAwesome } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import React, { useEffect, useState } from "react";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface EditEventModalProps {
   visible: boolean;
@@ -62,7 +62,9 @@ export function EditEventModal({
   const [endTime, setEndTime] = useState<Date | null>(null);
   const [links, setLinks] = useState<string[]>([]);
   const [newLink, setNewLink] = useState("");
-  const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
+    []
+  );
 
   // Picker visibility
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -77,7 +79,9 @@ export function EditEventModal({
       setDescription(event.description || "");
       setEventDate(new Date(event.event_date + "T00:00:00"));
       setEventTime(parseTimeString(event.event_time));
-      setEndDate(event.end_date ? new Date(event.end_date + "T00:00:00") : null);
+      setEndDate(
+        event.end_date ? new Date(event.end_date + "T00:00:00") : null
+      );
       setEndTime(parseTimeString(event.end_time));
       setLinks(event.links || []);
       setNewLink("");
@@ -104,14 +108,21 @@ export function EditEventModal({
         description: description.trim() || undefined,
         eventDate: eventDate.toISOString().split("T")[0],
         eventTime: eventTime
-          ? `${eventTime.getHours().toString().padStart(2, "0")}:${eventTime.getMinutes().toString().padStart(2, "0")}`
+          ? `${eventTime.getHours().toString().padStart(2, "0")}:${eventTime
+              .getMinutes()
+              .toString()
+              .padStart(2, "0")}`
           : undefined,
         endDate: endDate ? endDate.toISOString().split("T")[0] : undefined,
         endTime: endTime
-          ? `${endTime.getHours().toString().padStart(2, "0")}:${endTime.getMinutes().toString().padStart(2, "0")}`
+          ? `${endTime.getHours().toString().padStart(2, "0")}:${endTime
+              .getMinutes()
+              .toString()
+              .padStart(2, "0")}`
           : undefined,
         links: links.length > 0 ? links : undefined,
-        participantIds: selectedParticipants.length > 0 ? selectedParticipants : undefined,
+        participantIds:
+          selectedParticipants.length > 0 ? selectedParticipants : undefined,
       });
       handleClose();
     } catch (error) {
@@ -155,7 +166,9 @@ export function EditEventModal({
 
   const toggleParticipant = (userId: string) => {
     if (selectedParticipants.includes(userId)) {
-      setSelectedParticipants(selectedParticipants.filter((id) => id !== userId));
+      setSelectedParticipants(
+        selectedParticipants.filter((id) => id !== userId)
+      );
     } else {
       setSelectedParticipants([...selectedParticipants, userId]);
     }
@@ -223,7 +236,11 @@ export function EditEventModal({
               ]}
               onPress={() => setShowDatePicker(true)}
             >
-              <FontAwesome name="calendar" size={16} color={colors.mutedForeground} />
+              <FontAwesome
+                name="calendar"
+                size={16}
+                color={colors.mutedForeground}
+              />
               <Text style={[styles.dateText, { color: colors.foreground }]}>
                 {formatDate(eventDate)}
               </Text>
@@ -251,12 +268,29 @@ export function EditEventModal({
               <TouchableOpacity
                 style={[
                   styles.dateButton,
-                  { backgroundColor: colors.muted, borderColor: colors.border, flex: 1 },
+                  {
+                    backgroundColor: colors.muted,
+                    borderColor: colors.border,
+                    flex: 1,
+                  },
                 ]}
                 onPress={() => setShowTimePicker(true)}
               >
-                <FontAwesome name="clock-o" size={16} color={colors.mutedForeground} />
-                <Text style={[styles.dateText, { color: eventTime ? colors.foreground : colors.mutedForeground }]}>
+                <FontAwesome
+                  name="clock-o"
+                  size={16}
+                  color={colors.mutedForeground}
+                />
+                <Text
+                  style={[
+                    styles.dateText,
+                    {
+                      color: eventTime
+                        ? colors.foreground
+                        : colors.mutedForeground,
+                    },
+                  ]}
+                >
                   {eventTime ? formatTime(eventTime) : "No time set"}
                 </Text>
               </TouchableOpacity>
@@ -265,7 +299,11 @@ export function EditEventModal({
                   style={styles.clearButton}
                   onPress={() => setEventTime(null)}
                 >
-                  <FontAwesome name="times-circle" size={20} color={colors.mutedForeground} />
+                  <FontAwesome
+                    name="times-circle"
+                    size={20}
+                    color={colors.mutedForeground}
+                  />
                 </TouchableOpacity>
               )}
             </View>
@@ -292,12 +330,29 @@ export function EditEventModal({
               <TouchableOpacity
                 style={[
                   styles.dateButton,
-                  { backgroundColor: colors.muted, borderColor: colors.border, flex: 1 },
+                  {
+                    backgroundColor: colors.muted,
+                    borderColor: colors.border,
+                    flex: 1,
+                  },
                 ]}
                 onPress={() => setShowEndDatePicker(true)}
               >
-                <FontAwesome name="calendar" size={16} color={colors.mutedForeground} />
-                <Text style={[styles.dateText, { color: endDate ? colors.foreground : colors.mutedForeground }]}>
+                <FontAwesome
+                  name="calendar"
+                  size={16}
+                  color={colors.mutedForeground}
+                />
+                <Text
+                  style={[
+                    styles.dateText,
+                    {
+                      color: endDate
+                        ? colors.foreground
+                        : colors.mutedForeground,
+                    },
+                  ]}
+                >
                   {endDate ? formatDate(endDate) : "Same as start date"}
                 </Text>
               </TouchableOpacity>
@@ -306,7 +361,11 @@ export function EditEventModal({
                   style={styles.clearButton}
                   onPress={() => setEndDate(null)}
                 >
-                  <FontAwesome name="times-circle" size={20} color={colors.mutedForeground} />
+                  <FontAwesome
+                    name="times-circle"
+                    size={20}
+                    color={colors.mutedForeground}
+                  />
                 </TouchableOpacity>
               )}
             </View>
@@ -334,12 +393,29 @@ export function EditEventModal({
               <TouchableOpacity
                 style={[
                   styles.dateButton,
-                  { backgroundColor: colors.muted, borderColor: colors.border, flex: 1 },
+                  {
+                    backgroundColor: colors.muted,
+                    borderColor: colors.border,
+                    flex: 1,
+                  },
                 ]}
                 onPress={() => setShowEndTimePicker(true)}
               >
-                <FontAwesome name="clock-o" size={16} color={colors.mutedForeground} />
-                <Text style={[styles.dateText, { color: endTime ? colors.foreground : colors.mutedForeground }]}>
+                <FontAwesome
+                  name="clock-o"
+                  size={16}
+                  color={colors.mutedForeground}
+                />
+                <Text
+                  style={[
+                    styles.dateText,
+                    {
+                      color: endTime
+                        ? colors.foreground
+                        : colors.mutedForeground,
+                    },
+                  ]}
+                >
                   {endTime ? formatTime(endTime) : "No end time"}
                 </Text>
               </TouchableOpacity>
@@ -348,7 +424,11 @@ export function EditEventModal({
                   style={styles.clearButton}
                   onPress={() => setEndTime(null)}
                 >
-                  <FontAwesome name="times-circle" size={20} color={colors.mutedForeground} />
+                  <FontAwesome
+                    name="times-circle"
+                    size={20}
+                    color={colors.mutedForeground}
+                  />
                 </TouchableOpacity>
               )}
             </View>
@@ -414,10 +494,17 @@ export function EditEventModal({
                 keyboardType="url"
               />
               <TouchableOpacity
-                style={[styles.addLinkButton, { backgroundColor: colors.primary }]}
+                style={[
+                  styles.addLinkButton,
+                  { backgroundColor: colors.primary },
+                ]}
                 onPress={addLink}
               >
-                <FontAwesome name="plus" size={16} color="#fff" />
+                <FontAwesome
+                  name="plus"
+                  size={16}
+                  color={colors.primaryForeground || "#fff"}
+                />
               </TouchableOpacity>
             </View>
             {links.length > 0 && (
@@ -428,13 +515,20 @@ export function EditEventModal({
                     style={[styles.linkChip, { backgroundColor: colors.muted }]}
                   >
                     <Text
-                      style={[styles.linkChipText, { color: colors.foreground }]}
+                      style={[
+                        styles.linkChipText,
+                        { color: colors.foreground },
+                      ]}
                       numberOfLines={1}
                     >
                       {link}
                     </Text>
                     <TouchableOpacity onPress={() => removeLink(index)}>
-                      <FontAwesome name="times" size={14} color={colors.mutedForeground} />
+                      <FontAwesome
+                        name="times"
+                        size={14}
+                        color={colors.mutedForeground}
+                      />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -455,7 +549,9 @@ export function EditEventModal({
                     style={[
                       styles.participantChip,
                       {
-                        backgroundColor: selectedParticipants.includes(member.id)
+                        backgroundColor: selectedParticipants.includes(
+                          member.id
+                        )
                           ? colors.primary
                           : colors.muted,
                         borderColor: selectedParticipants.includes(member.id)
@@ -470,7 +566,7 @@ export function EditEventModal({
                         styles.participantChipText,
                         {
                           color: selectedParticipants.includes(member.id)
-                            ? "#fff"
+                            ? colors.primaryForeground
                             : colors.foreground,
                         },
                       ]}
@@ -478,7 +574,11 @@ export function EditEventModal({
                       {getDisplayName(member)}
                     </Text>
                     {selectedParticipants.includes(member.id) && (
-                      <FontAwesome name="check" size={12} color="#fff" />
+                      <FontAwesome
+                        name="check"
+                        size={12}
+                        color={colors.primaryForeground}
+                      />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -498,7 +598,12 @@ export function EditEventModal({
             onPress={handleSubmit}
             disabled={isLoading}
           >
-            <Text style={[styles.submitButtonText, { color: colors.primaryForeground }]}>
+            <Text
+              style={[
+                styles.submitButtonText,
+                { color: colors.primaryForeground },
+              ]}
+            >
               {isLoading ? "Saving..." : "Save Changes"}
             </Text>
           </TouchableOpacity>

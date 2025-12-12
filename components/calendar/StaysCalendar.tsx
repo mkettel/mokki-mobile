@@ -1,16 +1,16 @@
-import React, { useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Dimensions,
-} from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
-import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
 import type { StayWithExpense } from "@/lib/api/stays";
+import { useColors } from "@/lib/context/theme";
+import { FontAwesome } from "@expo/vector-icons";
+import React, { useMemo, useState } from "react";
+import {
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const DAY_WIDTH = (SCREEN_WIDTH - 48) / 7; // 24px padding on each side
@@ -31,20 +31,34 @@ const STAY_COLORS = [
 function getUserColor(userId: string): string {
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
-    hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+    hash = (hash << 5) - hash + userId.charCodeAt(i);
     hash = hash & hash;
   }
   return STAY_COLORS[Math.abs(hash) % STAY_COLORS.length];
 }
 
-interface StaysCalendarProps {
-  stays: StayWithExpense[];
-  events?: Array<{ id: string; name: string; event_date: string; end_date: string | null }>;
-  onDayPress?: (date: Date) => void;
-  onStayPress?: (stay: StayWithExpense) => void;
+interface CalendarEvent {
+  id: string;
+  name: string;
+  event_date: string;
+  end_date: string | null;
 }
 
-export function StaysCalendar({ stays, events = [], onDayPress, onStayPress }: StaysCalendarProps) {
+interface StaysCalendarProps {
+  stays: StayWithExpense[];
+  events?: CalendarEvent[];
+  onDayPress?: (date: Date) => void;
+  onStayPress?: (stay: StayWithExpense) => void;
+  onEventPress?: (event: CalendarEvent) => void;
+}
+
+export function StaysCalendar({
+  stays,
+  events = [],
+  onDayPress,
+  onStayPress,
+  onEventPress,
+}: StaysCalendarProps) {
   const colors = useColors();
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -91,10 +105,13 @@ export function StaysCalendar({ stays, events = [], onDayPress, onStayPress }: S
 
   // Group stays and events by date
   const itemsByDate = useMemo(() => {
-    const map: Record<string, { stays: StayWithExpense[]; events: typeof events }> = {};
+    const map: Record<
+      string,
+      { stays: StayWithExpense[]; events: typeof events }
+    > = {};
 
     // Add stays
-    stays.forEach(stay => {
+    stays.forEach((stay) => {
       const checkIn = new Date(stay.check_in);
       const checkOut = new Date(stay.check_out);
 
@@ -111,7 +128,7 @@ export function StaysCalendar({ stays, events = [], onDayPress, onStayPress }: S
     });
 
     // Add events
-    events.forEach(event => {
+    events.forEach((event) => {
       const startDate = new Date(event.event_date);
       const endDate = event.end_date ? new Date(event.end_date) : startDate;
 
@@ -173,7 +190,11 @@ export function StaysCalendar({ stays, events = [], onDayPress, onStayPress }: S
       {/* Header with month navigation */}
       <View style={styles.header}>
         <TouchableOpacity onPress={goToPrevMonth} style={styles.navButton}>
-          <FontAwesome name="chevron-left" size={16} color={colors.foreground} />
+          <FontAwesome
+            name="chevron-left"
+            size={16}
+            color={colors.foreground}
+          />
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
@@ -181,20 +202,28 @@ export function StaysCalendar({ stays, events = [], onDayPress, onStayPress }: S
             {formatMonthYear()}
           </Text>
           <TouchableOpacity onPress={goToToday} style={styles.todayButton}>
-            <Text style={[styles.todayText, { color: colors.primary }]}>Today</Text>
+            <Text style={[styles.todayText, { color: colors.primary }]}>
+              Today
+            </Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity onPress={goToNextMonth} style={styles.navButton}>
-          <FontAwesome name="chevron-right" size={16} color={colors.foreground} />
+          <FontAwesome
+            name="chevron-right"
+            size={16}
+            color={colors.foreground}
+          />
         </TouchableOpacity>
       </View>
 
       {/* Weekday headers */}
       <View style={styles.weekDays}>
-        {weekDays.map(day => (
+        {weekDays.map((day) => (
           <View key={day} style={styles.weekDayCell}>
-            <Text style={[styles.weekDayText, { color: colors.mutedForeground }]}>
+            <Text
+              style={[styles.weekDayText, { color: colors.mutedForeground }]}
+            >
               {day}
             </Text>
           </View>
@@ -202,7 +231,10 @@ export function StaysCalendar({ stays, events = [], onDayPress, onStayPress }: S
       </View>
 
       {/* Calendar grid */}
-      <ScrollView style={styles.calendarGrid} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.calendarGrid}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.daysContainer}>
           {calendarDays.map((dayInfo, index) => {
             const dateKey = dayInfo.date.toISOString().split("T")[0];
@@ -211,7 +243,8 @@ export function StaysCalendar({ stays, events = [], onDayPress, onStayPress }: S
 
             // Limit display to 3 items
             const displayStays = dayItems.stays.slice(0, 3);
-            const remainingCount = dayItems.stays.length + dayItems.events.length - 3;
+            const remainingCount =
+              dayItems.stays.length + dayItems.events.length - 3;
 
             return (
               <TouchableOpacity
@@ -234,7 +267,13 @@ export function StaysCalendar({ stays, events = [], onDayPress, onStayPress }: S
                     <Text
                       style={[
                         styles.dateText,
-                        { color: isTodayDate ? "#fff" : dayInfo.isCurrentMonth ? colors.foreground : colors.mutedForeground },
+                        {
+                          color: isTodayDate
+                            ? colors.primaryForeground
+                            : dayInfo.isCurrentMonth
+                            ? colors.foreground
+                            : colors.mutedForeground,
+                        },
                       ]}
                     >
                       {dayInfo.date.getDate()}
@@ -256,27 +295,51 @@ export function StaysCalendar({ stays, events = [], onDayPress, onStayPress }: S
                           {getStayDisplayName(stay)}
                         </Text>
                         {stay.guest_count > 0 && (
-                          <FontAwesome name="users" size={8} color="#1e293b" style={{ marginLeft: 2 }} />
+                          <FontAwesome
+                            name="users"
+                            size={8}
+                            color="#1e293b"
+                            style={{ marginLeft: 2 }}
+                          />
                         )}
                       </TouchableOpacity>
                     ))}
 
                     {/* Events (amber colored) */}
-                    {dayItems.stays.length < 3 && dayItems.events.slice(0, 3 - dayItems.stays.length).map((event, i) => (
-                      <View
-                        key={`event-${event.id}-${i}`}
-                        style={[styles.eventBadge, { backgroundColor: "#fcd34d" }]}
-                      >
-                        <FontAwesome name="calendar" size={8} color="#78350f" />
-                        <Text style={styles.eventBadgeText} numberOfLines={1}>
-                          {event.name}
-                        </Text>
-                      </View>
-                    ))}
+                    {dayItems.stays.length < 3 &&
+                      dayItems.events
+                        .slice(0, 3 - dayItems.stays.length)
+                        .map((event, i) => (
+                          <TouchableOpacity
+                            key={`event-${event.id}-${i}`}
+                            style={[
+                              styles.eventBadge,
+                              { backgroundColor: "#fcd34d" },
+                            ]}
+                            onPress={() => onEventPress?.(event)}
+                          >
+                            <FontAwesome
+                              name="calendar"
+                              size={8}
+                              color="#78350f"
+                            />
+                            <Text
+                              style={styles.eventBadgeText}
+                              numberOfLines={1}
+                            >
+                              {event.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
 
                     {/* +X more indicator */}
                     {remainingCount > 0 && (
-                      <Text style={[styles.moreText, { color: colors.mutedForeground }]}>
+                      <Text
+                        style={[
+                          styles.moreText,
+                          { color: colors.mutedForeground },
+                        ]}
+                      >
                         +{remainingCount} more
                       </Text>
                     )}
@@ -291,12 +354,18 @@ export function StaysCalendar({ stays, events = [], onDayPress, onStayPress }: S
       {/* Legend */}
       <View style={[styles.legend, { borderTopColor: colors.border }]}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: STAY_COLORS[0] }]} />
-          <Text style={[styles.legendText, { color: colors.mutedForeground }]}>Stays</Text>
+          <View
+            style={[styles.legendDot, { backgroundColor: STAY_COLORS[0] }]}
+          />
+          <Text style={[styles.legendText, { color: colors.mutedForeground }]}>
+            Stays
+          </Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: "#fcd34d" }]} />
-          <Text style={[styles.legendText, { color: colors.mutedForeground }]}>Events</Text>
+          <Text style={[styles.legendText, { color: colors.mutedForeground }]}>
+            Events
+          </Text>
         </View>
       </View>
     </View>

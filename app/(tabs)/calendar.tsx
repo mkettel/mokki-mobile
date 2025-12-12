@@ -3,6 +3,7 @@ import {
   AddStayModal,
   EditEventModal,
   EditStayModal,
+  EventDetailModal,
   EventsList,
   StaysCalendar,
   StaysList,
@@ -68,7 +69,11 @@ export default function CalendarScreen() {
   // Event modals
   const [showAddEventModal, setShowAddEventModal] = useState(false);
   const [showEditEventModal, setShowEditEventModal] = useState(false);
+  const [showEventDetailModal, setShowEventDetailModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventWithDetails | null>(
+    null
+  );
+  const [viewingEvent, setViewingEvent] = useState<EventWithDetails | null>(
     null
   );
 
@@ -267,6 +272,26 @@ export default function CalendarScreen() {
     setShowEditEventModal(true);
   };
 
+  const openEventDetailModal = (eventId: string) => {
+    const event = events.find((e) => e.id === eventId);
+    if (event) {
+      setViewingEvent(event);
+      setShowEventDetailModal(true);
+    }
+  };
+
+  const handleEventDetailEdit = (event: EventWithDetails) => {
+    setViewingEvent(null);
+    setShowEventDetailModal(false);
+    openEditEventModal(event);
+  };
+
+  const handleEventDetailDelete = (event: EventWithDetails) => {
+    setViewingEvent(null);
+    setShowEventDetailModal(false);
+    handleDeleteEvent(event);
+  };
+
   // Handle add button based on active tab
   const handleAddPress = () => {
     if (activeTab === "events") {
@@ -417,6 +442,7 @@ export default function CalendarScreen() {
             stays={stays}
             events={events}
             onStayPress={openEditStayModal}
+            onEventPress={(event) => openEventDetailModal(event.id)}
           />
         ) : activeTab === "stays" ? (
           <StaysList
@@ -470,6 +496,18 @@ export default function CalendarScreen() {
         }}
         onSubmit={handleEditEvent}
         members={members}
+      />
+
+      <EventDetailModal
+        visible={showEventDetailModal}
+        event={viewingEvent}
+        currentUserId={user?.id || ""}
+        onClose={() => {
+          setShowEventDetailModal(false);
+          setViewingEvent(null);
+        }}
+        onEdit={handleEventDetailEdit}
+        onDelete={handleEventDetailDelete}
       />
     </PageContainer>
   );

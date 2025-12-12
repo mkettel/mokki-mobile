@@ -1,15 +1,12 @@
 import { typography } from "@/constants/theme";
 import { useColors } from "@/lib/context/theme";
-import type { BRollMediaGroupedByDay, BRollMediaWithProfile } from "@/types/database";
+import type {
+  BRollMediaGroupedByDay,
+  BRollMediaWithProfile,
+} from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
-import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import { MediaItem } from "./MediaItem";
 
 interface MediaGridProps {
@@ -24,7 +21,8 @@ const screenWidth = Dimensions.get("window").width;
 const numColumns = 2;
 const gap = 8;
 const padding = 16;
-const itemSize = (screenWidth - padding * 2 - gap * (numColumns - 1)) / numColumns;
+const itemSize =
+  (screenWidth - padding * 2 - gap * (numColumns - 1)) / numColumns;
 
 export function MediaGrid({
   grouped,
@@ -38,11 +36,11 @@ export function MediaGrid({
   if (grouped.length === 0 && !isLoading) {
     return (
       <View style={styles.emptyContainer}>
-        <FontAwesome name="camera" size={48} color={colors.mutedForeground} />
-        <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+        <FontAwesome name="camera" size={48} color={colors.foreground} />
+        <Text style={[styles.emptyText, { color: colors.foreground }]}>
           No photos or videos yet
         </Text>
-        <Text style={[styles.emptySubtext, { color: colors.mutedForeground }]}>
+        <Text style={[styles.emptySubtext, { color: colors.foreground }]}>
           Upload some memories to share with your housemates
         </Text>
       </View>
@@ -92,7 +90,9 @@ export function MediaGrid({
       {/* Load more indicator */}
       {hasMore && (
         <View style={styles.loadMore}>
-          <Text style={[styles.loadMoreText, { color: colors.mutedForeground }]}>
+          <Text
+            style={[styles.loadMoreText, { color: colors.mutedForeground }]}
+          >
             {isLoading ? "Loading..." : "Scroll for more"}
           </Text>
         </View>
