@@ -85,7 +85,7 @@ export function ExpenseSummaryCards({ summary }: ExpenseSummaryCardsProps) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: "column",
-    gap: 10,
+    gap: 0,
     paddingHorizontal: 4,
   },
   card: {

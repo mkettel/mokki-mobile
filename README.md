@@ -14,17 +14,20 @@ React Native mobile app for Mokki - the ski house management platform.
 ### Installation
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Create a `.env` file with your Supabase credentials:
+
 ```bash
 cp .env.example .env
 # Edit .env with your Supabase URL and anon key
 ```
 
 3. Start the development server:
+
 ```bash
 npm run start
 ```
@@ -65,15 +68,16 @@ mokki-mobile/
 
 ## Development Phases
 
-- **Phase 1** (Complete): Foundation & Authentication
+- **Phase 1**: Foundation & Authentication
 - **Phase 2**: House Management & Dashboard
 - **Phase 3**: Calendar & Stays
-- **Phase 4**: Expense Tracking
+- **Phase 4** (complete): Expense Tracking
 - **Phase 5-10**: Additional features
 
 ## Shared Backend
 
 This app connects to the same Supabase backend as the web app (`mokki/`):
+
 - Same database
 - Same auth system
 - Same storage buckets
@@ -96,11 +100,13 @@ This app connects to the same Supabase backend as the web app (`mokki/`):
 ### First-Time Setup
 
 1. Login to Expo:
+
 ```bash
 npx eas-cli login
 ```
 
 2. Configure EAS Build (creates eas.json):
+
 ```bash
 npx eas-cli build:configure
 ```
@@ -108,25 +114,29 @@ npx eas-cli build:configure
 ### Building & Submitting
 
 **Full Build** (required for native code changes, new modules):
+
 ```bash
 npx eas-cli build --platform ios
 npx eas-cli submit --platform ios
 ```
+
 Takes ~15-20 minutes. Creates a new build and submits to TestFlight.
 
 **OTA Update** (for JS/React code changes only - much faster):
+
 ```bash
 npx eas-cli update
 ```
+
 Takes ~1-2 minutes. Users get the update next time they open the app. Use this for UI changes, bug fixes, new screens - anything that doesn't add native modules.
 
 ### When to Use Which
 
-| Change Type | Command |
-|-------------|---------|
-| UI/styling changes | `npx eas-cli update` |
-| Bug fixes in JS code | `npx eas-cli update` |
-| New screens/components | `npx eas-cli update` |
-| New native module (e.g., expo-camera) | Full build + submit |
-| app.json changes | Full build + submit |
-| New environment variables | Full build + submit |
+| Change Type                           | Command              |
+| ------------------------------------- | -------------------- |
+| UI/styling changes                    | `npx eas-cli update` |
+| Bug fixes in JS code                  | `npx eas-cli update` |
+| New screens/components                | `npx eas-cli update` |
+| New native module (e.g., expo-camera) | Full build + submit  |
+| app.json changes                      | Full build + submit  |
+| New environment variables             | Full build + submit  |

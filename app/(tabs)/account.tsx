@@ -1,6 +1,7 @@
+import { AvatarPicker, ProfileForm } from "@/components/account";
+import { GeometricBackground } from "@/components/GeometricBackground";
 import { PageContainer } from "@/components/PageContainer";
 import { TopBar } from "@/components/TopBar";
-import { AvatarPicker, ProfileForm } from "@/components/account";
 import { typography } from "@/constants/theme";
 import { getCurrentProfile } from "@/lib/api/profile";
 import { useAuth } from "@/lib/context/auth";
@@ -106,14 +107,10 @@ export default function AccountScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <TopBar />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
-            Loading profile...
-          </Text>
-        </View>
+      <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <GeometricBackground />
+        <Text style={[styles.loadingHeader, { color: colors.foreground }]}>MÖKKI</Text>
+        <ActivityIndicator size="large" color={colors.foreground} />
       </View>
     );
   }
@@ -121,6 +118,7 @@ export default function AccountScreen() {
   if (!profile) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <GeometricBackground />
         <TopBar />
         <View style={styles.errorContainer}>
           <FontAwesome
@@ -144,6 +142,7 @@ export default function AccountScreen() {
 
   return (
     <PageContainer>
+      <GeometricBackground />
       <TopBar />
       <ScrollView
         style={styles.scrollView}
@@ -289,6 +288,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 12,
+  },
+  loadingHeader: {
+    fontSize: 24,
+    fontFamily: typography.fontFamily.chillaxBold,
+    marginBottom: 12,
   },
   loadingText: {
     fontSize: 14,

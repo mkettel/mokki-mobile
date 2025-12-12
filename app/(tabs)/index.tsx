@@ -159,6 +159,9 @@ export default function HomeScreen() {
           { backgroundColor: colors.background },
         ]}
       >
+        <Text style={[styles.loadingHeader, { color: colors.foreground }]}>
+          MÖKKI
+        </Text>
         <ActivityIndicator size="large" color={colors.foreground} />
       </View>
     );
@@ -233,13 +236,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  loadingHeader: {
+    fontSize: 24,
+    fontFamily: typography.fontFamily.chillaxBold,
+    marginBottom: 12,
+  },
   content: {
     flex: 1,
     paddingHorizontal: 24,
   },
   header: {
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 26,
   },
   houseName: {
     fontFamily: typography.fontFamily.chillaxBold,
@@ -268,7 +276,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     // Position links in the mountain area (lower half of screen)
-    marginTop: SCREEN_HEIGHT * 0.22,
+    marginTop: SCREEN_HEIGHT * 0.21,
   },
   linkButton: {
     paddingVertical: 4,

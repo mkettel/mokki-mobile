@@ -1,14 +1,14 @@
+import { borderRadius, shadows, typography } from "@/constants/theme";
+import { useColors } from "@/lib/context/theme";
 import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
   StyleProp,
+  StyleSheet,
+  Text,
+  TextStyle,
+  View,
+  ViewStyle,
 } from "react-native";
-import { useColors } from "@/lib/context/theme";
-import { borderRadius, shadows, typography } from "@/constants/theme";
 
 // Card Component
 interface CardProps {
@@ -119,6 +119,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     borderWidth: 1,
     overflow: "hidden",
+    backdropFilter: "blur(2px)",
   },
   cardHeader: {
     padding: 24,

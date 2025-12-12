@@ -6,6 +6,7 @@ import {
   ExpenseSummaryCards,
 } from "@/components/expenses";
 import type { ReceiptFile } from "@/components/expenses/ReceiptPicker";
+import { GeometricBackground } from "@/components/GeometricBackground";
 import { PageContainer } from "@/components/PageContainer";
 import { TopBar } from "@/components/TopBar";
 import { typography } from "@/constants/theme";
@@ -272,7 +273,10 @@ export default function ExpensesScreen() {
           { backgroundColor: colors.background },
         ]}
       >
-        <TopBar />
+        <GeometricBackground />
+        <Text style={[styles.loadingHeader, { color: colors.foreground }]}>
+          MÖKKI
+        </Text>
         <ActivityIndicator size="large" color={colors.foreground} />
       </View>
     );
@@ -280,6 +284,7 @@ export default function ExpensesScreen() {
 
   return (
     <PageContainer>
+      <GeometricBackground />
       <TopBar />
 
       {/* Header with action button */}
@@ -422,6 +427,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  loadingHeader: {
+    fontSize: 24,
+    fontFamily: typography.fontFamily.chillaxBold,
+    marginBottom: 12,
   },
   header: {
     flexDirection: "row",

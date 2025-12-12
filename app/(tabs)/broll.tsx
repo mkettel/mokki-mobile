@@ -1,6 +1,7 @@
+import { MediaGrid, MediaViewer, UploadModal } from "@/components/broll";
+import { GeometricBackground } from "@/components/GeometricBackground";
 import { PageContainer } from "@/components/PageContainer";
 import { TopBar } from "@/components/TopBar";
-import { MediaGrid, MediaViewer, UploadModal } from "@/components/broll";
 import { typography } from "@/constants/theme";
 import {
   deleteBRollMedia,
@@ -208,6 +209,7 @@ export default function BRollScreen() {
   if (!activeHouse) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <GeometricBackground />
         <TopBar />
         <View style={styles.centered}>
           <FontAwesome name="home" size={48} color={colors.mutedForeground} />
@@ -221,6 +223,7 @@ export default function BRollScreen() {
 
   return (
     <PageContainer>
+      <GeometricBackground />
       <TopBar />
 
       {/* Header with upload button */}
