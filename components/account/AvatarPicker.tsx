@@ -137,7 +137,9 @@ export function AvatarPicker({
           <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-            <Text style={styles.initials}>{getInitials()}</Text>
+            <Text style={[styles.initials, { color: colors.primaryForeground }]}>
+              {getInitials()}
+            </Text>
           </View>
         )}
       </View>
@@ -192,7 +194,6 @@ const styles = StyleSheet.create({
   initials: {
     fontSize: 48,
     fontFamily: typography.fontFamily.chillaxBold,
-    color: "#fff",
   },
   actions: {
     flexDirection: "row",

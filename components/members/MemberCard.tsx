@@ -63,12 +63,14 @@ export function MemberCard({
           <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, { backgroundColor: isPending ? colors.muted : colors.primary }]}>
-            <Text style={styles.initials}>{getInitials()}</Text>
+            <Text style={[styles.initials, { color: isPending ? colors.mutedForeground : colors.primaryForeground }]}>
+              {getInitials()}
+            </Text>
           </View>
         )}
         {member.role === "admin" && !isPending && (
           <View style={[styles.adminBadge, { backgroundColor: colors.primary }]}>
-            <FontAwesome name="shield" size={10} color="#fff" />
+            <FontAwesome name="shield" size={10} color={colors.primaryForeground} />
           </View>
         )}
       </View>
@@ -166,7 +168,6 @@ const styles = StyleSheet.create({
   initials: {
     fontSize: 18,
     fontFamily: typography.fontFamily.chillaxBold,
-    color: "#fff",
   },
   adminBadge: {
     position: "absolute",

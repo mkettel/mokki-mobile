@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
@@ -82,16 +82,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.refresh_token) {
         await updateBiometricToken(session.refresh_token);
       }
+
+      // Re-check biometric enabled state on sign in (in case it was enabled before logout)
+      if (event === "SIGNED_IN") {
+        const enabled = await isBiometricLoginEnabled();
+        setBiometricEnabled(enabled);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
+    // If biometric was enabled and user logged in successfully,
+    // update the stored token so biometric login works again
+    if (!error && data.session?.refresh_token) {
+      const wasEnabled = await isBiometricLoginEnabled();
+      if (wasEnabled) {
+        await enableBiometricLogin(email, data.session.refresh_token);
+      }
+    }
+
     return { error: error as Error | null };
   };
 

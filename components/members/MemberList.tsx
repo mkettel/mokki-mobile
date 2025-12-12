@@ -118,7 +118,9 @@ export function MemberList({
             Members
           </Text>
           <View style={[styles.countBadge, { backgroundColor: colors.primary }]}>
-            <Text style={styles.countText}>{acceptedMembers.length}</Text>
+            <Text style={[styles.countText, { color: colors.primaryForeground }]}>
+              {acceptedMembers.length}
+            </Text>
           </View>
         </View>
         <View style={styles.membersList}>
@@ -199,7 +201,6 @@ const styles = StyleSheet.create({
   countText: {
     fontSize: 12,
     fontFamily: typography.fontFamily.chillaxMedium,
-    color: "#fff",
   },
   membersList: {
     gap: 8,

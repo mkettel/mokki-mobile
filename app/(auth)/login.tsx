@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
   KeyboardAvoidingView,
@@ -41,15 +41,9 @@ export default function LoginScreen() {
   } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const hasAttemptedBiometric = useRef(false);
 
-  // Auto-prompt biometric on mount if enabled
-  useEffect(() => {
-    if (biometricEnabled && biometricSupported) {
-      handleBiometricLogin();
-    }
-  }, [biometricEnabled, biometricSupported]);
-
-  const handleBiometricLogin = async () => {
+  const handleBiometricLogin = useCallback(async () => {
     setIsBiometricLoading(true);
     setError(null);
 
@@ -61,7 +55,15 @@ export default function LoginScreen() {
     } else {
       router.replace("/(tabs)");
     }
-  };
+  }, [signInWithBiometric]);
+
+  // Auto-prompt biometric on mount if enabled (only once)
+  useEffect(() => {
+    if (biometricEnabled && biometricSupported && !hasAttemptedBiometric.current) {
+      hasAttemptedBiometric.current = true;
+      handleBiometricLogin();
+    }
+  }, [biometricEnabled, biometricSupported, handleBiometricLogin]);
 
   const handleLogin = async () => {
     if (!email || !password) {

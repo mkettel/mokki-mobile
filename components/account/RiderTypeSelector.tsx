@@ -56,7 +56,11 @@ export function RiderTypeSelector({
             <Text
               style={[
                 styles.label,
-                { color: isSelected ? "#fff" : colors.foreground },
+                {
+                  color: isSelected
+                    ? colors.primaryForeground
+                    : colors.foreground,
+                },
               ]}
             >
               {option.label}

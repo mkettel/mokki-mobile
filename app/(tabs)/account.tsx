@@ -133,7 +133,9 @@ export default function AccountScreen() {
             style={[styles.retryButton, { backgroundColor: colors.primary }]}
             onPress={loadProfile}
           >
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <Text style={[styles.retryButtonText, { color: colors.primaryForeground }]}>
+              Try Again
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -245,7 +247,7 @@ export default function AccountScreen() {
                 onValueChange={handleBiometricToggle}
                 disabled={isBiometricToggling}
                 trackColor={{ false: colors.muted, true: colors.primary }}
-                thumbColor="#fff"
+                thumbColor={colors.background}
               />
             </View>
           </View>
@@ -315,7 +317,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryButtonText: {
-    color: "#fff",
     fontSize: 14,
     fontFamily: typography.fontFamily.chillaxMedium,
   },
