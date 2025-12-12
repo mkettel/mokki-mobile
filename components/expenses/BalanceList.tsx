@@ -118,7 +118,7 @@ export function BalanceList({ balances, onSettleAll }: BalanceListProps) {
               <View
                 style={[styles.avatar, { backgroundColor: colors.primary }]}
               >
-                <Text style={styles.avatarText}>{getInitial(balance)}</Text>
+                <Text style={[styles.avatarText, { color: colors.primaryForeground }]}>{getInitial(balance)}</Text>
               </View>
 
               {/* Name and balance info */}
@@ -233,7 +233,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarText: {
-    color: "#fff",
     fontSize: 18,
     fontFamily: typography.fontFamily.chillaxSemibold,
   },

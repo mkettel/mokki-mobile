@@ -165,7 +165,7 @@ export function StaysList({
             <View style={styles.cardHeader}>
               {/* Avatar */}
               <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-                <Text style={styles.avatarText}>{getInitial(stay)}</Text>
+                <Text style={[styles.avatarText, { color: colors.primaryForeground }]}>{getInitial(stay)}</Text>
               </View>
 
               {/* Name and status */}
@@ -341,7 +341,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarText: {
-    color: "#fff",
     fontSize: 16,
     fontFamily: typography.fontFamily.chillaxBold,
   },

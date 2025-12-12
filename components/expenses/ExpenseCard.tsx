@@ -162,7 +162,7 @@ export function ExpenseCard({
       {/* Payer info */}
       <View style={styles.payerRow}>
         <View style={[styles.payerAvatar, { backgroundColor: colors.primary }]}>
-          <Text style={styles.payerAvatarText}>{getPayerInitial()}</Text>
+          <Text style={[styles.payerAvatarText, { color: colors.primaryForeground }]}>{getPayerInitial()}</Text>
         </View>
         <Text style={[styles.payerText, { color: colors.mutedForeground }]}>
           Paid to {isPayer ? "you" : getPayerName()}
@@ -363,7 +363,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   payerAvatarText: {
-    color: "#fff",
     fontSize: 11,
     fontFamily: typography.fontFamily.chillaxMedium,
   },

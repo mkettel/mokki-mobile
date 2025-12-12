@@ -24,7 +24,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.mokki.mobile"
+      "bundleIdentifier": "app.mokki.mobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {

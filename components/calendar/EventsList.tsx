@@ -352,10 +352,11 @@ export function EventsList({
                             {
                               backgroundColor: colors.primary,
                               marginLeft: index > 0 ? -8 : 0,
+                              borderColor: colors.card,
                             },
                           ]}
                         >
-                          <Text style={styles.participantInitial}>
+                          <Text style={[styles.participantInitial, { color: colors.primaryForeground }]}>
                             {getParticipantInitial(participant.profiles)}
                           </Text>
                         </View>
@@ -364,7 +365,7 @@ export function EventsList({
                       <View
                         style={[
                           styles.participantAvatar,
-                          { backgroundColor: colors.muted, marginLeft: -8 },
+                          { backgroundColor: colors.muted, marginLeft: -8, borderColor: colors.card },
                         ]}
                       >
                         <Text
@@ -529,10 +530,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#fff",
   },
   participantInitial: {
-    color: "#fff",
     fontSize: 11,
     fontFamily: typography.fontFamily.chillaxMedium,
   },
