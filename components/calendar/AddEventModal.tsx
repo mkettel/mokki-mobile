@@ -483,7 +483,7 @@ export function AddEventModal({
             onPress={handleSubmit}
             disabled={isLoading}
           >
-            <Text style={styles.submitButtonText}>
+            <Text style={[styles.submitButtonText, { color: colors.primaryForeground }]}>
               {isLoading ? "Adding..." : "Add Event"}
             </Text>
           </TouchableOpacity>

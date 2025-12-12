@@ -10,6 +10,7 @@ import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
 import { formatCurrency, getCategoryInfo } from "@/lib/api/expenses";
 import type { ExpenseWithDetails } from "@/types/database";
+import { ReceiptViewer } from "./ReceiptViewer";
 
 interface ExpenseCardProps {
   expense: ExpenseWithDetails;
@@ -30,6 +31,7 @@ export function ExpenseCard({
 }: ExpenseCardProps) {
   const colors = useColors();
   const [showSplits, setShowSplits] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
 
   const categoryInfo = getCategoryInfo(expense.category);
   const isPayer = expense.paid_by === currentUserId;
@@ -97,26 +99,37 @@ export function ExpenseCard({
         </View>
 
         {/* Actions */}
-        {isCreator && (
-          <View style={styles.actions}>
-            {onEdit && (
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => onEdit(expense)}
-              >
-                <FontAwesome name="pencil" size={14} color={colors.mutedForeground} />
-              </TouchableOpacity>
-            )}
-            {onDelete && (
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => onDelete(expense)}
-              >
-                <FontAwesome name="trash-o" size={14} color={colors.destructive} />
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+        <View style={styles.actions}>
+          {/* Receipt button */}
+          {expense.receipt_url && (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => setShowReceipt(true)}
+            >
+              <FontAwesome name="file-image-o" size={14} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+          {isCreator && (
+            <>
+              {onEdit && (
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => onEdit(expense)}
+                >
+                  <FontAwesome name="pencil" size={14} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              )}
+              {onDelete && (
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => onDelete(expense)}
+                >
+                  <FontAwesome name="trash-o" size={14} color={colors.destructive} />
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+        </View>
       </View>
 
       {/* Title and amount */}
@@ -259,6 +272,16 @@ export function ExpenseCard({
             </View>
           )}
         </>
+      )}
+
+      {/* Receipt Viewer Modal */}
+      {expense.receipt_url && (
+        <ReceiptViewer
+          visible={showReceipt}
+          onClose={() => setShowReceipt(false)}
+          receiptUrl={expense.receipt_url}
+          expenseTitle={expense.title || expense.description}
+        />
       )}
     </View>
   );

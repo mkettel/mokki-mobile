@@ -3,6 +3,7 @@ import { formatCurrency } from "@/lib/api/expenses";
 import { useColors } from "@/lib/context/theme";
 import type { ExpenseSummary } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -14,13 +15,14 @@ export function ExpenseSummaryCards({ summary }: ExpenseSummaryCardsProps) {
   const colors = useColors();
 
   type IconName = React.ComponentProps<typeof FontAwesome>["name"];
+  type FeatherIconName = React.ComponentProps<typeof Feather>["name"];
 
   const cards: {
     label: string;
     amount: number;
     color: string;
     bgColor: string;
-    icon: IconName;
+    icon: FeatherIconName;
     prefix?: string;
   }[] = [
     {
@@ -28,14 +30,14 @@ export function ExpenseSummaryCards({ summary }: ExpenseSummaryCardsProps) {
       amount: summary.totalYouOwe,
       color: "#dc2626", // red
       bgColor: "#fef2f2",
-      icon: "arrow-up",
+      icon: "arrow-up-right",
     },
     {
       label: "You're Owed",
       amount: summary.totalYouAreOwed,
       color: "#16a34a", // green
       bgColor: "#f0fdf4",
-      icon: "arrow-down",
+      icon: "arrow-down-left",
     },
     {
       label: "Net Balance",
@@ -63,14 +65,15 @@ export function ExpenseSummaryCards({ summary }: ExpenseSummaryCardsProps) {
           <View
             style={[styles.iconContainer, { backgroundColor: card.bgColor }]}
           >
-            <FontAwesome name={card.icon} size={14} color={card.color} />
+            <Feather name={card.icon} size={14} color={card.color} />
           </View>
           <View style={styles.cardContent}>
             <Text style={[styles.label, { color: colors.mutedForeground }]}>
               {card.label}
             </Text>
             <Text style={[styles.amount, { color: card.color }]}>
-              {card.prefix || ""}{formatCurrency(card.amount)}
+              {card.prefix || ""}
+              {formatCurrency(card.amount)}
             </Text>
           </View>
         </View>
@@ -87,8 +90,9 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 0,
-    padding: 12,
-    borderLeftWidth: 3,
+    padding: 10,
+    paddingLeft: 0,
+    borderLeftWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,

@@ -1,46 +1,46 @@
-import React, { useState, useEffect, useCallback } from "react";
 import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
+  AddEventModal,
+  AddStayModal,
+  EditEventModal,
+  EditStayModal,
+  EventsList,
+  StaysCalendar,
+  StaysList,
+} from "@/components/calendar";
 import { PageContainer } from "@/components/PageContainer";
 import { TopBar } from "@/components/TopBar";
 import { typography } from "@/constants/theme";
+import {
+  createEvent,
+  deleteEvent,
+  EventWithDetails,
+  getHouseEvents,
+  getHouseMembersForEvents,
+  updateEvent,
+} from "@/lib/api/events";
+import {
+  createStay,
+  deleteStay,
+  getHouseStays,
+  settleGuestFee,
+  StayWithExpense,
+  unsettleGuestFee,
+  updateStay,
+} from "@/lib/api/stays";
 import { useAuth } from "@/lib/context/auth";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
-import {
-  getHouseStays,
-  createStay,
-  updateStay,
-  deleteStay,
-  settleGuestFee,
-  unsettleGuestFee,
-  StayWithExpense,
-} from "@/lib/api/stays";
-import {
-  getHouseEvents,
-  createEvent,
-  updateEvent,
-  deleteEvent,
-  getHouseMembersForEvents,
-  EventWithDetails,
-} from "@/lib/api/events";
-import {
-  StaysCalendar,
-  StaysList,
-  AddStayModal,
-  EditStayModal,
-  EventsList,
-  AddEventModal,
-  EditEventModal,
-} from "@/components/calendar";
 import type { Profile } from "@/types/database";
+import { FontAwesome } from "@expo/vector-icons";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 type TabType = "calendar" | "stays" | "events";
 
@@ -67,7 +67,9 @@ export default function CalendarScreen() {
   // Event modals
   const [showAddEventModal, setShowAddEventModal] = useState(false);
   const [showEditEventModal, setShowEditEventModal] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<EventWithDetails | null>(null);
+  const [editingEvent, setEditingEvent] = useState<EventWithDetails | null>(
+    null
+  );
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -279,7 +281,12 @@ export default function CalendarScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
         <TopBar />
         <ActivityIndicator size="large" color={colors.foreground} />
       </View>
@@ -300,7 +307,11 @@ export default function CalendarScreen() {
           onPress={handleAddPress}
         >
           <FontAwesome name="plus" size={16} color={colors.primaryForeground} />
-          <Text style={[styles.addButtonText, { color: colors.primaryForeground }]}>{getAddButtonText()}</Text>
+          <Text
+            style={[styles.addButtonText, { color: colors.primaryForeground }]}
+          >
+            {getAddButtonText()}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -316,12 +327,21 @@ export default function CalendarScreen() {
           <FontAwesome
             name="calendar"
             size={14}
-            color={activeTab === "calendar" ? colors.foreground : colors.mutedForeground}
+            color={
+              activeTab === "calendar"
+                ? colors.foreground
+                : colors.mutedForeground
+            }
           />
           <Text
             style={[
               styles.tabText,
-              { color: activeTab === "calendar" ? colors.foreground : colors.mutedForeground },
+              {
+                color:
+                  activeTab === "calendar"
+                    ? colors.foreground
+                    : colors.mutedForeground,
+              },
             ]}
           >
             Calendar
@@ -337,12 +357,19 @@ export default function CalendarScreen() {
           <FontAwesome
             name="bed"
             size={14}
-            color={activeTab === "stays" ? colors.foreground : colors.mutedForeground}
+            color={
+              activeTab === "stays" ? colors.foreground : colors.mutedForeground
+            }
           />
           <Text
             style={[
               styles.tabText,
-              { color: activeTab === "stays" ? colors.foreground : colors.mutedForeground },
+              {
+                color:
+                  activeTab === "stays"
+                    ? colors.foreground
+                    : colors.mutedForeground,
+              },
             ]}
           >
             Stays
@@ -358,12 +385,21 @@ export default function CalendarScreen() {
           <FontAwesome
             name="star"
             size={14}
-            color={activeTab === "events" ? colors.foreground : colors.mutedForeground}
+            color={
+              activeTab === "events"
+                ? colors.foreground
+                : colors.mutedForeground
+            }
           />
           <Text
             style={[
               styles.tabText,
-              { color: activeTab === "events" ? colors.foreground : colors.mutedForeground },
+              {
+                color:
+                  activeTab === "events"
+                    ? colors.foreground
+                    : colors.mutedForeground,
+              },
             ]}
           >
             Events
@@ -453,7 +489,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: typography.fontFamily.chillax,
     maxWidth: "70%",
   },

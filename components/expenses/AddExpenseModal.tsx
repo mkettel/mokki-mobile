@@ -17,6 +17,7 @@ import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
 import { EXPENSE_CATEGORIES, formatAmount } from "@/lib/api/expenses";
 import type { Profile, ExpenseCategory } from "@/types/database";
+import { ReceiptPicker, type ReceiptFile } from "./ReceiptPicker";
 
 interface AddExpenseModalProps {
   visible: boolean;
@@ -28,6 +29,7 @@ interface AddExpenseModalProps {
     category: ExpenseCategory;
     date: string;
     splits: { userId: string; amount: number }[];
+    receipt?: ReceiptFile;
   }) => Promise<void>;
   members: Profile[];
   currentUserId: string;
@@ -58,6 +60,9 @@ export function AddExpenseModal({
   const [splitMode, setSplitMode] = useState<SplitMode>("even");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
+
+  // Receipt state
+  const [receipt, setReceipt] = useState<ReceiptFile | null>(null);
 
   // Filter out current user from members list
   const otherMembers = useMemo(
@@ -101,6 +106,7 @@ export function AddExpenseModal({
     setSplitMode("even");
     setSelectedMembers([]);
     setCustomAmounts({});
+    setReceipt(null);
   };
 
   const handleClose = () => {
@@ -138,6 +144,7 @@ export function AddExpenseModal({
         category,
         date: date.toISOString().split("T")[0],
         splits: calculatedSplits,
+        receipt: receipt || undefined,
       });
       handleClose();
     } catch (error) {
@@ -346,6 +353,14 @@ export function AddExpenseModal({
             />
           </View>
 
+          {/* Receipt */}
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: colors.foreground }]}>
+              Receipt (optional)
+            </Text>
+            <ReceiptPicker value={receipt} onChange={setReceipt} />
+          </View>
+
           {/* Split Section */}
           <View style={styles.field}>
             <View style={styles.splitHeader}>
@@ -526,7 +541,7 @@ export function AddExpenseModal({
             onPress={handleSubmit}
             disabled={isLoading || !isBalanced || selectedMembers.length === 0}
           >
-            <Text style={styles.submitButtonText}>
+            <Text style={[styles.submitButtonText, { color: colors.primaryForeground }]}>
               {isLoading ? "Adding..." : "Add Expense"}
             </Text>
           </TouchableOpacity>

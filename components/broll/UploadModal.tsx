@@ -1,5 +1,5 @@
 import { typography } from "@/constants/theme";
-import { formatFileSize, getMediaType } from "@/lib/api/broll";
+import { formatFileSize } from "@/lib/api/broll";
 import { useColors } from "@/lib/context/theme";
 import { FontAwesome } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -38,7 +38,9 @@ interface UploadModalProps {
 
 export function UploadModal({ visible, onClose, onUpload }: UploadModalProps) {
   const colors = useColors();
-  const [selectedMedia, setSelectedMedia] = useState<SelectedMedia | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<SelectedMedia | null>(
+    null
+  );
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
 
@@ -78,7 +80,8 @@ export function UploadModal({ visible, onClose, onUpload }: UploadModalProps) {
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       const fileName = asset.fileName || `media_${Date.now()}.jpg`;
-      const mimeType = asset.mimeType || (asset.type === "video" ? "video/mp4" : "image/jpeg");
+      const mimeType =
+        asset.mimeType || (asset.type === "video" ? "video/mp4" : "image/jpeg");
 
       setSelectedMedia({
         uri: asset.uri,
@@ -88,7 +91,9 @@ export function UploadModal({ visible, onClose, onUpload }: UploadModalProps) {
         fileSize: asset.fileSize || 0,
         width: asset.width,
         height: asset.height,
-        duration: asset.duration ? Math.round(asset.duration / 1000) : undefined,
+        duration: asset.duration
+          ? Math.round(asset.duration / 1000)
+          : undefined,
         caption: "",
       });
     }
@@ -126,7 +131,9 @@ export function UploadModal({ visible, onClose, onUpload }: UploadModalProps) {
         fileSize: asset.fileSize || 0,
         width: asset.width,
         height: asset.height,
-        duration: asset.duration ? Math.round(asset.duration / 1000) : undefined,
+        duration: asset.duration
+          ? Math.round(asset.duration / 1000)
+          : undefined,
         caption: "",
       });
     }
@@ -212,44 +219,91 @@ export function UploadModal({ visible, onClose, onUpload }: UploadModalProps) {
               </Text>
 
               <TouchableOpacity
-                style={[styles.optionButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+                style={[
+                  styles.optionButton,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
                 onPress={pickImage}
               >
-                <View style={[styles.optionIcon, { backgroundColor: colors.primary + "20" }]}>
+                <View
+                  style={[
+                    styles.optionIcon,
+                    { backgroundColor: colors.primary + "20" },
+                  ]}
+                >
                   <FontAwesome name="image" size={24} color={colors.primary} />
                 </View>
                 <View style={styles.optionText}>
-                  <Text style={[styles.optionTitle, { color: colors.foreground }]}>
+                  <Text
+                    style={[styles.optionTitle, { color: colors.foreground }]}
+                  >
                     Choose from Library
                   </Text>
-                  <Text style={[styles.optionSubtitle, { color: colors.mutedForeground }]}>
+                  <Text
+                    style={[
+                      styles.optionSubtitle,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
                     Select photos or videos
                   </Text>
                 </View>
-                <FontAwesome name="chevron-right" size={16} color={colors.mutedForeground} />
+                <FontAwesome
+                  name="chevron-right"
+                  size={16}
+                  color={colors.mutedForeground}
+                />
               </TouchableOpacity>
 
               {Platform.OS !== "web" && (
                 <TouchableOpacity
-                  style={[styles.optionButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  style={[
+                    styles.optionButton,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                  ]}
                   onPress={takePhoto}
                 >
-                  <View style={[styles.optionIcon, { backgroundColor: colors.primary + "20" }]}>
-                    <FontAwesome name="camera" size={24} color={colors.primary} />
+                  <View
+                    style={[
+                      styles.optionIcon,
+                      { backgroundColor: colors.primary + "20" },
+                    ]}
+                  >
+                    <FontAwesome
+                      name="camera"
+                      size={24}
+                      color={colors.primary}
+                    />
                   </View>
                   <View style={styles.optionText}>
-                    <Text style={[styles.optionTitle, { color: colors.foreground }]}>
+                    <Text
+                      style={[styles.optionTitle, { color: colors.foreground }]}
+                    >
                       Take Photo
                     </Text>
-                    <Text style={[styles.optionSubtitle, { color: colors.mutedForeground }]}>
+                    <Text
+                      style={[
+                        styles.optionSubtitle,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
                       Use your camera
                     </Text>
                   </View>
-                  <FontAwesome name="chevron-right" size={16} color={colors.mutedForeground} />
+                  <FontAwesome
+                    name="chevron-right"
+                    size={16}
+                    color={colors.mutedForeground}
+                  />
                 </TouchableOpacity>
               )}
 
-              <Text style={[styles.infoText, { color: colors.mutedForeground }]}>
+              <Text
+                style={[styles.infoText, { color: colors.mutedForeground }]}
+              >
                 Images up to 10MB, videos up to 100MB
               </Text>
             </View>
@@ -285,16 +339,24 @@ export function UploadModal({ visible, onClose, onUpload }: UploadModalProps) {
                 >
                   {selectedMedia.fileName}
                 </Text>
-                <Text style={[styles.fileDetails, { color: colors.mutedForeground }]}>
+                <Text
+                  style={[
+                    styles.fileDetails,
+                    { color: colors.mutedForeground },
+                  ]}
+                >
                   {formatFileSize(selectedMedia.fileSize)}
-                  {selectedMedia.width && selectedMedia.height &&
+                  {selectedMedia.width &&
+                    selectedMedia.height &&
                     ` • ${selectedMedia.width}×${selectedMedia.height}`}
                 </Text>
               </View>
 
               {/* Caption input */}
               <View style={styles.captionSection}>
-                <Text style={[styles.captionLabel, { color: colors.foreground }]}>
+                <Text
+                  style={[styles.captionLabel, { color: colors.foreground }]}
+                >
                   Caption (optional)
                 </Text>
                 <TextInput
@@ -321,7 +383,12 @@ export function UploadModal({ visible, onClose, onUpload }: UploadModalProps) {
               {uploadProgress && (
                 <View style={styles.progressContainer}>
                   <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={[styles.progressText, { color: colors.mutedForeground }]}>
+                  <Text
+                    style={[
+                      styles.progressText,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
                     {uploadProgress}
                   </Text>
                 </View>
@@ -400,7 +467,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.chillaxMedium,
   },
   optionSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: typography.fontFamily.chillax,
     marginTop: 2,
   },

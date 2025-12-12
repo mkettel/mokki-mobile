@@ -1,39 +1,35 @@
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  Platform,
-} from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
+import { BulletinGrid, HouseNoteCard, NoteModal } from "@/components/bulletin";
 import { PageContainer } from "@/components/PageContainer";
 import { TopBar } from "@/components/TopBar";
 import { typography } from "@/constants/theme";
+import {
+  createBulletinItem,
+  deleteBulletinItem,
+  getBulletinItems,
+  getHouseNote,
+  updateBulletinItem,
+  updateHouseNote,
+} from "@/lib/api/bulletin";
 import { useAuth } from "@/lib/context/auth";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
-import {
-  getBulletinItems,
-  createBulletinItem,
-  updateBulletinItem,
-  deleteBulletinItem,
-  getHouseNote,
-  updateHouseNote,
-} from "@/lib/api/bulletin";
-import {
-  BulletinGrid,
-  HouseNoteCard,
-  NoteModal,
-} from "@/components/bulletin";
 import type {
-  BulletinItemWithProfile,
   BulletinCategory,
+  BulletinItemWithProfile,
   BulletinStyle,
   HouseNoteWithEditor,
 } from "@/types/database";
+import { FontAwesome } from "@expo/vector-icons";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 type TabType = "notes" | "house-note";
 
@@ -43,14 +39,17 @@ export default function BulletinScreen() {
   const { user } = useAuth();
 
   // Data state
-  const [bulletinItems, setBulletinItems] = useState<BulletinItemWithProfile[]>([]);
+  const [bulletinItems, setBulletinItems] = useState<BulletinItemWithProfile[]>(
+    []
+  );
   const [houseNote, setHouseNote] = useState<HouseNoteWithEditor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // UI state
   const [activeTab, setActiveTab] = useState<TabType>("notes");
   const [showNoteModal, setShowNoteModal] = useState(false);
-  const [editingItem, setEditingItem] = useState<BulletinItemWithProfile | null>(null);
+  const [editingItem, setEditingItem] =
+    useState<BulletinItemWithProfile | null>(null);
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -173,7 +172,12 @@ export default function BulletinScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
         <TopBar />
         <ActivityIndicator size="large" color={colors.foreground} />
       </View>
@@ -197,7 +201,11 @@ export default function BulletinScreen() {
           }}
         >
           <FontAwesome name="plus" size={16} color={colors.primaryForeground} />
-          <Text style={[styles.addButtonText, { color: colors.primaryForeground }]}>Add</Text>
+          <Text
+            style={[styles.addButtonText, { color: colors.primaryForeground }]}
+          >
+            Add
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -213,12 +221,19 @@ export default function BulletinScreen() {
           <FontAwesome
             name="thumb-tack"
             size={14}
-            color={activeTab === "notes" ? colors.foreground : colors.mutedForeground}
+            color={
+              activeTab === "notes" ? colors.foreground : colors.mutedForeground
+            }
           />
           <Text
             style={[
               styles.tabText,
-              { color: activeTab === "notes" ? colors.foreground : colors.mutedForeground },
+              {
+                color:
+                  activeTab === "notes"
+                    ? colors.foreground
+                    : colors.mutedForeground,
+              },
             ]}
           >
             Notes
@@ -227,19 +242,30 @@ export default function BulletinScreen() {
         <TouchableOpacity
           style={[
             styles.tab,
-            activeTab === "house-note" && { backgroundColor: colors.background },
+            activeTab === "house-note" && {
+              backgroundColor: colors.background,
+            },
           ]}
           onPress={() => setActiveTab("house-note")}
         >
           <FontAwesome
             name="sticky-note-o"
             size={14}
-            color={activeTab === "house-note" ? colors.foreground : colors.mutedForeground}
+            color={
+              activeTab === "house-note"
+                ? colors.foreground
+                : colors.mutedForeground
+            }
           />
           <Text
             style={[
               styles.tabText,
-              { color: activeTab === "house-note" ? colors.foreground : colors.mutedForeground },
+              {
+                color:
+                  activeTab === "house-note"
+                    ? colors.foreground
+                    : colors.mutedForeground,
+              },
             ]}
           >
             Fridge Note
@@ -256,10 +282,7 @@ export default function BulletinScreen() {
             onDeleteItem={handleDeleteItem}
           />
         ) : (
-          <HouseNoteCard
-            note={houseNote}
-            onSave={handleSaveHouseNote}
-          />
+          <HouseNoteCard note={houseNote} onSave={handleSaveHouseNote} />
         )}
       </View>
 
@@ -294,7 +317,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: typography.fontFamily.chillax,
     maxWidth: "70%",
   },

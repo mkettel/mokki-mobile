@@ -498,7 +498,7 @@ export function EditEventModal({
             onPress={handleSubmit}
             disabled={isLoading}
           >
-            <Text style={styles.submitButtonText}>
+            <Text style={[styles.submitButtonText, { color: colors.primaryForeground }]}>
               {isLoading ? "Saving..." : "Save Changes"}
             </Text>
           </TouchableOpacity>

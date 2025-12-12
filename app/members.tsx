@@ -68,8 +68,15 @@ export default function MembersScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <TopBar />
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <FontAwesome name="chevron-left" size={18} color={colors.foreground} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <FontAwesome
+              name="chevron-left"
+              size={18}
+              color={colors.foreground}
+            />
           </TouchableOpacity>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
             Who's who
@@ -92,8 +99,15 @@ export default function MembersScreen() {
 
       {/* Header with back and invite buttons */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <FontAwesome name="chevron-left" size={18} color={colors.foreground} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <FontAwesome
+            name="chevron-left"
+            size={18}
+            color={colors.foreground}
+          />
         </TouchableOpacity>
         <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
           Who's who
@@ -103,7 +117,11 @@ export default function MembersScreen() {
             onPress={() => setShowInviteModal(true)}
             style={[styles.inviteButton, { backgroundColor: colors.primary }]}
           >
-            <FontAwesome name="user-plus" size={14} color={colors.primaryForeground} />
+            <FontAwesome
+              name="user-plus"
+              size={14}
+              color={colors.primaryForeground}
+            />
           </TouchableOpacity>
         ) : (
           <View style={styles.headerSpacer} />
@@ -136,8 +154,11 @@ export default function MembersScreen() {
             <Text style={[styles.houseName, { color: colors.foreground }]}>
               {activeHouse.name}
             </Text>
-            <Text style={[styles.houseSubtitle, { color: colors.mutedForeground }]}>
-              {members.filter((m) => m.invite_status === "accepted").length} members
+            <Text
+              style={[styles.houseSubtitle, { color: colors.mutedForeground }]}
+            >
+              {members.filter((m) => m.invite_status === "accepted").length}{" "}
+              members
             </Text>
           </View>
 
@@ -151,10 +172,25 @@ export default function MembersScreen() {
 
           {/* Admin info */}
           {isAdmin && (
-            <View style={[styles.adminInfo, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <FontAwesome name="info-circle" size={16} color={colors.primary} />
-              <Text style={[styles.adminInfoText, { color: colors.mutedForeground }]}>
-                As an admin, you can invite new members, change roles, and remove members.
+            <View
+              style={[
+                styles.adminInfo,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <FontAwesome
+                name="info-circle"
+                size={16}
+                color={colors.primary}
+              />
+              <Text
+                style={[
+                  styles.adminInfoText,
+                  { color: colors.mutedForeground },
+                ]}
+              >
+                As an admin, you can invite new members, change roles, and
+                remove members.
               </Text>
             </View>
           )}
@@ -189,7 +225,7 @@ const styles = StyleSheet.create({
     width: 40,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: typography.fontFamily.chillax,
   },
   headerSpacer: {

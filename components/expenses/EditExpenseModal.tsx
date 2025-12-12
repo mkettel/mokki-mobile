@@ -17,6 +17,7 @@ import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
 import { EXPENSE_CATEGORIES, formatAmount } from "@/lib/api/expenses";
 import type { Profile, ExpenseCategory, ExpenseWithDetails } from "@/types/database";
+import { ReceiptPicker, type ReceiptFile } from "./ReceiptPicker";
 
 interface EditExpenseModalProps {
   visible: boolean;
@@ -29,6 +30,8 @@ interface EditExpenseModalProps {
     category: ExpenseCategory;
     date: string;
     splits: { userId: string; amount: number }[];
+    receipt?: ReceiptFile;
+    removeReceipt?: boolean;
   }) => Promise<void>;
   members: Profile[];
   currentUserId: string;
@@ -61,6 +64,11 @@ export function EditExpenseModal({
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
 
+  // Receipt state
+  const [receipt, setReceipt] = useState<ReceiptFile | null>(null);
+  const [existingReceiptUrl, setExistingReceiptUrl] = useState<string | null>(null);
+  const [removeReceipt, setRemoveReceipt] = useState(false);
+
   // Initialize form when expense changes
   useEffect(() => {
     if (expense && visible) {
@@ -80,6 +88,11 @@ export function EditExpenseModal({
       });
       setCustomAmounts(amounts);
       setSplitMode("custom"); // Default to custom since we're editing
+
+      // Initialize receipt
+      setExistingReceiptUrl(expense.receipt_url);
+      setReceipt(null);
+      setRemoveReceipt(false);
     }
   }, [expense, visible]);
 
@@ -150,12 +163,28 @@ export function EditExpenseModal({
         category,
         date: date.toISOString().split("T")[0],
         splits: calculatedSplits,
+        receipt: receipt || undefined,
+        removeReceipt: removeReceipt && !receipt,
       });
       handleClose();
     } catch (error) {
       Alert.alert("Error", (error as Error).message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleReceiptChange = (newReceipt: ReceiptFile | null) => {
+    if (newReceipt) {
+      setReceipt(newReceipt);
+      setRemoveReceipt(false);
+    } else {
+      setReceipt(null);
+      // If we had an existing receipt and user removed it, mark for deletion
+      if (existingReceiptUrl) {
+        setRemoveReceipt(true);
+        setExistingReceiptUrl(null);
+      }
     }
   };
 
@@ -360,6 +389,18 @@ export function EditExpenseModal({
             />
           </View>
 
+          {/* Receipt */}
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: colors.foreground }]}>
+              Receipt (optional)
+            </Text>
+            <ReceiptPicker
+              value={receipt}
+              onChange={handleReceiptChange}
+              existingUrl={existingReceiptUrl}
+            />
+          </View>
+
           {/* Split Section */}
           <View style={styles.field}>
             <View style={styles.splitHeader}>
@@ -540,7 +581,7 @@ export function EditExpenseModal({
             onPress={handleSubmit}
             disabled={isLoading || !isBalanced || selectedMembers.length === 0}
           >
-            <Text style={styles.submitButtonText}>
+            <Text style={[styles.submitButtonText, { color: colors.primaryForeground }]}>
               {isLoading ? "Saving..." : "Save Changes"}
             </Text>
           </TouchableOpacity>

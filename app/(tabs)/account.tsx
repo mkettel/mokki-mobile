@@ -123,7 +123,11 @@ export default function AccountScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <TopBar />
         <View style={styles.errorContainer}>
-          <FontAwesome name="exclamation-circle" size={48} color={colors.destructive} />
+          <FontAwesome
+            name="exclamation-circle"
+            size={48}
+            color={colors.destructive}
+          />
           <Text style={[styles.errorText, { color: colors.foreground }]}>
             Failed to load profile
           </Text>
@@ -148,14 +152,21 @@ export default function AccountScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.foreground }]}>Account</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>
+            Account
+          </Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
             Manage your profile and settings
           </Text>
         </View>
 
         {/* Profile Card */}
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
           {/* Avatar Section */}
           <View style={styles.avatarSection}>
             <AvatarPicker
@@ -169,12 +180,18 @@ export default function AccountScreen() {
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           {/* Profile Form */}
-          <ProfileForm profile={profile} onProfileUpdate={handleProfileUpdate} />
+          <ProfileForm
+            profile={profile}
+            onProfileUpdate={handleProfileUpdate}
+          />
         </View>
 
         {/* House Members Link */}
         <TouchableOpacity
-          style={[styles.linkButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+          style={[
+            styles.linkButton,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
           onPress={() => router.push("/members")}
         >
           <View style={styles.linkButtonContent}>
@@ -183,12 +200,21 @@ export default function AccountScreen() {
               House Members
             </Text>
           </View>
-          <FontAwesome name="chevron-right" size={14} color={colors.mutedForeground} />
+          <FontAwesome
+            name="chevron-right"
+            size={14}
+            color={colors.mutedForeground}
+          />
         </TouchableOpacity>
 
         {/* Security Settings */}
         {biometricSupported && Platform.OS !== "web" && (
-          <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View
+            style={[
+              styles.settingsCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
             <Text style={[styles.settingsTitle, { color: colors.foreground }]}>
               Security
             </Text>
@@ -200,10 +226,17 @@ export default function AccountScreen() {
                   color={colors.foreground}
                 />
                 <View style={styles.settingText}>
-                  <Text style={[styles.settingLabel, { color: colors.foreground }]}>
+                  <Text
+                    style={[styles.settingLabel, { color: colors.foreground }]}
+                  >
                     {biometricName}
                   </Text>
-                  <Text style={[styles.settingDescription, { color: colors.mutedForeground }]}>
+                  <Text
+                    style={[
+                      styles.settingDescription,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
                     Quick sign-in with {biometricName}
                   </Text>
                 </View>
@@ -290,7 +323,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.chillaxBold,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: typography.fontFamily.chillax,
     marginTop: 4,
   },

@@ -4,3 +4,5 @@ export { ExpenseCard } from "./ExpenseCard";
 export { ExpenseList } from "./ExpenseList";
 export { AddExpenseModal } from "./AddExpenseModal";
 export { EditExpenseModal } from "./EditExpenseModal";
+export { ReceiptPicker, type ReceiptFile } from "./ReceiptPicker";
+export { ReceiptViewer } from "./ReceiptViewer";

@@ -290,7 +290,7 @@ export function AddStayModal({ visible, onClose, onSubmit }: AddStayModalProps) 
             onPress={handleSubmit}
             disabled={isLoading}
           >
-            <Text style={styles.submitButtonText}>
+            <Text style={[styles.submitButtonText, { color: colors.primaryForeground }]}>
               {isLoading ? "Adding..." : "Add Stay"}
             </Text>
           </TouchableOpacity>

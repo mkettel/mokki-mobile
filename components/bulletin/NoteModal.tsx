@@ -139,9 +139,9 @@ export function NoteModal({ visible, item, onClose, onSubmit }: NoteModalProps) 
             style={[styles.submitButton, { backgroundColor: colors.primary }]}
           >
             {isSubmitting ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={colors.primaryForeground} />
             ) : (
-              <Text style={styles.submitButtonText}>
+              <Text style={[styles.submitButtonText, { color: colors.primaryForeground }]}>
                 {isEditing ? "Save" : "Add"}
               </Text>
             )}

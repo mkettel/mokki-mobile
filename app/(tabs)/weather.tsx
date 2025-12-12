@@ -1,32 +1,32 @@
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-  RefreshControl,
-} from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
 import { PageContainer } from "@/components/PageContainer";
 import { TopBar } from "@/components/TopBar";
-import { typography } from "@/constants/theme";
-import { useHouse } from "@/lib/context/house";
-import { useColors } from "@/lib/context/theme";
-import {
-  getMultipleWeatherReports,
-  clearWeatherCache,
-} from "@/lib/api/weather";
-import { updateHouseFavoriteResorts } from "@/lib/api/house";
 import {
   CurrentConditionsCard,
   HourlyForecast,
-  SnowForecast,
-  ResortWeatherCard,
   ResortPickerModal,
+  ResortWeatherCard,
+  SnowForecast,
 } from "@/components/weather";
+import { typography } from "@/constants/theme";
+import { updateHouseFavoriteResorts } from "@/lib/api/house";
+import {
+  clearWeatherCache,
+  getMultipleWeatherReports,
+} from "@/lib/api/weather";
+import { useHouse } from "@/lib/context/house";
+import { useColors } from "@/lib/context/theme";
 import type { WeatherReport } from "@/types/database";
+import { FontAwesome } from "@expo/vector-icons";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function WeatherScreen() {
   const colors = useColors();
@@ -40,42 +40,46 @@ export default function WeatherScreen() {
   const [showResortPicker, setShowResortPicker] = useState(false);
 
   // Fetch weather data
-  const fetchWeather = useCallback(async (forceRefresh = false) => {
-    if (!activeHouse) return;
+  const fetchWeather = useCallback(
+    async (forceRefresh = false) => {
+      if (!activeHouse) return;
 
-    const resortIds = activeHouse.favorite_resort_ids || [];
-    if (activeHouse.resort_id && !resortIds.includes(activeHouse.resort_id)) {
-      resortIds.unshift(activeHouse.resort_id);
-    }
-
-    if (resortIds.length === 0) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      if (forceRefresh) {
-        await clearWeatherCache();
+      const resortIds = activeHouse.favorite_resort_ids || [];
+      if (activeHouse.resort_id && !resortIds.includes(activeHouse.resort_id)) {
+        resortIds.unshift(activeHouse.resort_id);
       }
 
-      const { reports: weatherReports, error } = await getMultipleWeatherReports(resortIds);
+      if (resortIds.length === 0) {
+        setIsLoading(false);
+        return;
+      }
 
-      if (error) {
-        console.error("Error fetching weather:", error);
-      } else {
-        setReports(weatherReports);
-        // Reset selection if current selection is out of bounds
-        if (selectedReportIndex >= weatherReports.length) {
-          setSelectedReportIndex(0);
+      try {
+        if (forceRefresh) {
+          await clearWeatherCache();
         }
+
+        const { reports: weatherReports, error } =
+          await getMultipleWeatherReports(resortIds);
+
+        if (error) {
+          console.error("Error fetching weather:", error);
+        } else {
+          setReports(weatherReports);
+          // Reset selection if current selection is out of bounds
+          if (selectedReportIndex >= weatherReports.length) {
+            setSelectedReportIndex(0);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching weather data:", error);
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
       }
-    } catch (error) {
-      console.error("Error fetching weather data:", error);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [activeHouse, selectedReportIndex]);
+    },
+    [activeHouse, selectedReportIndex]
+  );
 
   useEffect(() => {
     fetchWeather();
@@ -89,7 +93,10 @@ export default function WeatherScreen() {
   const handleSaveResorts = async (resortIds: string[]) => {
     if (!activeHouse) return;
 
-    const { error } = await updateHouseFavoriteResorts(activeHouse.id, resortIds);
+    const { error } = await updateHouseFavoriteResorts(
+      activeHouse.id,
+      resortIds
+    );
     if (error) {
       throw error;
     }
@@ -105,7 +112,12 @@ export default function WeatherScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
         <TopBar />
         <ActivityIndicator size="large" color={colors.foreground} />
       </View>
@@ -125,24 +137,55 @@ export default function WeatherScreen() {
             style={[styles.manageButton, { backgroundColor: colors.primary }]}
             onPress={() => setShowResortPicker(true)}
           >
-            <FontAwesome name="plus" size={14} color={colors.primaryForeground} />
-            <Text style={[styles.manageButtonText, { color: colors.primaryForeground }]}>Add Resorts</Text>
+            <FontAwesome
+              name="plus"
+              size={14}
+              color={colors.primaryForeground}
+            />
+            <Text
+              style={[
+                styles.manageButtonText,
+                { color: colors.primaryForeground },
+              ]}
+            >
+              Add Resorts
+            </Text>
           </TouchableOpacity>
         </View>
         <View style={styles.emptyContainer}>
-          <FontAwesome name="snowflake-o" size={48} color={colors.mutedForeground} />
+          <FontAwesome
+            name="snowflake-o"
+            size={48}
+            color={colors.mutedForeground}
+          />
           <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
             No resorts configured
           </Text>
-          <Text style={[styles.emptySubtext, { color: colors.mutedForeground }]}>
+          <Text
+            style={[styles.emptySubtext, { color: colors.mutedForeground }]}
+          >
             Add resorts to see weather and snow reports.
           </Text>
           <TouchableOpacity
-            style={[styles.addResortsButton, { backgroundColor: colors.primary }]}
+            style={[
+              styles.addResortsButton,
+              { backgroundColor: colors.primary },
+            ]}
             onPress={() => setShowResortPicker(true)}
           >
-            <FontAwesome name="plus" size={14} color={colors.primaryForeground} />
-            <Text style={[styles.addResortsButtonText, { color: colors.primaryForeground }]}>Add Resorts</Text>
+            <FontAwesome
+              name="plus"
+              size={14}
+              color={colors.primaryForeground}
+            />
+            <Text
+              style={[
+                styles.addResortsButtonText,
+                { color: colors.primaryForeground },
+              ]}
+            >
+              Add Resorts
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -171,7 +214,11 @@ export default function WeatherScreen() {
             onPress={() => setShowResortPicker(true)}
           >
             <FontAwesome name="cog" size={14} color={colors.foreground} />
-            <Text style={[styles.manageButtonText, { color: colors.foreground }]}>Resorts</Text>
+            <Text
+              style={[styles.manageButtonText, { color: colors.foreground }]}
+            >
+              Resorts
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.refreshButton, { backgroundColor: colors.muted }]}
@@ -219,10 +266,7 @@ export default function WeatherScreen() {
         {selectedReport && (
           <View style={styles.detailsSection}>
             {reports.length === 1 && (
-              <ResortWeatherCard
-                report={selectedReport}
-                isSelected={true}
-              />
+              <ResortWeatherCard report={selectedReport} isSelected={true} />
             )}
 
             {/* Current conditions */}
@@ -246,7 +290,12 @@ export default function WeatherScreen() {
 
             {/* Last updated */}
             <View style={styles.lastUpdated}>
-              <Text style={[styles.lastUpdatedText, { color: colors.mutedForeground }]}>
+              <Text
+                style={[
+                  styles.lastUpdatedText,
+                  { color: colors.mutedForeground },
+                ]}
+              >
                 Data cached for 30 minutes • Pull to refresh
               </Text>
             </View>
@@ -281,7 +330,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: typography.fontFamily.chillax,
     maxWidth: "50%",
   },

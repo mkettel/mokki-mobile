@@ -1,43 +1,48 @@
-import React, { useState, useEffect, useCallback } from "react";
 import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
+  AddExpenseModal,
+  BalanceList,
+  EditExpenseModal,
+  ExpenseList,
+  ExpenseSummaryCards,
+} from "@/components/expenses";
+import type { ReceiptFile } from "@/components/expenses/ReceiptPicker";
 import { PageContainer } from "@/components/PageContainer";
 import { TopBar } from "@/components/TopBar";
 import { typography } from "@/constants/theme";
+import {
+  createExpense,
+  deleteExpense,
+  getHouseExpenses,
+  getHouseMembersForExpenses,
+  getUserBalances,
+  settleAllWithUser,
+  settleExpenseSplit,
+  unsettleExpenseSplit,
+  updateExpense,
+} from "@/lib/api/expenses";
+import {
+  removeReceiptFromExpense,
+  uploadReceiptAndUpdateExpense,
+} from "@/lib/api/receipts";
 import { useAuth } from "@/lib/context/auth";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
-import {
-  getHouseExpenses,
-  getUserBalances,
-  getHouseMembersForExpenses,
-  createExpense,
-  updateExpense,
-  deleteExpense,
-  settleExpenseSplit,
-  unsettleExpenseSplit,
-  settleAllWithUser,
-} from "@/lib/api/expenses";
-import {
-  ExpenseSummaryCards,
-  BalanceList,
-  ExpenseList,
-  AddExpenseModal,
-  EditExpenseModal,
-} from "@/components/expenses";
 import type {
-  ExpenseWithDetails,
   ExpenseBalanceData,
   ExpenseCategory,
+  ExpenseWithDetails,
   Profile,
 } from "@/types/database";
+import { FontAwesome } from "@expo/vector-icons";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 type TabType = "balances" | "expenses";
 
@@ -48,7 +53,9 @@ export default function ExpensesScreen() {
 
   // Data state
   const [expenses, setExpenses] = useState<ExpenseWithDetails[]>([]);
-  const [balanceData, setBalanceData] = useState<ExpenseBalanceData | null>(null);
+  const [balanceData, setBalanceData] = useState<ExpenseBalanceData | null>(
+    null
+  );
   const [members, setMembers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -56,18 +63,21 @@ export default function ExpensesScreen() {
   const [activeTab, setActiveTab] = useState<TabType>("balances");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<ExpenseWithDetails | null>(null);
+  const [editingExpense, setEditingExpense] =
+    useState<ExpenseWithDetails | null>(null);
 
   // Fetch data
   const fetchData = useCallback(async () => {
     if (!activeHouse || !user) return;
 
     try {
-      const [expensesResult, balancesResult, membersResult] = await Promise.all([
-        getHouseExpenses(activeHouse.id),
-        getUserBalances(activeHouse.id, user.id),
-        getHouseMembersForExpenses(activeHouse.id),
-      ]);
+      const [expensesResult, balancesResult, membersResult] = await Promise.all(
+        [
+          getHouseExpenses(activeHouse.id),
+          getUserBalances(activeHouse.id, user.id),
+          getHouseMembersForExpenses(activeHouse.id),
+        ]
+      );
 
       if (expensesResult.error) {
         console.error("Error fetching expenses:", expensesResult.error);
@@ -105,13 +115,40 @@ export default function ExpensesScreen() {
     category: ExpenseCategory;
     date: string;
     splits: { userId: string; amount: number }[];
+    receipt?: ReceiptFile;
   }) => {
     if (!activeHouse || !user) return;
 
-    const { error } = await createExpense(activeHouse.id, user.id, data);
+    const { expense, error } = await createExpense(
+      activeHouse.id,
+      user.id,
+      data
+    );
 
     if (error) {
       throw error;
+    }
+
+    // If receipt was provided, upload it
+    if (data.receipt && expense) {
+      const { error: receiptError } = await uploadReceiptAndUpdateExpense(
+        activeHouse.id,
+        expense.id,
+        {
+          uri: data.receipt.uri,
+          mimeType: data.receipt.mimeType,
+          fileSize: data.receipt.fileSize,
+        }
+      );
+
+      if (receiptError) {
+        // Don't throw - expense was created successfully, just log receipt error
+        console.error("Error uploading receipt:", receiptError);
+        Alert.alert(
+          "Receipt Upload Failed",
+          "The expense was created, but the receipt could not be uploaded. You can add it later by editing the expense."
+        );
+      }
     }
 
     fetchData();
@@ -124,13 +161,47 @@ export default function ExpensesScreen() {
     category: ExpenseCategory;
     date: string;
     splits: { userId: string; amount: number }[];
+    receipt?: ReceiptFile;
+    removeReceipt?: boolean;
   }) => {
-    if (!editingExpense) return;
+    if (!editingExpense || !activeHouse) return;
 
     const { error } = await updateExpense(editingExpense.id, data);
 
     if (error) {
       throw error;
+    }
+
+    // Handle receipt changes
+    if (data.receipt) {
+      // Upload new receipt
+      const { error: receiptError } = await uploadReceiptAndUpdateExpense(
+        activeHouse.id,
+        editingExpense.id,
+        {
+          uri: data.receipt.uri,
+          mimeType: data.receipt.mimeType,
+          fileSize: data.receipt.fileSize,
+        }
+      );
+
+      if (receiptError) {
+        console.error("Error uploading receipt:", receiptError);
+        Alert.alert(
+          "Receipt Upload Failed",
+          "The expense was updated, but the receipt could not be uploaded."
+        );
+      }
+    } else if (data.removeReceipt && editingExpense.receipt_url) {
+      // Remove existing receipt
+      const { error: removeError } = await removeReceiptFromExpense(
+        editingExpense.id,
+        editingExpense.receipt_url
+      );
+
+      if (removeError) {
+        console.error("Error removing receipt:", removeError);
+      }
     }
 
     fetchData();
@@ -195,7 +266,12 @@ export default function ExpensesScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
         <TopBar />
         <ActivityIndicator size="large" color={colors.foreground} />
       </View>
@@ -216,7 +292,11 @@ export default function ExpensesScreen() {
           onPress={() => setShowAddModal(true)}
         >
           <FontAwesome name="plus" size={16} color={colors.primaryForeground} />
-          <Text style={[styles.addButtonText, { color: colors.primaryForeground }]}>Add</Text>
+          <Text
+            style={[styles.addButtonText, { color: colors.primaryForeground }]}
+          >
+            Add
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -239,12 +319,21 @@ export default function ExpensesScreen() {
           <FontAwesome
             name="users"
             size={14}
-            color={activeTab === "balances" ? colors.foreground : colors.mutedForeground}
+            color={
+              activeTab === "balances"
+                ? colors.foreground
+                : colors.mutedForeground
+            }
           />
           <Text
             style={[
               styles.tabText,
-              { color: activeTab === "balances" ? colors.foreground : colors.mutedForeground },
+              {
+                color:
+                  activeTab === "balances"
+                    ? colors.foreground
+                    : colors.mutedForeground,
+              },
             ]}
           >
             Balances
@@ -260,12 +349,21 @@ export default function ExpensesScreen() {
           <FontAwesome
             name="list"
             size={14}
-            color={activeTab === "expenses" ? colors.foreground : colors.mutedForeground}
+            color={
+              activeTab === "expenses"
+                ? colors.foreground
+                : colors.mutedForeground
+            }
           />
           <Text
             style={[
               styles.tabText,
-              { color: activeTab === "expenses" ? colors.foreground : colors.mutedForeground },
+              {
+                color:
+                  activeTab === "expenses"
+                    ? colors.foreground
+                    : colors.mutedForeground,
+              },
             ]}
           >
             All Expenses
@@ -333,7 +431,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: typography.fontFamily.chillax,
     maxWidth: "70%",
   },
