@@ -58,9 +58,8 @@ export default function AuthCallback() {
 
         // Handle different auth event types
         if (type === "recovery") {
-          // Password reset - redirect to a password update screen if you have one
-          // For now, just go to the main app
-          router.replace("/(tabs)");
+          // Password reset - redirect to the password update screen
+          router.replace("/(auth)/reset-password");
         } else {
           // Email confirmation (signup) or other
           router.replace("/(tabs)");
