@@ -5,6 +5,7 @@ import { TopBar } from "@/components/TopBar";
 import { typography } from "@/constants/theme";
 import { getCurrentProfile } from "@/lib/api/profile";
 import { useAuth } from "@/lib/context/auth";
+import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
 import type { Profile } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
@@ -34,10 +35,14 @@ export default function AccountScreen() {
     enableBiometric,
     disableBiometric,
   } = useAuth();
+  const { activeHouse } = useHouse();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isBiometricToggling, setIsBiometricToggling] = useState(false);
+
+  // Check if user is admin of active house
+  const isAdmin = activeHouse?.role === "admin";
 
   const loadProfile = useCallback(async () => {
     setIsLoading(true);
@@ -207,6 +212,29 @@ export default function AccountScreen() {
             color={colors.mutedForeground}
           />
         </TouchableOpacity>
+
+        {/* House Settings Link (Admin Only) */}
+        {isAdmin && (
+          <TouchableOpacity
+            style={[
+              styles.linkButton,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+            onPress={() => router.push("/house-settings")}
+          >
+            <View style={styles.linkButtonContent}>
+              <FontAwesome name="cog" size={18} color={colors.foreground} />
+              <Text style={[styles.linkButtonText, { color: colors.foreground }]}>
+                House Settings
+              </Text>
+            </View>
+            <FontAwesome
+              name="chevron-right"
+              size={14}
+              color={colors.mutedForeground}
+            />
+          </TouchableOpacity>
+        )}
 
         {/* Security Settings */}
         {biometricSupported && Platform.OS !== "web" && (

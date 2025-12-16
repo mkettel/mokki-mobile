@@ -8,6 +8,8 @@ import { useColorScheme } from "@/components/useColorScheme";
 import { useAuth } from "@/lib/context/auth";
 import { useColors } from "@/lib/context/theme";
 import { useHouse } from "@/lib/context/house";
+import { isFeatureEnabled } from "@/lib/utils/features";
+import type { FeatureId, HouseSettings } from "@/types/database";
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>["name"];
@@ -20,9 +22,17 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const colors = useColors();
   const { user, isLoading: authLoading } = useAuth();
-  const { houses, isLoading: houseLoading } = useHouse();
+  const { activeHouse, houses, isLoading: houseLoading } = useHouse();
 
   const isLoading = authLoading || houseLoading;
+
+  // Get house settings for feature visibility
+  const houseSettings = (activeHouse?.settings as HouseSettings) || undefined;
+
+  // Helper to conditionally show/hide tabs based on feature settings
+  // Returns undefined to show tab, null to hide it (Expo Router convention)
+  const showTab = (featureId: FeatureId) =>
+    isFeatureEnabled(houseSettings, featureId) ? undefined : (null as any);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -73,6 +83,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="calendar"
         options={{
+          href: showTab("calendar"),
           title: "Calendar",
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="calendar" color={color} />
@@ -82,6 +93,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="expenses"
         options={{
+          href: showTab("expenses"),
           title: "Expenses",
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="dollar" color={color} />
@@ -91,6 +103,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="bulletin"
         options={{
+          href: showTab("bulletin"),
           title: "Bulletin",
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="thumb-tack" color={color} />
@@ -100,6 +113,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="weather"
         options={{
+          href: showTab("weather"),
           title: "Snow",
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="snowflake-o" color={color} />
@@ -109,6 +123,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="broll"
         options={{
+          href: showTab("broll"),
           title: "B-Roll",
           tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
         }}
@@ -116,6 +131,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="account"
         options={{
+          href: showTab("account"),
           title: "Account",
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
         }}

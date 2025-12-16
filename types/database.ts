@@ -6,12 +6,30 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+// Feature identifiers for house customization
+export type FeatureId =
+  | "calendar"
+  | "weather"
+  | "broll"
+  | "bulletin"
+  | "expenses"
+  | "members"
+  | "account";
+
+// Feature configuration per house
+export type FeatureConfig = {
+  enabled: boolean;
+  label: string;
+};
+
 export type HouseSettings = {
   wifi_password?: string;
   address?: string;
   rules?: string[];
   local_tips?: string;
   emergency_contacts?: { name: string; phone: string }[];
+  // Feature configuration - allows enabling/disabling features and custom labels
+  features?: Partial<Record<FeatureId, Partial<FeatureConfig>>>;
 };
 
 export type MemberRole = "admin" | "member";

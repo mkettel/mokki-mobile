@@ -32,7 +32,9 @@ export function BalanceList({ balances, onSettleAll }: BalanceListProps) {
     const amount = Math.abs(balance.netBalance).toFixed(2);
     const note = "Settling up for house expenses"; // Venmo handles spaces correctly without encoding
     const venmoUrl = `venmo://paycharge?txn=pay&recipients=${balance.venmoHandle}&amount=${amount}&note=${note}`;
-    const webUrl = `https://venmo.com/${balance.venmoHandle}?txn=pay&amount=${amount}&note=${encodeURIComponent(note)}`;
+    const webUrl = `https://venmo.com/${
+      balance.venmoHandle
+    }?txn=pay&amount=${amount}&note=${encodeURIComponent(note)}`;
 
     Linking.canOpenURL(venmoUrl)
       .then((supported) => {
@@ -48,7 +50,9 @@ export function BalanceList({ balances, onSettleAll }: BalanceListProps) {
   };
 
   const handleMarkPaid = async (balance: UserBalance) => {
-    const message = `Mark all expenses with ${balance.displayName || "this user"} as settled?`;
+    const message = `Mark all expenses with ${
+      balance.displayName || "this user"
+    } as settled?`;
 
     // Use window.confirm on web, Alert on native
     if (Platform.OS === "web") {
@@ -87,15 +91,11 @@ export function BalanceList({ balances, onSettleAll }: BalanceListProps) {
   if (balances.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <FontAwesome
-          name="check-circle"
-          size={48}
-          color={colors.mutedForeground}
-        />
-        <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+        <FontAwesome name="check-circle" size={48} color={colors.foreground} />
+        <Text style={[styles.emptyText, { color: colors.foreground }]}>
           All settled up!
         </Text>
-        <Text style={[styles.emptySubtext, { color: colors.mutedForeground }]}>
+        <Text style={[styles.emptySubtext, { color: colors.foreground }]}>
           No outstanding balances with anyone.
         </Text>
       </View>
@@ -118,7 +118,14 @@ export function BalanceList({ balances, onSettleAll }: BalanceListProps) {
               <View
                 style={[styles.avatar, { backgroundColor: colors.primary }]}
               >
-                <Text style={[styles.avatarText, { color: colors.primaryForeground }]}>{getInitial(balance)}</Text>
+                <Text
+                  style={[
+                    styles.avatarText,
+                    { color: colors.primaryForeground },
+                  ]}
+                >
+                  {getInitial(balance)}
+                </Text>
               </View>
 
               {/* Name and balance info */}

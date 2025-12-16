@@ -3,13 +3,7 @@ import { useColors } from "@/lib/context/theme";
 import type { BulletinItemWithProfile } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
-import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StickyNote } from "./StickyNote";
 
 interface BulletinGridProps {
@@ -18,7 +12,11 @@ interface BulletinGridProps {
   onDeleteItem?: (item: BulletinItemWithProfile) => void;
 }
 
-export function BulletinGrid({ items, onEditItem, onDeleteItem }: BulletinGridProps) {
+export function BulletinGrid({
+  items,
+  onEditItem,
+  onDeleteItem,
+}: BulletinGridProps) {
   const colors = useColors();
   const screenWidth = Dimensions.get("window").width;
   const numColumns = screenWidth > 600 ? 2 : 1;
@@ -27,15 +25,11 @@ export function BulletinGrid({ items, onEditItem, onDeleteItem }: BulletinGridPr
   if (items.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <FontAwesome
-          name="thumb-tack"
-          size={48}
-          color={colors.mutedForeground}
-        />
-        <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+        <FontAwesome name="thumb-tack" size={48} color={colors.foreground} />
+        <Text style={[styles.emptyText, { color: colors.foreground }]}>
           No notes yet
         </Text>
-        <Text style={[styles.emptySubtext, { color: colors.mutedForeground }]}>
+        <Text style={[styles.emptySubtext, { color: colors.foreground }]}>
           Add a note to share info with housemates
         </Text>
       </View>
@@ -43,7 +37,10 @@ export function BulletinGrid({ items, onEditItem, onDeleteItem }: BulletinGridPr
   }
 
   // Split items into columns for masonry-like layout
-  const columns: BulletinItemWithProfile[][] = Array.from({ length: numColumns }, () => []);
+  const columns: BulletinItemWithProfile[][] = Array.from(
+    { length: numColumns },
+    () => []
+  );
   items.forEach((item, index) => {
     columns[index % numColumns].push(item);
   });

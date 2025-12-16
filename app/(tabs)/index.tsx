@@ -1,14 +1,19 @@
 import { GeometricBackground } from "@/components/GeometricBackground";
 import { TopBar } from "@/components/TopBar";
 import { WeatherIcon } from "@/components/weather";
+import { FEATURE_ROUTES } from "@/constants/features";
 import { darkColors, lightColors, typography } from "@/constants/theme";
 import { getResort, getResortWeather } from "@/lib/api/weather";
 import { useAuth } from "@/lib/context/auth";
 import { useHouse } from "@/lib/context/house";
 import { useColors, useTheme } from "@/lib/context/theme";
-import type { OpenMeteoCurrentWeather } from "@/types/database";
+import {
+  getEnabledFeatures,
+  getFeatureLabel,
+} from "@/lib/utils/features";
+import type { HouseSettings, OpenMeteoCurrentWeather } from "@/types/database";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -25,17 +30,6 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-
-// Navigation links matching web app exactly
-const links = [
-  { href: "/(tabs)/calendar", label: "Reserve your bed" },
-  { href: "/(tabs)/weather", label: "Pow report" },
-  { href: "/(tabs)/broll", label: "B-roll" },
-  { href: "/(tabs)/bulletin", label: "Bulletin board" },
-  { href: "/(tabs)/expenses", label: "Pay up" },
-  { href: "/members", label: "Who's who" },
-  { href: "/(tabs)/account", label: "About you" },
-];
 
 interface LiveClockProps {
   color: string;
@@ -123,6 +117,15 @@ export default function HomeScreen() {
 
   // Link text color: cream in light mode, black in dark mode
   const linkTextColor = isDark ? darkColors.background : lightColors.background;
+
+  // Generate dynamic links based on house feature settings
+  const houseSettings = activeHouse?.settings as HouseSettings | undefined;
+  const links = useMemo(() => {
+    return getEnabledFeatures(houseSettings).map((featureId) => ({
+      href: FEATURE_ROUTES[featureId],
+      label: getFeatureLabel(houseSettings, featureId),
+    }));
+  }, [houseSettings]);
 
   // Fetch weather for the linked resort
   useEffect(() => {

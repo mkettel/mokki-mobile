@@ -28,15 +28,11 @@ export function ExpenseList({
   if (expenses.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <FontAwesome
-          name="credit-card"
-          size={48}
-          color={colors.mutedForeground}
-        />
-        <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+        <FontAwesome name="credit-card" size={48} color={colors.foreground} />
+        <Text style={[styles.emptyText, { color: colors.foreground }]}>
           No expenses yet
         </Text>
-        <Text style={[styles.emptySubtext, { color: colors.mutedForeground }]}>
+        <Text style={[styles.emptySubtext, { color: colors.foreground }]}>
           Add an expense to start tracking
         </Text>
       </View>
@@ -63,7 +59,6 @@ export function ExpenseList({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: "column",
   },
   emptyContainer: {
     flex: 1,

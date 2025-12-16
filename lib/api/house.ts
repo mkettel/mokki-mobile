@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase/client";
-import type { Database } from "@/types/database";
+import type { Database, HouseSettings } from "@/types/database";
 
 // Types
 type House = Database["public"]["Tables"]["houses"]["Row"];
@@ -319,5 +319,62 @@ export async function acceptAllPendingInvites(userId?: string, userEmail?: strin
       .eq("invite_status", "pending");
   } catch (error) {
     console.error("Error accepting pending invites:", error);
+  }
+}
+
+/**
+ * Update house settings (feature toggles, labels, etc.)
+ * Only admins should call this function
+ */
+export async function updateHouseSettings(
+  houseId: string,
+  newSettings: Partial<HouseSettings>
+): Promise<{ success: boolean; error: Error | null }> {
+  try {
+    // Fetch current settings
+    const { data: house, error: fetchError } = await supabase
+      .from("houses")
+      .select("settings")
+      .eq("id", houseId)
+      .single();
+
+    if (fetchError) {
+      console.error("Error fetching house settings:", fetchError);
+      return { success: false, error: fetchError };
+    }
+
+    // Deep merge settings
+    const currentSettings = (house?.settings as HouseSettings) || {};
+    const mergedSettings: HouseSettings = {
+      ...currentSettings,
+      ...newSettings,
+      // Deep merge features if both exist
+      features:
+        newSettings.features !== undefined
+          ? {
+              ...currentSettings.features,
+              ...newSettings.features,
+            }
+          : currentSettings.features,
+    };
+
+    // Update
+    const { error: updateError } = await supabase
+      .from("houses")
+      .update({
+        settings: mergedSettings,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", houseId);
+
+    if (updateError) {
+      console.error("Error updating house settings:", updateError);
+      return { success: false, error: updateError };
+    }
+
+    return { success: true, error: null };
+  } catch (error) {
+    console.error("Error in updateHouseSettings:", error);
+    return { success: false, error: error as Error };
   }
 }

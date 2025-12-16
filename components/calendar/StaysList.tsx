@@ -1,16 +1,16 @@
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
-import { useColors } from "@/lib/context/theme";
-import { useAuth } from "@/lib/context/auth";
 import { typography } from "@/constants/theme";
 import type { StayWithExpense } from "@/lib/api/stays";
+import { useAuth } from "@/lib/context/auth";
+import { useColors } from "@/lib/context/theme";
+import { FontAwesome } from "@expo/vector-icons";
+import React from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface StaysListProps {
   stays: StayWithExpense[];
@@ -78,7 +78,7 @@ export function StaysList({
     const upcoming: StayWithExpense[] = [];
     const past: StayWithExpense[] = [];
 
-    stays.forEach(stay => {
+    stays.forEach((stay) => {
       const status = getStayStatus(stay);
       if (status === "current" || status === "today") {
         current.push(stay);
@@ -90,16 +90,27 @@ export function StaysList({
     });
 
     // Sort each category
-    current.sort((a, b) => new Date(a.check_in).getTime() - new Date(b.check_in).getTime());
-    upcoming.sort((a, b) => new Date(a.check_in).getTime() - new Date(b.check_in).getTime());
-    past.sort((a, b) => new Date(b.check_out).getTime() - new Date(a.check_out).getTime());
+    current.sort(
+      (a, b) => new Date(a.check_in).getTime() - new Date(b.check_in).getTime()
+    );
+    upcoming.sort(
+      (a, b) => new Date(a.check_in).getTime() - new Date(b.check_in).getTime()
+    );
+    past.sort(
+      (a, b) =>
+        new Date(b.check_out).getTime() - new Date(a.check_out).getTime()
+    );
 
     return { current, upcoming, past };
   }, [stays]);
 
   // Limit display if not showAll
   const displayStays = showAll
-    ? [...categorizedStays.current, ...categorizedStays.upcoming, ...categorizedStays.past]
+    ? [
+        ...categorizedStays.current,
+        ...categorizedStays.upcoming,
+        ...categorizedStays.past,
+      ]
     : [...categorizedStays.current, ...categorizedStays.upcoming].slice(0, 10);
 
   const getDisplayName = (stay: StayWithExpense) => {
@@ -117,7 +128,11 @@ export function StaysList({
     const configs = {
       current: { bg: colors.primary, text: "#fff", label: "Current" },
       today: { bg: "#22c55e", text: "#fff", label: "Today" },
-      upcoming: { bg: colors.muted, text: colors.foreground, label: "Upcoming" },
+      upcoming: {
+        bg: colors.muted,
+        text: colors.foreground,
+        label: "Upcoming",
+      },
       past: { bg: colors.muted, text: colors.mutedForeground, label: "Past" },
     };
     return configs[status];
@@ -134,11 +149,11 @@ export function StaysList({
   if (displayStays.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <FontAwesome name="calendar-o" size={48} color={colors.mutedForeground} />
-        <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+        <FontAwesome name="calendar-o" size={48} color={colors.foreground} />
+        <Text style={[styles.emptyText, { color: colors.foreground }]}>
           No stays yet
         </Text>
-        <Text style={[styles.emptySubtext, { color: colors.mutedForeground }]}>
+        <Text style={[styles.emptySubtext, { color: colors.foreground }]}>
           Add a stay to see it here
         </Text>
       </View>
@@ -147,7 +162,7 @@ export function StaysList({
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {displayStays.map(stay => {
+      {displayStays.map((stay) => {
         const status = getStayStatus(stay);
         const statusConfig = getStatusBadge(status);
         const canEdit = isOwner(stay) && !isPast(stay);
@@ -164,8 +179,17 @@ export function StaysList({
             {/* Header row */}
             <View style={styles.cardHeader}>
               {/* Avatar */}
-              <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-                <Text style={[styles.avatarText, { color: colors.primaryForeground }]}>{getInitial(stay)}</Text>
+              <View
+                style={[styles.avatar, { backgroundColor: colors.primary }]}
+              >
+                <Text
+                  style={[
+                    styles.avatarText,
+                    { color: colors.primaryForeground },
+                  ]}
+                >
+                  {getInitial(stay)}
+                </Text>
               </View>
 
               {/* Name and status */}
@@ -174,8 +198,15 @@ export function StaysList({
                   <Text style={[styles.name, { color: colors.foreground }]}>
                     {getDisplayName(stay)}
                   </Text>
-                  <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-                    <Text style={[styles.statusText, { color: statusConfig.text }]}>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: statusConfig.bg },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.statusText, { color: statusConfig.text }]}
+                    >
                       {statusConfig.label}
                     </Text>
                   </View>
@@ -183,9 +214,20 @@ export function StaysList({
 
                 {/* Guest count badge */}
                 {stay.guest_count > 0 && (
-                  <View style={[styles.guestBadge, { backgroundColor: colors.muted }]}>
-                    <FontAwesome name="users" size={10} color={colors.foreground} />
-                    <Text style={[styles.guestCount, { color: colors.foreground }]}>
+                  <View
+                    style={[
+                      styles.guestBadge,
+                      { backgroundColor: colors.muted },
+                    ]}
+                  >
+                    <FontAwesome
+                      name="users"
+                      size={10}
+                      color={colors.foreground}
+                    />
+                    <Text
+                      style={[styles.guestCount, { color: colors.foreground }]}
+                    >
                       {stay.guest_count} guest{stay.guest_count > 1 ? "s" : ""}
                     </Text>
                   </View>
@@ -200,7 +242,11 @@ export function StaysList({
                       style={styles.actionButton}
                       onPress={() => onEditStay(stay)}
                     >
-                      <FontAwesome name="pencil" size={14} color={colors.mutedForeground} />
+                      <FontAwesome
+                        name="pencil"
+                        size={14}
+                        color={colors.mutedForeground}
+                      />
                     </TouchableOpacity>
                   )}
                   {canDelete && onDeleteStay && (
@@ -208,7 +254,11 @@ export function StaysList({
                       style={styles.actionButton}
                       onPress={() => onDeleteStay(stay)}
                     >
-                      <FontAwesome name="trash-o" size={14} color={colors.destructive} />
+                      <FontAwesome
+                        name="trash-o"
+                        size={14}
+                        color={colors.destructive}
+                      />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -229,10 +279,18 @@ export function StaysList({
 
             {/* Guest fee info */}
             {stay.linkedExpense && (
-              <View style={[styles.guestFeeRow, { borderTopColor: colors.border }]}>
+              <View
+                style={[styles.guestFeeRow, { borderTopColor: colors.border }]}
+              >
                 <View style={styles.feeInfo}>
-                  <FontAwesome name="dollar" size={12} color={colors.foreground} />
-                  <Text style={[styles.feeAmount, { color: colors.foreground }]}>
+                  <FontAwesome
+                    name="dollar"
+                    size={12}
+                    color={colors.foreground}
+                  />
+                  <Text
+                    style={[styles.feeAmount, { color: colors.foreground }]}
+                  >
                     ${stay.linkedExpense.amount.toFixed(0)}
                   </Text>
                   {stay.linkedExpense.split && (
@@ -267,19 +325,36 @@ export function StaysList({
                   <View>
                     {stay.linkedExpense.split.settled ? (
                       <TouchableOpacity
-                        style={[styles.settleButton, { borderColor: colors.border }]}
-                        onPress={() => onUnsettleGuestFee?.(stay.linkedExpense!.split!.id)}
+                        style={[
+                          styles.settleButton,
+                          { borderColor: colors.border },
+                        ]}
+                        onPress={() =>
+                          onUnsettleGuestFee?.(stay.linkedExpense!.split!.id)
+                        }
                       >
-                        <Text style={[styles.settleButtonText, { color: colors.mutedForeground }]}>
+                        <Text
+                          style={[
+                            styles.settleButtonText,
+                            { color: colors.mutedForeground },
+                          ]}
+                        >
                           Unmark
                         </Text>
                       </TouchableOpacity>
                     ) : (
                       <TouchableOpacity
-                        style={[styles.settleButton, { backgroundColor: colors.primary }]}
-                        onPress={() => onSettleGuestFee?.(stay.linkedExpense!.split!.id)}
+                        style={[
+                          styles.settleButton,
+                          { backgroundColor: colors.primary },
+                        ]}
+                        onPress={() =>
+                          onSettleGuestFee?.(stay.linkedExpense!.split!.id)
+                        }
                       >
-                        <Text style={[styles.settleButtonText, { color: "#fff" }]}>
+                        <Text
+                          style={[styles.settleButtonText, { color: "#fff" }]}
+                        >
                           Mark Paid
                         </Text>
                       </TouchableOpacity>
@@ -295,8 +370,11 @@ export function StaysList({
       {/* Show more indicator */}
       {!showAll && categorizedStays.past.length > 0 && (
         <View style={styles.showMoreContainer}>
-          <Text style={[styles.showMoreText, { color: colors.mutedForeground }]}>
-            + {categorizedStays.past.length} past stay{categorizedStays.past.length > 1 ? "s" : ""}
+          <Text
+            style={[styles.showMoreText, { color: colors.mutedForeground }]}
+          >
+            + {categorizedStays.past.length} past stay
+            {categorizedStays.past.length > 1 ? "s" : ""}
           </Text>
         </View>
       )}

@@ -168,15 +168,11 @@ export function EventsList({
   if (displayEvents.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <FontAwesome
-          name="calendar-o"
-          size={48}
-          color={colors.mutedForeground}
-        />
-        <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+        <FontAwesome name="calendar-o" size={48} color={colors.foreground} />
+        <Text style={[styles.emptyText, { color: colors.foreground }]}>
           No events yet
         </Text>
-        <Text style={[styles.emptySubtext, { color: colors.mutedForeground }]}>
+        <Text style={[styles.emptySubtext, { color: colors.foreground }]}>
           Add an event to see it here
         </Text>
       </View>
@@ -356,7 +352,12 @@ export function EventsList({
                             },
                           ]}
                         >
-                          <Text style={[styles.participantInitial, { color: colors.primaryForeground }]}>
+                          <Text
+                            style={[
+                              styles.participantInitial,
+                              { color: colors.primaryForeground },
+                            ]}
+                          >
                             {getParticipantInitial(participant.profiles)}
                           </Text>
                         </View>
@@ -365,7 +366,11 @@ export function EventsList({
                       <View
                         style={[
                           styles.participantAvatar,
-                          { backgroundColor: colors.muted, marginLeft: -8, borderColor: colors.card },
+                          {
+                            backgroundColor: colors.muted,
+                            marginLeft: -8,
+                            borderColor: colors.card,
+                          },
                         ]}
                       >
                         <Text
