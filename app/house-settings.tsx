@@ -1,3 +1,5 @@
+import { GeometricBackground } from "@/components/GeometricBackground";
+import { ColorPicker } from "@/components/settings";
 import { TopBar } from "@/components/TopBar";
 import { DEFAULT_FEATURE_CONFIG, FEATURE_ORDER } from "@/constants/features";
 import { typography } from "@/constants/theme";
@@ -138,11 +140,14 @@ export default function HouseSettingsScreen() {
   const [localFeatures, setLocalFeatures] = useState<
     Record<FeatureId, { enabled: boolean; label: string }>
   >({} as Record<FeatureId, { enabled: boolean; label: string }>);
+  const [localAccentColor, setLocalAccentColor] = useState<string | undefined>(
+    undefined
+  );
 
   // Check if user is admin
   const isAdmin = activeHouse?.role === "admin";
 
-  // Initialize local features from house settings
+  // Initialize local features and theme from house settings
   useEffect(() => {
     if (activeHouse) {
       const houseSettings = activeHouse.settings as HouseSettings | undefined;
@@ -158,6 +163,7 @@ export default function HouseSettingsScreen() {
       }
 
       setLocalFeatures(features);
+      setLocalAccentColor(houseSettings?.theme?.accentColor);
     }
   }, [activeHouse]);
 
@@ -246,6 +252,40 @@ export default function HouseSettingsScreen() {
     setIsSaving(false);
   };
 
+  const handleAccentColorChange = async (color: string | undefined) => {
+    if (!activeHouse?.id) return;
+
+    const previousColor = localAccentColor;
+
+    // Update local state immediately
+    setLocalAccentColor(color);
+
+    // Save to server
+    setIsSaving(true);
+    const { success, error } = await updateHouseSettings(activeHouse.id, {
+      theme: {
+        accentColor: color,
+      },
+    });
+
+    if (error) {
+      // Revert on error
+      setLocalAccentColor(previousColor);
+
+      const message = "Failed to update accent color";
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Error", message);
+      }
+    } else {
+      // Refresh houses to sync the settings
+      await refreshHouses();
+    }
+
+    setIsSaving(false);
+  };
+
   if (!activeHouse || !isAdmin) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -259,6 +299,7 @@ export default function HouseSettingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <GeometricBackground />
       <TopBar />
 
       {/* Header with back button */}
@@ -326,6 +367,31 @@ export default function HouseSettingsScreen() {
                 onLabelChange={(label) => handleLabelChange(featureId, label)}
               />
             ))}
+          </View>
+        </View>
+
+        {/* Theme Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Theme
+          </Text>
+          <Text style={[styles.sectionDescription, { color: colors.mutedForeground }]}>
+            Customize the mountain color for your house.
+          </Text>
+
+          <View
+            style={[
+              styles.themeCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.themeLabel, { color: colors.foreground }]}>
+              Mountain Color
+            </Text>
+            <ColorPicker
+              selectedColor={localAccentColor}
+              onColorSelect={handleAccentColorChange}
+            />
           </View>
         </View>
       </ScrollView>
@@ -431,5 +497,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: typography.fontFamily.chillax,
     marginTop: 4,
+  },
+  themeCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  themeLabel: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxMedium,
+    marginBottom: 12,
   },
 });

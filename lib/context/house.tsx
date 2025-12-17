@@ -13,6 +13,8 @@ import {
   HouseWithRole,
 } from "@/lib/api/house";
 import { useAuth } from "./auth";
+import { useTheme } from "./theme";
+import type { HouseSettings } from "@/types/database";
 
 interface HouseContextType {
   activeHouse: HouseWithRole | null;
@@ -27,12 +29,23 @@ const HouseContext = createContext<HouseContextType | undefined>(undefined);
 
 export function HouseProvider({ children }: { children: React.ReactNode }) {
   const { user, isLoading: authLoading } = useAuth();
+  const { setHouseTheme } = useTheme();
   const [activeHouse, setActiveHouseState] = useState<HouseWithRole | null>(
     null
   );
   const [houses, setHouses] = useState<HouseWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  // Sync house theme when active house changes
+  useEffect(() => {
+    if (activeHouse) {
+      const settings = activeHouse.settings as HouseSettings | undefined;
+      setHouseTheme(settings?.theme || null);
+    } else {
+      setHouseTheme(null);
+    }
+  }, [activeHouse, setHouseTheme]);
 
   // Fetch houses when user changes
   const fetchHouses = useCallback(async () => {

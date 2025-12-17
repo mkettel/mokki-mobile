@@ -7,10 +7,7 @@ import { getResort, getResortWeather } from "@/lib/api/weather";
 import { useAuth } from "@/lib/context/auth";
 import { useHouse } from "@/lib/context/house";
 import { useColors, useTheme } from "@/lib/context/theme";
-import {
-  getEnabledFeatures,
-  getFeatureLabel,
-} from "@/lib/utils/features";
+import { getEnabledFeatures, getFeatureLabel } from "@/lib/utils/features";
 import type { HouseSettings, OpenMeteoCurrentWeather } from "@/types/database";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";

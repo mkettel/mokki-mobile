@@ -22,6 +22,22 @@ export type FeatureConfig = {
   label: string;
 };
 
+// Background pattern options for house theming
+export type BackgroundPattern =
+  | "mountains"
+  | "waves"
+  | "palm"
+  | "cityscape"
+  | "minimal"
+  | "none";
+
+// Theme configuration per house
+export type HouseTheme = {
+  accentColor?: string; // Hex color for geometric background and accents
+  backgroundColor?: string; // Optional background color override
+  backgroundPattern?: BackgroundPattern; // Background pattern style
+};
+
 export type HouseSettings = {
   wifi_password?: string;
   address?: string;
@@ -30,6 +46,8 @@ export type HouseSettings = {
   emergency_contacts?: { name: string; phone: string }[];
   // Feature configuration - allows enabling/disabling features and custom labels
   features?: Partial<Record<FeatureId, Partial<FeatureConfig>>>;
+  // Theme configuration - allows customizing colors and backgrounds
+  theme?: HouseTheme;
 };
 
 export type MemberRole = "admin" | "member";

@@ -32,7 +32,6 @@ export function GeometricBackground() {
   const colors = useColors();
   const { width, height } = useWindowDimensions();
 
-  // Don't render until we have valid dimensions
   if (width === 0 || height === 0) {
     return null;
   }

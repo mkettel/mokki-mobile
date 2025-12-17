@@ -1,5 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useColorScheme as useRNColorScheme } from "react-native";
 import {
   lightColors,
@@ -10,6 +16,7 @@ import {
   borderRadius,
   shadows,
 } from "@/constants/theme";
+import type { HouseTheme } from "@/types/database";
 
 type ThemePreference = "light" | "dark" | "system";
 
@@ -22,6 +29,9 @@ type ThemeContextType = {
   spacing: typeof spacing;
   borderRadius: typeof borderRadius;
   shadows: typeof shadows;
+  // House-level theming
+  houseTheme: HouseTheme | null;
+  setHouseTheme: (theme: HouseTheme | null) => void;
 };
 
 const THEME_STORAGE_KEY = "@mokki_theme";
@@ -32,6 +42,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemColorScheme = useRNColorScheme();
   const [theme, setThemeState] = useState<ThemePreference>("system");
   const [isLoaded, setIsLoaded] = useState(false);
+  const [houseTheme, setHouseTheme] = useState<HouseTheme | null>(null);
 
   // Load saved theme preference on mount
   useEffect(() => {
@@ -55,7 +66,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       ? systemColorScheme === "dark"
       : theme === "dark";
 
-  const colors = isDark ? darkColors : lightColors;
+  // Merge base colors with house theme overrides
+  const colors = useMemo(() => {
+    const baseColors = isDark ? darkColors : lightColors;
+
+    // If no house theme or no accent color, use base colors
+    if (!houseTheme?.accentColor) {
+      return baseColors;
+    }
+
+    // Override accent-related colors with house theme
+    return {
+      ...baseColors,
+      geometricBlue: houseTheme.accentColor,
+      // Could expand to override more colors based on accent
+    };
+  }, [isDark, houseTheme]);
 
   // Don't render until we've loaded the saved preference
   // This prevents a flash of wrong theme
@@ -74,6 +100,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         spacing,
         borderRadius,
         shadows,
+        houseTheme,
+        setHouseTheme,
       }}
     >
       {children}
