@@ -167,7 +167,7 @@ export default function ExpensesScreen() {
   }) => {
     if (!editingExpense || !activeHouse) return;
 
-    const { error } = await updateExpense(editingExpense.id, data);
+    const { error } = await updateExpense(editingExpense.id, user!.id, data);
 
     if (error) {
       throw error;

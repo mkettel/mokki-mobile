@@ -242,6 +242,7 @@ export async function createEvent(
  */
 export async function updateEvent(
   eventId: string,
+  userId: string,
   data: {
     name: string;
     description?: string;
@@ -268,6 +269,16 @@ export async function updateEvent(
       participantIds,
     } = data;
 
+    // Get existing participants before update (for notification comparison)
+    const { data: existingParticipants } = await supabase
+      .from("event_participants")
+      .select("user_id")
+      .eq("event_id", eventId);
+
+    const existingParticipantIds = new Set(
+      existingParticipants?.map((p) => p.user_id) || []
+    );
+
     // Update the event
     const { data: event, error: eventError } = await supabase
       .from("events")
@@ -282,7 +293,7 @@ export async function updateEvent(
         updated_at: new Date().toISOString(),
       })
       .eq("id", eventId)
-      .select()
+      .select("*, houses(name)")
       .single();
 
     if (eventError || !event) {
@@ -310,6 +321,44 @@ export async function updateEvent(
 
         if (participantError) {
           console.error("Error updating participants:", participantError);
+        } else {
+          // Find newly added participants (not in original list, not the editor)
+          const newParticipantIds = participantIds.filter(
+            (id) => !existingParticipantIds.has(id) && id !== userId
+          );
+
+          if (newParticipantIds.length > 0) {
+            // Get editor profile for notification
+            const { data: editorProfile } = await supabase
+              .from("profiles")
+              .select("display_name, email")
+              .eq("id", userId)
+              .single();
+
+            // Get house name for notification
+            const { data: house } = await supabase
+              .from("houses")
+              .select("name")
+              .eq("id", event.house_id)
+              .single();
+
+            if (editorProfile && house) {
+              // Send notifications to newly added participants
+              sendEventNotification({
+                eventId: event.id,
+                eventName: name.trim(),
+                eventDate: eventDate,
+                eventTime: eventTime || undefined,
+                participantIds: newParticipantIds,
+                creatorName:
+                  editorProfile.display_name ||
+                  editorProfile.email.split("@")[0],
+                houseName: house.name,
+              }).catch((err) => {
+                console.error("Failed to send event notifications:", err);
+              });
+            }
+          }
         }
       }
     }

@@ -350,6 +350,7 @@ export async function createExpense(
  */
 export async function updateExpense(
   expenseId: string,
+  userId: string,
   data: {
     title: string;
     amount: number;
@@ -364,6 +365,16 @@ export async function updateExpense(
 }> {
   try {
     const { title, amount, description, category, date, splits } = data;
+
+    // Get existing splits before update (for notification comparison)
+    const { data: existingSplits } = await supabase
+      .from("expense_splits")
+      .select("user_id")
+      .eq("expense_id", expenseId);
+
+    const existingSplitUserIds = new Set(
+      existingSplits?.map((s) => s.user_id) || []
+    );
 
     // Update the expense
     const { data: expense, error: expenseError } = await supabase
@@ -412,6 +423,43 @@ export async function updateExpense(
 
         if (splitsError) {
           console.error("Error updating splits:", splitsError);
+        } else {
+          // Find newly added split recipients (not in original list, not the editor)
+          const newSplits = splits.filter(
+            (s) => !existingSplitUserIds.has(s.userId) && s.userId !== userId
+          );
+
+          if (newSplits.length > 0) {
+            // Get editor profile for notification
+            const { data: editorProfile } = await supabase
+              .from("profiles")
+              .select("display_name, email")
+              .eq("id", userId)
+              .single();
+
+            // Get house name for notification
+            const { data: house } = await supabase
+              .from("houses")
+              .select("name")
+              .eq("id", expense.house_id)
+              .single();
+
+            if (editorProfile && house) {
+              // Send notifications to newly added split recipients
+              sendExpenseNotification({
+                expenseId: expense.id,
+                expenseTitle: title.trim(),
+                totalAmount: amount,
+                splits: newSplits,
+                creatorName:
+                  editorProfile.display_name ||
+                  editorProfile.email.split("@")[0],
+                houseName: house.name,
+              }).catch((err) => {
+                console.error("Failed to send expense notifications:", err);
+              });
+            }
+          }
         }
       }
     }

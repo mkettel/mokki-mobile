@@ -236,7 +236,7 @@ export default function CalendarScreen() {
   }) => {
     if (!editingEvent) return;
 
-    const { error } = await updateEvent(editingEvent.id, data);
+    const { error } = await updateEvent(editingEvent.id, user!.id, data);
 
     if (error) {
       throw error;
