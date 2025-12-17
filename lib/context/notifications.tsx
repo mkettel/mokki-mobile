@@ -60,17 +60,39 @@ export function NotificationsProvider({
   // Register token when user logs in
   useEffect(() => {
     const initNotifications = async () => {
-      if (!user || !canReceivePushNotifications()) {
+      console.log("initNotifications called, user:", user?.id);
+      console.log("canReceivePushNotifications:", canReceivePushNotifications());
+
+      if (!user) {
+        console.log("No user, skipping notification init");
+        return;
+      }
+
+      if (!canReceivePushNotifications()) {
+        console.log("Cannot receive push notifications (not a physical device)");
         return;
       }
 
       // Check current permission status
       const status = await getNotificationPermissionStatus();
+      console.log("Notification permission status:", status);
       setPermissionStatus(status);
 
-      // Only register if we have permission
-      if (status === "granted") {
+      // Request permission if not determined
+      if (status === "undetermined") {
+        console.log("Requesting notification permissions...");
+        const newStatus = await requestNotificationPermissions();
+        console.log("New permission status:", newStatus);
+        setPermissionStatus(newStatus);
+
+        if (newStatus === "granted") {
+          const result = await registerPushToken(user.id);
+          console.log("Token registration result:", result);
+          setIsRegistered(result.success);
+        }
+      } else if (status === "granted") {
         const result = await registerPushToken(user.id);
+        console.log("Token registration result:", result);
         setIsRegistered(result.success);
       }
     };
