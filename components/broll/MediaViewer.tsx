@@ -3,6 +3,7 @@ import { formatDuration, formatFileSize } from "@/lib/api/broll";
 import { useColors } from "@/lib/context/theme";
 import type { BRollMediaWithProfile } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { format } from "date-fns";
 import React, { useState } from "react";
 import {
@@ -47,10 +48,19 @@ export function MediaViewer({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const isVideo = item?.media_type === "video";
+
+  // Create video player for video items
+  const player = useVideoPlayer(
+    isVideo && item ? item.public_url : null,
+    (player) => {
+      player.loop = false;
+    }
+  );
+
   if (!item) return null;
 
   const isOwner = item.uploaded_by === currentUserId;
-  const isVideo = item.media_type === "video";
 
   const handleEditCaption = () => {
     setCaptionText(item.caption || "");
@@ -146,19 +156,15 @@ export function MediaViewer({
 
         {/* Media */}
         <View style={styles.mediaContainer}>
-          {isVideo ? (
-            <View style={styles.videoPlaceholder}>
-              <Image
-                source={{ uri: item.thumbnail_url || item.public_url }}
-                style={styles.media}
-                resizeMode="contain"
+          {isVideo && player ? (
+            <View style={styles.videoContainer}>
+              <VideoView
+                player={player}
+                style={styles.video}
+                allowsPictureInPicture
+                nativeControls
+                contentFit="contain"
               />
-              <View style={styles.videoOverlay}>
-                <View style={styles.playButtonLarge}>
-                  <FontAwesome name="play" size={32} color="#fff" />
-                </View>
-                <Text style={styles.videoNote}>Video playback coming soon</Text>
-              </View>
             </View>
           ) : (
             <Image
@@ -293,32 +299,16 @@ const styles = StyleSheet.create({
     height: screenHeight * 0.5,
     borderRadius: 10,
   },
-  videoPlaceholder: {
+  videoContainer: {
     width: screenWidth,
     height: screenHeight * 0.5,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#000",
   },
-  videoOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.3)",
-  },
-  playButtonLarge: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingLeft: 6,
-  },
-  videoNote: {
-    color: "#999",
-    fontSize: 12,
-    fontFamily: typography.fontFamily.chillax,
-    marginTop: 12,
+  video: {
+    width: screenWidth,
+    height: screenHeight * 0.5,
   },
   infoPanel: {
     backgroundColor: "#111",

@@ -8,6 +8,7 @@ import type {
 } from "@/types/database";
 import { decode } from "base64-arraybuffer";
 import { format, isToday, isYesterday } from "date-fns";
+import { File } from "expo-file-system";
 import { Platform } from "react-native";
 
 // File size limits
@@ -194,24 +195,27 @@ export async function uploadBRollMedia(
 
     let uploadError: Error | null = null;
 
-    // Use base64 if available (more reliable on mobile), otherwise fetch as blob
-    if (file.base64 && Platform.OS !== "web") {
-      // Mobile with base64: decode and upload as ArrayBuffer
-      const { error } = await supabase.storage
-        .from("broll")
-        .upload(storagePath, decode(file.base64), {
-          contentType: file.mimeType,
-          cacheControl: "3600",
-        });
-      uploadError = error;
-    } else {
-      // Web or fallback: fetch and upload as blob
+    if (Platform.OS === "web") {
+      // Web: fetch and upload as blob
       const response = await fetch(file.uri);
       const blob = await response.blob();
 
       const { error } = await supabase.storage
         .from("broll")
         .upload(storagePath, blob, {
+          contentType: file.mimeType,
+          cacheControl: "3600",
+        });
+      uploadError = error;
+    } else {
+      // Mobile (iOS/Android): use File class to read the file properly
+      // fetch() doesn't work with local file:// URIs on mobile
+      const localFile = new File(file.uri);
+      const base64Data = await localFile.base64();
+
+      const { error } = await supabase.storage
+        .from("broll")
+        .upload(storagePath, decode(base64Data), {
           contentType: file.mimeType,
           cacheControl: "3600",
         });

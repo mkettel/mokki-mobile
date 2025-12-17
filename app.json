@@ -27,7 +27,9 @@
       "bundleIdentifier": "app.mokki.mobile",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       },
       "associatedDomains": [
         "applinks:mokkiski.com",
@@ -63,7 +65,8 @@
           ]
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true
