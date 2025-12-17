@@ -6,6 +6,7 @@ import type {
   Profile,
   EventWithParticipants,
 } from "@/types/database";
+import { sendEventNotification } from "./notifications";
 
 // Extended type for events with details
 export type EventWithDetails = Event & {
@@ -190,6 +191,42 @@ export async function createEvent(
       if (participantError) {
         console.error("Error adding participants:", participantError);
         // Event was created, just log the participant error
+      } else {
+        // Send notifications to participants (excluding the creator)
+        const recipientIds = participantIds.filter((id) => id !== userId);
+
+        if (recipientIds.length > 0) {
+          // Get creator profile for notification
+          const { data: creatorProfile } = await supabase
+            .from("profiles")
+            .select("display_name, email")
+            .eq("id", userId)
+            .single();
+
+          // Get house name for notification
+          const { data: house } = await supabase
+            .from("houses")
+            .select("name")
+            .eq("id", houseId)
+            .single();
+
+          if (creatorProfile && house) {
+            // Send notifications asynchronously (don't await to not block UI)
+            sendEventNotification({
+              eventId: event.id,
+              eventName: name.trim(),
+              eventDate: eventDate,
+              eventTime: eventTime || undefined,
+              participantIds: recipientIds,
+              creatorName:
+                creatorProfile.display_name ||
+                creatorProfile.email.split("@")[0],
+              houseName: house.name,
+            }).catch((err) => {
+              console.error("Failed to send event notifications:", err);
+            });
+          }
+        }
       }
     }
 
