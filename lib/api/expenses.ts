@@ -9,6 +9,7 @@ import type {
   ExpenseCategory,
   Profile,
 } from "@/types/database";
+import { sendExpenseNotification } from "./notifications";
 
 // Category display info
 export const EXPENSE_CATEGORIES: {
@@ -299,6 +300,41 @@ export async function createExpense(
       if (splitsError) {
         console.error("Error creating splits:", splitsError);
         // Don't fail the whole operation, expense was created
+      } else {
+        // Send notifications to split recipients (excluding the payer)
+        const recipientSplits = splits.filter((s) => s.userId !== userId);
+
+        if (recipientSplits.length > 0) {
+          // Get creator profile for notification
+          const { data: creatorProfile } = await supabase
+            .from("profiles")
+            .select("display_name, email")
+            .eq("id", userId)
+            .single();
+
+          // Get house name for notification
+          const { data: house } = await supabase
+            .from("houses")
+            .select("name")
+            .eq("id", houseId)
+            .single();
+
+          if (creatorProfile && house) {
+            // Send notifications asynchronously (don't block UI)
+            sendExpenseNotification({
+              expenseId: expense.id,
+              expenseTitle: title.trim(),
+              totalAmount: amount,
+              splits: recipientSplits,
+              creatorName:
+                creatorProfile.display_name ||
+                creatorProfile.email.split("@")[0],
+              houseName: house.name,
+            }).catch((err) => {
+              console.error("Failed to send expense notifications:", err);
+            });
+          }
+        }
       }
     }
 

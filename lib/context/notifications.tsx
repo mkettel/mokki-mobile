@@ -51,8 +51,10 @@ export function NotificationsProvider({
       if (data?.type === "event_participant_added" && data?.eventId) {
         // Navigate to calendar/events tab
         router.push("/(tabs)/calendar");
+      } else if (data?.type === "expense_added" && data?.expenseId) {
+        // Navigate to expenses tab
+        router.push("/(tabs)/expenses");
       }
-      // Add more notification type handlers here as needed
     },
     [router]
   );
