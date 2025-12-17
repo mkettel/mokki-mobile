@@ -639,6 +639,41 @@ export interface Database {
           }
         ];
       };
+      push_tokens: {
+        Row: {
+          id: string;
+          user_id: string;
+          token: string;
+          platform: "ios" | "android" | "web";
+          device_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          token: string;
+          platform: "ios" | "android" | "web";
+          device_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          token?: string;
+          platform?: "ios" | "android" | "web";
+          device_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_tokens_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {};
     Functions: {};
@@ -818,6 +853,9 @@ export type ExpenseBalanceData = {
 // Event types
 export type Event = Database["public"]["Tables"]["events"]["Row"];
 export type EventParticipant = Database["public"]["Tables"]["event_participants"]["Row"];
+
+// Push notification types
+export type PushToken = Database["public"]["Tables"]["push_tokens"]["Row"];
 
 export type EventWithCreator = Event & {
   profiles: Profile;

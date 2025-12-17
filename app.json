@@ -26,7 +26,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "app.mokki.mobile",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["remote-notification"]
       },
       "associatedDomains": [
         "applinks:mokkiski.com",
@@ -61,7 +62,8 @@
             "./assets/fonts/Boska-Bold.otf"
           ]
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true
