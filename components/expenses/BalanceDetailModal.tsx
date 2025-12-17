@@ -5,6 +5,7 @@ import {
   getCategoryInfo,
   settleExpenseSplit,
   settleUpWithUser,
+  unsettleExpenseSplit,
 } from "@/lib/api/expenses";
 import { useColors } from "@/lib/context/theme";
 import type {
@@ -190,6 +191,35 @@ export function BalanceDetailModal({
       Alert.alert("Settle Split", message, [
         { text: "Cancel", style: "cancel" },
         { text: "Settle", onPress: doSettle },
+      ]);
+    }
+  };
+
+  const handleUnsettleSingleSplit = async (splitId: string, title: string) => {
+    const message = `Mark "${title}" as unsettled?`;
+
+    const doUnsettle = async () => {
+      try {
+        const { error } = await unsettleExpenseSplit(splitId);
+        if (error) {
+          Alert.alert("Error", error.message);
+        } else {
+          await loadBreakdown();
+          onSettled();
+        }
+      } catch (error) {
+        Alert.alert("Error", (error as Error).message);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm(message)) {
+        await doUnsettle();
+      }
+    } else {
+      Alert.alert("Unsettle Split", message, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Unsettle", onPress: doUnsettle },
       ]);
     }
   };
@@ -386,6 +416,23 @@ export function BalanceDetailModal({
                   {item.settledByName && ` by ${item.settledByName}`}
                 </Text>
               </View>
+            )}
+            {/* Unsettle button - only for settled items where current user paid */}
+            {isSettled && isTheyOweYou && (
+              <TouchableOpacity
+                style={[
+                  styles.settleButton,
+                  { backgroundColor: colors.muted, marginTop: 8 },
+                ]}
+                onPress={() =>
+                  handleUnsettleSingleSplit(item.splitId, item.title)
+                }
+              >
+                <FontAwesome name="undo" size={12} color={colors.mutedForeground} />
+                <Text style={[styles.settleButtonText, { color: colors.mutedForeground }]}>
+                  Mark Unpaid
+                </Text>
+              </TouchableOpacity>
             )}
             {/* Settle button - only shown in expanded content */}
             {!isSettled && isTheyOweYou && (

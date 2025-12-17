@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Autolink from "react-native-autolink";
 
 interface StickyNoteProps {
   item: BulletinItemWithProfile;
@@ -123,9 +124,15 @@ export function StickyNote({ item, onEdit, onDelete }: StickyNoteProps) {
       </Text>
 
       {/* Content */}
-      <Text style={[styles.content, { color: colorInfo.text }]} numberOfLines={6}>
-        {item.content}
-      </Text>
+      <Autolink
+        text={item.content}
+        url
+        email
+        phone
+        numberOfLines={6}
+        style={[styles.content, { color: colorInfo.text }]}
+        linkStyle={{ textDecorationLine: "underline" }}
+      />
 
       {/* Footer with creator */}
       <View style={styles.footer}>

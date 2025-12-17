@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Markdown from "react-native-markdown-display";
+import Autolink from "react-native-autolink";
 
 interface HouseNoteCardProps {
   note: HouseNoteWithEditor | null;
@@ -115,88 +115,14 @@ export function HouseNoteCard({ note, onSave }: HouseNoteCardProps) {
             autoFocus
           />
         ) : note?.content ? (
-          <Markdown
-            style={{
-              body: {
-                color: colors.foreground,
-                fontSize: 14,
-                fontFamily: typography.fontFamily.chillax,
-                lineHeight: 24,
-              },
-              heading1: {
-                color: colors.foreground,
-                fontSize: 20,
-                fontFamily: typography.fontFamily.chillaxSemibold,
-                marginBottom: 8,
-                marginTop: 12,
-              },
-              heading2: {
-                color: colors.foreground,
-                fontSize: 18,
-                fontFamily: typography.fontFamily.chillaxSemibold,
-                marginBottom: 6,
-                marginTop: 10,
-              },
-              heading3: {
-                color: colors.foreground,
-                fontSize: 16,
-                fontFamily: typography.fontFamily.chillaxMedium,
-                marginBottom: 4,
-                marginTop: 8,
-              },
-              strong: {
-                fontFamily: typography.fontFamily.chillaxBold,
-                fontWeight: "normal" as const,
-              },
-              em: {
-                fontFamily: typography.fontFamily.chillaxMedium,
-                fontStyle: "normal" as const,
-              },
-              bullet_list: {
-                marginVertical: 4,
-              },
-              ordered_list: {
-                marginVertical: 4,
-              },
-              list_item: {
-                marginVertical: 2,
-              },
-              code_inline: {
-                backgroundColor: colors.muted,
-                color: colors.foreground,
-                fontFamily: "monospace",
-                paddingHorizontal: 4,
-                paddingVertical: 2,
-                borderRadius: 4,
-              },
-              fence: {
-                backgroundColor: colors.muted,
-                color: colors.foreground,
-                fontFamily: "monospace",
-                padding: 12,
-                borderRadius: 6,
-                marginVertical: 8,
-              },
-              blockquote: {
-                backgroundColor: colors.muted,
-                borderLeftColor: colors.primary,
-                borderLeftWidth: 4,
-                paddingLeft: 12,
-                paddingVertical: 4,
-                marginVertical: 8,
-              },
-              link: {
-                color: colors.primary,
-              },
-              hr: {
-                backgroundColor: colors.border,
-                height: 1,
-                marginVertical: 12,
-              },
-            }}
-          >
-            {note.content}
-          </Markdown>
+          <Autolink
+            text={note.content}
+            url
+            email
+            phone
+            style={[styles.contentText, { color: colors.foreground }]}
+            linkStyle={{ color: colors.primary, textDecorationLine: "underline" }}
+          />
         ) : (
           <View style={styles.emptyState}>
             <FontAwesome
