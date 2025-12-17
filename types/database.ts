@@ -352,6 +352,7 @@ export interface Database {
           amount: number;
           settled: boolean;
           settled_at: string | null;
+          settled_by: string | null;
         };
         Insert: {
           id?: string;
@@ -360,11 +361,13 @@ export interface Database {
           amount: number;
           settled?: boolean;
           settled_at?: string | null;
+          settled_by?: string | null;
         };
         Update: {
           amount?: number;
           settled?: boolean;
           settled_at?: string | null;
+          settled_by?: string | null;
         };
         Relationships: [
           {
@@ -866,6 +869,37 @@ export type ExpenseSummary = {
 export type ExpenseBalanceData = {
   balances: UserBalance[];
   summary: ExpenseSummary;
+};
+
+export type BalanceBreakdownItem = {
+  expenseId: string;
+  splitId: string;
+  title: string;
+  description: string | null;
+  category: ExpenseCategory;
+  date: string;
+  splitAmount: number;
+  totalExpenseAmount: number;
+  paidByName: string;
+  paidById: string;
+  receiptUrl: string | null;
+  settled: boolean;
+  settledAt: string | null;
+  settledByName: string | null;
+};
+
+export type BalanceBreakdown = {
+  otherUser: {
+    userId: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+    venmoHandle: string | null;
+  };
+  theyOweYou: BalanceBreakdownItem[];
+  youOweThem: BalanceBreakdownItem[];
+  totalTheyOwe: number;
+  totalYouOwe: number;
+  netBalance: number;
 };
 
 // Event types

@@ -8,8 +8,10 @@ import type {
   ExpenseSummary,
   ExpenseCategory,
   Profile,
+  BalanceBreakdown,
+  BalanceBreakdownItem,
 } from "@/types/database";
-import { sendExpenseNotification } from "./notifications";
+import { sendExpenseNotification, sendSettlementNotification } from "./notifications";
 
 // Category display info
 export const EXPENSE_CATEGORIES: {
@@ -51,7 +53,7 @@ export async function getHouseExpenses(
         created_by_profile:profiles!expenses_created_by_fkey (*),
         expense_splits (
           *,
-          profiles (*)
+          profiles!expense_splits_user_id_fkey (*)
         )
       `)
       .eq("house_id", houseId)
@@ -99,7 +101,7 @@ export async function getExpense(expenseId: string): Promise<{
         created_by_profile:profiles!expenses_created_by_fkey (*),
         expense_splits (
           *,
-          profiles (*)
+          profiles!expense_splits_user_id_fkey (*)
         )
       `)
       .eq("id", expenseId)
@@ -199,7 +201,14 @@ export async function getUserBalances(
       });
     });
 
-    // Convert to UserBalance array
+    // Ensure all house members are in the balance map (even with $0)
+    members?.forEach((m) => {
+      if (m.user_id && m.user_id !== currentUserId && !balanceMap[m.user_id]) {
+        balanceMap[m.user_id] = { owes: 0, owed: 0 };
+      }
+    });
+
+    // Convert to UserBalance array - include ALL members
     const balances: UserBalance[] = Object.entries(balanceMap)
       .filter(([userId]) => userId !== currentUserId)
       .map(([userId, { owes, owed }]) => {
@@ -214,8 +223,18 @@ export async function getUserBalances(
           netBalance: Math.round((owes - owed) * 100) / 100,
         };
       })
-      .filter((b) => b.owes !== 0 || b.owed !== 0)
-      .sort((a, b) => Math.abs(b.netBalance) - Math.abs(a.netBalance));
+      // Sort: non-zero balances first (by absolute value), then zero balances alphabetically
+      .sort((a, b) => {
+        const aHasBalance = a.netBalance !== 0;
+        const bHasBalance = b.netBalance !== 0;
+        if (aHasBalance && !bHasBalance) return -1;
+        if (!aHasBalance && bHasBalance) return 1;
+        if (aHasBalance && bHasBalance) {
+          return Math.abs(b.netBalance) - Math.abs(a.netBalance);
+        }
+        // Both zero - sort alphabetically
+        return (a.displayName || "").localeCompare(b.displayName || "");
+      });
 
     // Calculate summary
     const summary: ExpenseSummary = {
@@ -499,20 +518,42 @@ export async function deleteExpense(expenseId: string): Promise<{
 /**
  * Settle an expense split (mark as paid)
  */
-export async function settleExpenseSplit(splitId: string): Promise<{
+export async function settleExpenseSplit(splitId: string, settledByUserId?: string): Promise<{
   success: boolean;
   error: Error | null;
 }> {
   try {
+    // Try with settled_by first, fall back without if column doesn't exist
+    const updateData: Record<string, unknown> = {
+      settled: true,
+      settled_at: new Date().toISOString(),
+    };
+
+    if (settledByUserId) {
+      updateData.settled_by = settledByUserId;
+    }
+
     const { error } = await supabase
       .from("expense_splits")
-      .update({
-        settled: true,
-        settled_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq("id", splitId);
 
     if (error) {
+      // If settled_by column doesn't exist, retry without it
+      if (error.message?.includes("settled_by")) {
+        const { error: retryError } = await supabase
+          .from("expense_splits")
+          .update({
+            settled: true,
+            settled_at: new Date().toISOString(),
+          })
+          .eq("id", splitId);
+
+        if (retryError) {
+          return { success: false, error: retryError };
+        }
+        return { success: true, error: null };
+      }
       return { success: false, error };
     }
 
@@ -536,6 +577,7 @@ export async function unsettleExpenseSplit(splitId: string): Promise<{
       .update({
         settled: false,
         settled_at: null,
+        settled_by: null,
       })
       .eq("id", splitId);
 
@@ -585,6 +627,7 @@ export async function settleAllWithUser(
       .update({
         settled: true,
         settled_at: new Date().toISOString(),
+        settled_by: currentUserId,
       })
       .in("expense_id", expenseIds)
       .eq("user_id", otherUserId)
@@ -630,6 +673,303 @@ export async function getHouseMembersForExpenses(houseId: string): Promise<{
   } catch (error) {
     console.error("Error fetching house members:", error);
     return { members: [], error: error as Error };
+  }
+}
+
+/**
+ * Get detailed balance breakdown between current user and another user
+ * Includes both settled and unsettled expenses for history
+ */
+export async function getBalanceBreakdown(
+  houseId: string,
+  currentUserId: string,
+  otherUserId: string
+): Promise<{
+  data: BalanceBreakdown | null;
+  error: Error | null;
+}> {
+  try {
+    // Get the other user's profile
+    const { data: otherProfile, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", otherUserId)
+      .single();
+
+    if (profileError) {
+      return { data: null, error: profileError };
+    }
+
+    // Get all house member profiles for settled_by lookup
+    const { data: members } = await supabase
+      .from("house_members")
+      .select("user_id, profiles (id, display_name)")
+      .eq("house_id", houseId)
+      .eq("invite_status", "accepted");
+
+    const profileMap: Record<string, string> = {};
+    members?.forEach((m) => {
+      if (m.profiles && m.user_id) {
+        profileMap[m.user_id] = (m.profiles as { display_name: string | null }).display_name || "Unknown";
+      }
+    });
+
+    // Get all expenses in the house with their splits (including settled)
+    const { data: expenses, error: expensesError } = await supabase
+      .from("expenses")
+      .select(`
+        id,
+        title,
+        description,
+        amount,
+        category,
+        date,
+        paid_by,
+        receipt_url,
+        paid_by_profile:profiles!expenses_paid_by_fkey (display_name),
+        expense_splits (
+          id,
+          user_id,
+          amount,
+          settled,
+          settled_at,
+          settled_by
+        )
+      `)
+      .eq("house_id", houseId)
+      .order("date", { ascending: false });
+
+    if (expensesError) {
+      return { data: null, error: expensesError };
+    }
+
+    const theyOweYou: BalanceBreakdownItem[] = [];
+    const youOweThem: BalanceBreakdownItem[] = [];
+
+    expenses?.forEach((expense) => {
+      const paidBy = expense.paid_by;
+      const paidByName = (expense.paid_by_profile as { display_name: string | null })?.display_name || "Unknown";
+
+      expense.expense_splits?.forEach((split) => {
+        const settledByName = split.settled_by ? profileMap[split.settled_by] || "Unknown" : null;
+
+        // Expenses YOU paid where THEY have a split = they owe you
+        if (paidBy === currentUserId && split.user_id === otherUserId) {
+          theyOweYou.push({
+            expenseId: expense.id,
+            splitId: split.id,
+            title: expense.title ?? "Expense",
+            description: expense.description ?? null,
+            category: expense.category as ExpenseCategory,
+            date: expense.date,
+            splitAmount: split.amount,
+            totalExpenseAmount: expense.amount,
+            paidByName: "You",
+            paidById: paidBy,
+            receiptUrl: expense.receipt_url ?? null,
+            settled: split.settled,
+            settledAt: split.settled_at,
+            settledByName,
+          });
+        }
+        // Expenses THEY paid where YOU have a split = you owe them
+        else if (paidBy === otherUserId && split.user_id === currentUserId) {
+          youOweThem.push({
+            expenseId: expense.id,
+            splitId: split.id,
+            title: expense.title ?? "Expense",
+            description: expense.description ?? null,
+            category: expense.category as ExpenseCategory,
+            date: expense.date,
+            splitAmount: split.amount,
+            totalExpenseAmount: expense.amount,
+            paidByName,
+            paidById: paidBy,
+            receiptUrl: expense.receipt_url ?? null,
+            settled: split.settled,
+            settledAt: split.settled_at,
+            settledByName,
+          });
+        }
+      });
+    });
+
+    // Sort: unsettled first, then settled (by date descending within each group)
+    const sortItems = (items: BalanceBreakdownItem[]) => {
+      return items.sort((a, b) => {
+        if (a.settled !== b.settled) return a.settled ? 1 : -1;
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+    };
+
+    sortItems(theyOweYou);
+    sortItems(youOweThem);
+
+    // Only count unsettled amounts for totals
+    const totalTheyOwe = Math.round(
+      theyOweYou.filter((item) => !item.settled).reduce((sum, item) => sum + item.splitAmount, 0) * 100
+    ) / 100;
+    const totalYouOwe = Math.round(
+      youOweThem.filter((item) => !item.settled).reduce((sum, item) => sum + item.splitAmount, 0) * 100
+    ) / 100;
+    const netBalance = Math.round((totalTheyOwe - totalYouOwe) * 100) / 100;
+
+    return {
+      data: {
+        otherUser: {
+          userId: otherUserId,
+          displayName: otherProfile.display_name,
+          avatarUrl: otherProfile.avatar_url,
+          venmoHandle: otherProfile.venmo_handle,
+        },
+        theyOweYou,
+        youOweThem,
+        totalTheyOwe,
+        totalYouOwe,
+        netBalance,
+      },
+      error: null,
+    };
+  } catch (error) {
+    console.error("Error getting balance breakdown:", error);
+    return { data: null, error: error as Error };
+  }
+}
+
+/**
+ * Settle all splits bidirectionally between current user and another user
+ * This settles:
+ * - Expenses YOU paid where THEY have unsettled splits
+ * - Expenses THEY paid where YOU have unsettled splits
+ */
+export async function settleUpWithUser(
+  houseId: string,
+  currentUserId: string,
+  otherUserId: string
+): Promise<{
+  success: boolean;
+  settledCount: number;
+  error: Error | null;
+}> {
+  try {
+    // Get all expenses in the house paid by either user with their splits
+    const { data: expenses, error: expensesError } = await supabase
+      .from("expenses")
+      .select(`
+        id,
+        paid_by,
+        expense_splits (
+          id,
+          user_id,
+          amount,
+          settled
+        )
+      `)
+      .eq("house_id", houseId)
+      .in("paid_by", [currentUserId, otherUserId]);
+
+    if (expensesError) {
+      return { success: false, settledCount: 0, error: expensesError };
+    }
+
+    if (!expenses || expenses.length === 0) {
+      return { success: true, settledCount: 0, error: null };
+    }
+
+    // Separate expenses by who paid
+    const expensesPaidByMe = expenses.filter((e) => e.paid_by === currentUserId);
+    const expensesPaidByThem = expenses.filter((e) => e.paid_by === otherUserId);
+
+    let settledCount = 0;
+    let settledAmount = 0;
+
+    // Calculate amounts being settled and get expense IDs
+    expensesPaidByMe.forEach((e) => {
+      e.expense_splits?.forEach((split) => {
+        if (split.user_id === otherUserId && !split.settled) {
+          settledAmount += split.amount;
+        }
+      });
+    });
+    expensesPaidByThem.forEach((e) => {
+      e.expense_splits?.forEach((split) => {
+        if (split.user_id === currentUserId && !split.settled) {
+          settledAmount += split.amount;
+        }
+      });
+    });
+
+    const expenseIdsPaidByMe = expensesPaidByMe.map((e) => e.id);
+    const expenseIdsPaidByThem = expensesPaidByThem.map((e) => e.id);
+
+    // Settle their splits on expenses I paid
+    if (expenseIdsPaidByMe.length > 0) {
+      const { data: settled1, error: error1 } = await supabase
+        .from("expense_splits")
+        .update({
+          settled: true,
+          settled_at: new Date().toISOString(),
+          settled_by: currentUserId,
+        })
+        .in("expense_id", expenseIdsPaidByMe)
+        .eq("user_id", otherUserId)
+        .eq("settled", false)
+        .select("id");
+
+      if (error1) {
+        return { success: false, settledCount: 0, error: error1 };
+      }
+      settledCount += settled1?.length || 0;
+    }
+
+    // Settle my splits on expenses they paid
+    if (expenseIdsPaidByThem.length > 0) {
+      const { data: settled2, error: error2 } = await supabase
+        .from("expense_splits")
+        .update({
+          settled: true,
+          settled_at: new Date().toISOString(),
+          settled_by: currentUserId,
+        })
+        .in("expense_id", expenseIdsPaidByThem)
+        .eq("user_id", currentUserId)
+        .eq("settled", false)
+        .select("id");
+
+      if (error2) {
+        return { success: false, settledCount, error: error2 };
+      }
+      settledCount += settled2?.length || 0;
+    }
+
+    // Send notification to the other user if any splits were settled
+    if (settledCount > 0) {
+      // Get current user's name and house name for the notification
+      const [{ data: currentUserProfile }, { data: house }] = await Promise.all([
+        supabase.from("profiles").select("display_name, email").eq("id", currentUserId).single(),
+        supabase.from("houses").select("name").eq("id", houseId).single(),
+      ]);
+
+      if (currentUserProfile && house) {
+        const settlerName = currentUserProfile.display_name || currentUserProfile.email.split("@")[0];
+
+        // Send notification asynchronously (don't block)
+        sendSettlementNotification({
+          recipientUserId: otherUserId,
+          settlerName,
+          houseName: house.name,
+          settledAmount: Math.round(settledAmount * 100) / 100,
+          settledCount,
+        }).catch((err) => {
+          console.error("Failed to send settlement notification:", err);
+        });
+      }
+    }
+
+    return { success: true, settledCount, error: null };
+  } catch (error) {
+    console.error("Error settling up with user:", error);
+    return { success: false, settledCount: 0, error: error as Error };
   }
 }
 

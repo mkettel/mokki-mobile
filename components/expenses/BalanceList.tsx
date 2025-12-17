@@ -6,6 +6,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
 import {
   Alert,
+  Image,
   Linking,
   Platform,
   ScrollView,
@@ -18,9 +19,10 @@ import {
 interface BalanceListProps {
   balances: UserBalance[];
   onSettleAll: (userId: string) => Promise<void>;
+  onSelectBalance?: (balance: UserBalance) => void;
 }
 
-export function BalanceList({ balances, onSettleAll }: BalanceListProps) {
+export function BalanceList({ balances, onSettleAll, onSelectBalance }: BalanceListProps) {
   const colors = useColors();
 
   const handlePayViaVenmo = (balance: UserBalance) => {
@@ -91,12 +93,12 @@ export function BalanceList({ balances, onSettleAll }: BalanceListProps) {
   if (balances.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <FontAwesome name="check-circle" size={48} color={colors.foreground} />
+        <FontAwesome name="users" size={48} color={colors.mutedForeground} />
         <Text style={[styles.emptyText, { color: colors.foreground }]}>
-          All settled up!
+          No other members
         </Text>
-        <Text style={[styles.emptySubtext, { color: colors.foreground }]}>
-          No outstanding balances with anyone.
+        <Text style={[styles.emptySubtext, { color: colors.mutedForeground }]}>
+          Invite others to your house to split expenses.
         </Text>
       </View>
     );
@@ -107,26 +109,47 @@ export function BalanceList({ balances, onSettleAll }: BalanceListProps) {
       {balances.map((balance) => {
         const theyOweYou = balance.netBalance > 0;
         const youOweThem = balance.netBalance < 0;
+        const allSettled = balance.netBalance === 0;
 
         return (
-          <View
+          <TouchableOpacity
             key={balance.userId}
-            style={[styles.balanceCard, { backgroundColor: colors.card }]}
+            style={[
+              styles.balanceCard,
+              { backgroundColor: colors.card },
+              allSettled && styles.balanceCardSettled,
+            ]}
+            onPress={() => onSelectBalance?.(balance)}
+            activeOpacity={onSelectBalance ? 0.7 : 1}
           >
             <View style={styles.userInfo}>
               {/* Avatar */}
-              <View
-                style={[styles.avatar, { backgroundColor: colors.primary }]}
-              >
-                <Text
+              {balance.avatarUrl ? (
+                <Image
+                  source={{ uri: balance.avatarUrl }}
                   style={[
-                    styles.avatarText,
-                    { color: colors.primaryForeground },
+                    styles.avatar,
+                    styles.avatarImage,
+                    allSettled && { opacity: 0.7 },
+                  ]}
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.avatar,
+                    { backgroundColor: allSettled ? colors.muted : colors.primary },
                   ]}
                 >
-                  {getInitial(balance)}
-                </Text>
-              </View>
+                  <Text
+                    style={[
+                      styles.avatarText,
+                      { color: allSettled ? colors.mutedForeground : colors.primaryForeground },
+                    ]}
+                  >
+                    {getInitial(balance)}
+                  </Text>
+                </View>
+              )}
 
               {/* Name and balance info */}
               <View style={styles.nameContainer}>
@@ -144,59 +167,74 @@ export function BalanceList({ balances, onSettleAll }: BalanceListProps) {
                       you owe {formatCurrency(balance.owed)}
                     </Text>
                   )}
+                  {allSettled && (
+                    <View style={styles.settledRow}>
+                      <FontAwesome name="check-circle" size={12} color="#16a34a" />
+                      <Text style={[styles.balanceText, { color: colors.mutedForeground }]}>
+                        All settled
+                      </Text>
+                    </View>
+                  )}
                 </View>
               </View>
 
               {/* Net amount */}
               <View style={styles.netContainer}>
-                <Text
-                  style={[
-                    styles.netAmount,
-                    { color: theyOweYou ? "#16a34a" : "#dc2626" },
-                  ]}
-                >
-                  {theyOweYou ? "+" : "-"}
-                  {formatCurrency(Math.abs(balance.netBalance))}
-                </Text>
+                {!allSettled && (
+                  <Text
+                    style={[
+                      styles.netAmount,
+                      { color: theyOweYou ? "#16a34a" : "#dc2626" },
+                    ]}
+                  >
+                    {theyOweYou ? "+" : "-"}
+                    {formatCurrency(Math.abs(balance.netBalance))}
+                  </Text>
+                )}
+                {allSettled && (
+                  <FontAwesome name="chevron-right" size={14} color={colors.mutedForeground} />
+                )}
               </View>
             </View>
 
-            {/* Action buttons */}
-            <View style={styles.actions}>
-              {theyOweYou && (
-                <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: "#16a34a" }]}
-                  onPress={() => handleMarkPaid(balance)}
-                >
-                  <FontAwesome name="check" size={12} color="#fff" />
-                  <Text style={styles.actionButtonText}>Mark Paid</Text>
-                </TouchableOpacity>
-              )}
-              {youOweThem && balance.venmoHandle && (
-                <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: "#3b82f6" }]}
-                  onPress={() => handlePayViaVenmo(balance)}
-                >
-                  <FontAwesome name="dollar" size={12} color="#fff" />
-                  <Text style={styles.actionButtonText}>Pay via Venmo</Text>
-                </TouchableOpacity>
-              )}
-              {youOweThem && !balance.venmoHandle && (
-                <View
-                  style={[styles.noVenmoTag, { backgroundColor: colors.muted }]}
-                >
-                  <Text
-                    style={[
-                      styles.noVenmoText,
-                      { color: colors.mutedForeground },
-                    ]}
+            {/* Action buttons - only show if not settled */}
+            {!allSettled && (
+              <View style={styles.actions}>
+                {theyOweYou && (
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: "#16a34a" }]}
+                    onPress={() => handleMarkPaid(balance)}
                   >
-                    No Venmo set up
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
+                    <FontAwesome name="check" size={12} color="#fff" />
+                    <Text style={styles.actionButtonText}>Mark Paid</Text>
+                  </TouchableOpacity>
+                )}
+                {youOweThem && balance.venmoHandle && (
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: "#3b82f6" }]}
+                    onPress={() => handlePayViaVenmo(balance)}
+                  >
+                    <FontAwesome name="dollar" size={12} color="#fff" />
+                    <Text style={styles.actionButtonText}>Pay via Venmo</Text>
+                  </TouchableOpacity>
+                )}
+                {youOweThem && !balance.venmoHandle && (
+                  <View
+                    style={[styles.noVenmoTag, { backgroundColor: colors.muted }]}
+                  >
+                    <Text
+                      style={[
+                        styles.noVenmoText,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      No Venmo set up
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </TouchableOpacity>
         );
       })}
     </ScrollView>
@@ -228,6 +266,14 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
   },
+  balanceCardSettled: {
+    opacity: 0.8,
+  },
+  settledRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   userInfo: {
     flexDirection: "row",
     alignItems: "center",
@@ -238,6 +284,9 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+  },
+  avatarImage: {
+    resizeMode: "cover",
   },
   avatarText: {
     fontSize: 18,

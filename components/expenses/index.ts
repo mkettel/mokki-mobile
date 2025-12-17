@@ -1,5 +1,6 @@
 export { ExpenseSummaryCards } from "./ExpenseSummaryCards";
 export { BalanceList } from "./BalanceList";
+export { BalanceDetailModal } from "./BalanceDetailModal";
 export { ExpenseCard } from "./ExpenseCard";
 export { ExpenseList } from "./ExpenseList";
 export { AddExpenseModal } from "./AddExpenseModal";

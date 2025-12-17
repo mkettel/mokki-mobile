@@ -1,5 +1,6 @@
 import {
   AddExpenseModal,
+  BalanceDetailModal,
   BalanceList,
   EditExpenseModal,
   ExpenseList,
@@ -13,6 +14,7 @@ import { typography } from "@/constants/theme";
 import {
   createExpense,
   deleteExpense,
+  getExpense,
   getHouseExpenses,
   getHouseMembersForExpenses,
   getUserBalances,
@@ -33,6 +35,7 @@ import type {
   ExpenseCategory,
   ExpenseWithDetails,
   Profile,
+  UserBalance,
 } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
@@ -66,6 +69,8 @@ export default function ExpensesScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingExpense, setEditingExpense] =
     useState<ExpenseWithDetails | null>(null);
+  const [showBalanceDetail, setShowBalanceDetail] = useState(false);
+  const [selectedBalance, setSelectedBalance] = useState<UserBalance | null>(null);
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -231,7 +236,8 @@ export default function ExpensesScreen() {
   };
 
   const handleSettleSplit = async (splitId: string) => {
-    const { error } = await settleExpenseSplit(splitId);
+    if (!user) return;
+    const { error } = await settleExpenseSplit(splitId, user.id);
     if (error) {
       Alert.alert("Error", error.message);
     } else {
@@ -263,6 +269,22 @@ export default function ExpensesScreen() {
   const openEditModal = (expense: ExpenseWithDetails) => {
     setEditingExpense(expense);
     setShowEditModal(true);
+  };
+
+  const handleEditExpenseById = async (expenseId: string) => {
+    const { expense, error } = await getExpense(expenseId);
+    if (error) {
+      Alert.alert("Error", "Could not load expense for editing");
+      return;
+    }
+    if (expense) {
+      openEditModal(expense);
+    }
+  };
+
+  const openBalanceDetail = (balance: UserBalance) => {
+    setSelectedBalance(balance);
+    setShowBalanceDetail(true);
   };
 
   if (isLoading) {
@@ -382,6 +404,7 @@ export default function ExpensesScreen() {
           <BalanceList
             balances={balanceData?.balances || []}
             onSettleAll={handleSettleAllWithUser}
+            onSelectBalance={openBalanceDetail}
           />
         ) : (
           <ExpenseList
@@ -414,6 +437,20 @@ export default function ExpensesScreen() {
         onSubmit={handleEditExpense}
         members={members}
         currentUserId={user?.id || ""}
+      />
+
+      <BalanceDetailModal
+        visible={showBalanceDetail}
+        balance={selectedBalance}
+        houseId={activeHouse?.id || ""}
+        currentUserId={user?.id || ""}
+        houseName={activeHouse?.name}
+        onClose={() => {
+          setShowBalanceDetail(false);
+          setSelectedBalance(null);
+        }}
+        onSettled={fetchData}
+        onEditExpense={handleEditExpenseById}
       />
     </PageContainer>
   );
