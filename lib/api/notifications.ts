@@ -20,9 +20,7 @@ export async function sendEventNotification(
   error?: Error;
 }> {
   try {
-    console.log("Sending event notification:", params);
-
-    const { data, error } = await supabase.functions.invoke(
+    const { error } = await supabase.functions.invoke(
       "send-event-notification",
       {
         body: params,
@@ -30,14 +28,11 @@ export async function sendEventNotification(
     );
 
     if (error) {
-      console.error("Error invoking send-event-notification:", error);
       return { success: false, error };
     }
 
-    console.log("Notification response:", data);
     return { success: true };
   } catch (error) {
-    console.error("Error sending event notification:", error);
     return { success: false, error: error as Error };
   }
 }

@@ -52,7 +52,6 @@ export async function requestNotificationPermissions(): Promise<NotificationPerm
  */
 export async function getExpoPushToken(): Promise<string | null> {
   if (!canReceivePushNotifications()) {
-    console.log("Push notifications not available on simulator/emulator");
     return null;
   }
 
@@ -107,9 +106,6 @@ export async function registerPushToken(
     const deviceId = Constants.deviceId;
     const platform = Platform.OS as "ios" | "android" | "web";
 
-    // Log the token for testing
-    console.log("Push token:", token);
-
     // Upsert the token to Supabase
     const { error } = await supabase.from("push_tokens").upsert(
       {
@@ -124,11 +120,9 @@ export async function registerPushToken(
     );
 
     if (error) {
-      console.error("Error saving push token:", error);
       return { success: false, error };
     }
 
-    console.log("Push token registered successfully");
     return { success: true };
   } catch (error) {
     console.error("Error registering push token:", error);
@@ -167,7 +161,6 @@ export function setupNotificationListeners(
   // Listener for when notification is received while app is foregrounded
   const receivedSubscription = Notifications.addNotificationReceivedListener(
     (notification) => {
-      console.log("Notification received:", notification);
       onNotificationReceived?.(notification);
     }
   );
@@ -175,7 +168,6 @@ export function setupNotificationListeners(
   // Listener for when user interacts with notification
   const responseSubscription =
     Notifications.addNotificationResponseReceivedListener((response) => {
-      console.log("Notification response:", response);
       onNotificationResponse?.(response);
     });
 
