@@ -9,6 +9,7 @@ import type {
 import { decode } from "base64-arraybuffer";
 import { format, isToday, isYesterday } from "date-fns";
 import { File } from "expo-file-system";
+import * as VideoThumbnails from "expo-video-thumbnails";
 import { Platform } from "react-native";
 
 // File size limits
@@ -231,6 +232,40 @@ export async function uploadBRollMedia(
       data: { publicUrl },
     } = supabase.storage.from("broll").getPublicUrl(storagePath);
 
+    // Generate and upload thumbnail for videos
+    let thumbnailUrl: string | null = null;
+    if (mediaType === "video" && Platform.OS !== "web") {
+      try {
+        // Generate thumbnail at 1 second mark
+        const { uri: thumbnailUri } = await VideoThumbnails.getThumbnailAsync(
+          file.uri,
+          { time: 1000 } // 1 second into the video
+        );
+
+        // Upload thumbnail
+        const thumbnailPath = `${houseId}/${userId}/${timestamp}_thumb.jpg`;
+        const thumbnailFile = new File(thumbnailUri);
+        const thumbnailBase64 = await thumbnailFile.base64();
+
+        const { error: thumbError } = await supabase.storage
+          .from("broll")
+          .upload(thumbnailPath, decode(thumbnailBase64), {
+            contentType: "image/jpeg",
+            cacheControl: "3600",
+          });
+
+        if (!thumbError) {
+          const { data: { publicUrl: thumbPublicUrl } } = supabase.storage
+            .from("broll")
+            .getPublicUrl(thumbnailPath);
+          thumbnailUrl = thumbPublicUrl;
+        }
+      } catch (thumbError) {
+        // Thumbnail generation failed, continue without it
+        console.warn("Failed to generate thumbnail:", thumbError);
+      }
+    }
+
     // Save metadata to database
     const { data: item, error: dbError } = await supabase
       .from("b_roll_media")
@@ -240,6 +275,7 @@ export async function uploadBRollMedia(
         media_type: mediaType,
         storage_path: storagePath,
         public_url: publicUrl,
+        thumbnail_url: thumbnailUrl,
         caption: caption?.trim() || null,
         file_name: file.fileName,
         file_size: file.fileSize,
