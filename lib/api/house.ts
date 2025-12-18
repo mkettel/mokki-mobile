@@ -356,6 +356,22 @@ export async function updateHouseSettings(
               ...newSettings.features,
             }
           : currentSettings.features,
+      // Deep merge theme if both exist
+      theme:
+        newSettings.theme !== undefined
+          ? {
+              ...currentSettings.theme,
+              ...newSettings.theme,
+            }
+          : currentSettings.theme,
+      // Deep merge tripTimer if both exist
+      tripTimer:
+        newSettings.tripTimer !== undefined
+          ? {
+              ...currentSettings.tripTimer,
+              ...newSettings.tripTimer,
+            }
+          : currentSettings.tripTimer,
     };
 
     // Update

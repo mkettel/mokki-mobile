@@ -1,5 +1,6 @@
 import { GeometricBackground } from "@/components/GeometricBackground";
 import { TopBar } from "@/components/TopBar";
+import { TripTimer } from "@/components/TripTimer";
 import { WeatherIcon } from "@/components/weather";
 import { FEATURE_ROUTES } from "@/constants/features";
 import { darkColors, lightColors, typography } from "@/constants/theme";
@@ -117,6 +118,9 @@ export default function HomeScreen() {
 
   // Generate dynamic links based on house feature settings
   const houseSettings = activeHouse?.settings as HouseSettings | undefined;
+  const tripTimer = houseSettings?.tripTimer;
+  const showTripTimer = tripTimer?.enabled && tripTimer?.startDate;
+
   const links = useMemo(() => {
     return getEnabledFeatures(houseSettings).map((featureId) => ({
       href: FEATURE_ROUTES[featureId],
@@ -203,6 +207,15 @@ export default function HomeScreen() {
           >
             <LiveClock color={colors.foreground} weather={currentWeather} />
           </Animated.View>
+
+          {/* Trip Timer - countdown or day counter */}
+          {showTripTimer && (
+            <TripTimer
+              startDate={tripTimer.startDate}
+              endDate={tripTimer.endDate}
+              color={colors.foreground}
+            />
+          )}
         </View>
 
         {/* Navigation Links - Centered vertically, stacked in column */}

@@ -48,6 +48,12 @@ export type HouseSettings = {
   features?: Partial<Record<FeatureId, Partial<FeatureConfig>>>;
   // Theme configuration - allows customizing colors and backgrounds
   theme?: HouseTheme;
+  // Trip timer - countdown/day counter displayed on home screen
+  tripTimer?: {
+    enabled: boolean;
+    startDate?: string; // ISO date YYYY-MM-DD
+    endDate?: string; // ISO date YYYY-MM-DD (optional)
+  };
 };
 
 export type MemberRole = "admin" | "member";
