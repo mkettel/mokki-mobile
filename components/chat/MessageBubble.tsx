@@ -1,19 +1,21 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  Dimensions,
-} from "react-native";
 import { typography } from "@/constants/theme";
-import { useColors } from "@/lib/context/theme";
 import type { ChatMessageWithProfile } from "@/lib/api/chat";
 import { getMessageAttachments } from "@/lib/api/chat";
+import { useColors } from "@/lib/context/theme";
 import type { MessageAttachment } from "@/types/database";
-import { format, isToday, isYesterday } from "date-fns";
 import { FontAwesome } from "@expo/vector-icons";
+import { format, isToday, isYesterday } from "date-fns";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const MAX_IMAGE_WIDTH = SCREEN_WIDTH * 0.6;
@@ -24,7 +26,84 @@ interface MessageBubbleProps {
   isOwnMessage: boolean;
   showAvatar?: boolean;
   showName?: boolean;
-  onAttachmentPress?: (attachment: MessageAttachment, allAttachments: MessageAttachment[]) => void;
+  onAttachmentPress?: (
+    attachment: MessageAttachment,
+    allAttachments: MessageAttachment[]
+  ) => void;
+}
+
+// Separate component for attachment images with loading state
+function AttachmentImage({
+  attachment,
+  imageUrl,
+  dimensions,
+  isVideo,
+  index,
+  onPress,
+}: {
+  attachment: MessageAttachment;
+  imageUrl: string;
+  dimensions: { width: number; height: number };
+  isVideo: boolean;
+  index: number;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  const [isLoading, setIsLoading] = useState(true);
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.attachmentContainer,
+        { width: dimensions.width, height: dimensions.height },
+        index > 0 && styles.attachmentMarginTop,
+      ]}
+      onPress={onPress}
+      activeOpacity={0.9}
+    >
+      {isLoading && (
+        <View
+          style={[
+            styles.attachmentLoader,
+            { backgroundColor: colors.muted },
+          ]}
+        >
+          <ActivityIndicator size="small" color={colors.mutedForeground} />
+        </View>
+      )}
+      <Animated.View
+        entering={FadeIn.duration(200)}
+        style={StyleSheet.absoluteFill}
+      >
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.attachmentImage}
+          resizeMode="cover"
+          onLoadEnd={() => setIsLoading(false)}
+        />
+      </Animated.View>
+      {isVideo && !isLoading && (
+        <View style={styles.videoOverlay}>
+          <View style={styles.playButton}>
+            <FontAwesome name="play" size={20} color="#fff" />
+          </View>
+          {attachment.duration && (
+            <View style={styles.durationBadge}>
+              <Text style={styles.durationText}>
+                {formatDuration(attachment.duration)}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+    </TouchableOpacity>
+  );
 }
 
 export function MessageBubble({
@@ -101,52 +180,27 @@ export function MessageBubble({
       attachment.height || undefined
     );
     const isVideo = attachment.media_type === "video";
-    const imageUrl = isVideo && attachment.thumbnail_url
-      ? attachment.thumbnail_url
-      : attachment.public_url;
+    const imageUrl =
+      isVideo && attachment.thumbnail_url
+        ? attachment.thumbnail_url
+        : attachment.public_url;
 
     return (
-      <TouchableOpacity
+      <AttachmentImage
         key={attachment.id}
-        style={[
-          styles.attachmentContainer,
-          { width: dimensions.width, height: dimensions.height },
-          index > 0 && styles.attachmentMarginTop,
-        ]}
+        attachment={attachment}
+        imageUrl={imageUrl}
+        dimensions={dimensions}
+        isVideo={isVideo}
+        index={index}
         onPress={() => onAttachmentPress?.(attachment, attachments)}
-        activeOpacity={0.9}
-      >
-        <Image
-          source={{ uri: imageUrl }}
-          style={styles.attachmentImage}
-          resizeMode="cover"
-        />
-        {isVideo && (
-          <View style={styles.videoOverlay}>
-            <View style={styles.playButton}>
-              <FontAwesome name="play" size={20} color="#fff" />
-            </View>
-            {attachment.duration && (
-              <View style={styles.durationBadge}>
-                <Text style={styles.durationText}>
-                  {formatDuration(attachment.duration)}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-      </TouchableOpacity>
+      />
     );
   };
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
   return (
-    <View
+    <Animated.View
+      entering={FadeIn.duration(300)}
       style={[
         styles.container,
         isOwnMessage ? styles.containerOwn : styles.containerOther,
@@ -165,7 +219,10 @@ export function MessageBubble({
               ]}
             >
               <Text
-                style={[styles.avatarInitials, { color: colors.mutedForeground }]}
+                style={[
+                  styles.avatarInitials,
+                  { color: colors.mutedForeground },
+                ]}
               >
                 {getInitials(displayName)}
               </Text>
@@ -178,7 +235,9 @@ export function MessageBubble({
       <View
         style={[
           styles.bubbleContainer,
-          isOwnMessage ? styles.bubbleContainerOwn : styles.bubbleContainerOther,
+          isOwnMessage
+            ? styles.bubbleContainerOwn
+            : styles.bubbleContainerOther,
         ]}
       >
         {/* Sender name for other users */}
@@ -190,7 +249,12 @@ export function MessageBubble({
 
         {/* Attachments */}
         {hasAttachments && (
-          <View style={[styles.attachmentsWrapper, !hasText && styles.attachmentsOnly]}>
+          <View
+            style={[
+              styles.attachmentsWrapper,
+              !hasText && styles.attachmentsOnly,
+            ]}
+          >
             {attachments.map((attachment, index) =>
               renderAttachment(attachment, index)
             )}
@@ -232,10 +296,7 @@ export function MessageBubble({
           {formatTime(message.created_at)}
         </Text>
       </View>
-
-      {/* Spacer for own messages (to balance the layout) */}
-      {isOwnMessage && showAvatar && <View style={styles.avatarSpacer} />}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -271,9 +332,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: typography.fontFamily.chillaxMedium,
   },
-  avatarSpacer: {
-    width: 40, // 32 + 8 margin
-  },
   bubbleContainer: {
     maxWidth: "75%",
   },
@@ -305,6 +363,12 @@ const styles = StyleSheet.create({
   attachmentImage: {
     width: "100%",
     height: "100%",
+  },
+  attachmentLoader: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
   },
   videoOverlay: {
     ...StyleSheet.absoluteFillObject,
