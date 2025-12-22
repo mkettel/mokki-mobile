@@ -1,21 +1,35 @@
 import React, { useEffect } from "react";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Tabs, router } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
 
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import { useAuth } from "@/lib/context/auth";
 import { useColors } from "@/lib/context/theme";
 import { useHouse } from "@/lib/context/house";
+import { useChat } from "@/lib/context/chat";
 import { isFeatureEnabled } from "@/lib/utils/features";
 import type { FeatureId, HouseSettings } from "@/types/database";
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>["name"];
   color: string;
+  badge?: number;
 }) {
-  return <FontAwesome size={24} style={{ marginBottom: -3 }} {...props} />;
+  const { badge, ...iconProps } = props;
+  return (
+    <View style={styles.tabIconContainer}>
+      <FontAwesome size={24} style={{ marginBottom: -3 }} {...iconProps} />
+      {badge !== undefined && badge > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>
+            {badge > 99 ? "99+" : badge}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
 }
 
 export default function TabLayout() {
@@ -23,8 +37,12 @@ export default function TabLayout() {
   const colors = useColors();
   const { user, isLoading: authLoading } = useAuth();
   const { activeHouse, houses, isLoading: houseLoading } = useHouse();
+  const { unreadHouseChat, unreadDMTotal } = useChat();
 
   const isLoading = authLoading || houseLoading;
+
+  // Total unread for chat tab badge
+  const totalUnread = unreadHouseChat + unreadDMTotal;
 
   // Get house settings for feature visibility
   const houseSettings = (activeHouse?.settings as HouseSettings) || undefined;
@@ -129,6 +147,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="chat"
+        options={{
+          href: showTab("chat"),
+          title: "Chat",
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="comments" color={color} badge={totalUnread} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="account"
         options={{
           href: showTab("account"),
@@ -139,3 +167,26 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabIconContainer: {
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: -4,
+    right: -8,
+    backgroundColor: "#ef4444",
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "600",
+  },
+});

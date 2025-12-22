@@ -14,6 +14,7 @@ import { useColorScheme } from "@/components/useColorScheme";
 import { AuthProvider } from "@/lib/context/auth";
 import { ThemeProvider } from "@/lib/context/theme";
 import { HouseProvider } from "@/lib/context/house";
+import { ChatProvider } from "@/lib/context/chat";
 import { NotificationsProvider } from "@/lib/context/notifications";
 import { lightColors, darkColors } from "@/constants/theme";
 
@@ -91,9 +92,11 @@ export default function RootLayout() {
     <ThemeProvider>
       <AuthProvider>
         <HouseProvider>
-          <NotificationsProvider>
-            <RootLayoutNav />
-          </NotificationsProvider>
+          <ChatProvider>
+            <NotificationsProvider>
+              <RootLayoutNav />
+            </NotificationsProvider>
+          </ChatProvider>
         </HouseProvider>
       </AuthProvider>
     </ThemeProvider>
@@ -114,6 +117,7 @@ function RootLayoutNav() {
         <Stack.Screen name="house-settings" options={{ headerShown: false }} />
         <Stack.Screen name="invite/[code]" options={{ headerShown: false }} />
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+        <Stack.Screen name="chat/[conversationId]" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />
       </Stack>
     </NavigationThemeProvider>

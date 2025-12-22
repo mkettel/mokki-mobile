@@ -7,6 +7,7 @@ export const DEFAULT_FEATURE_CONFIG: Record<FeatureId, FeatureConfig> = {
   broll: { enabled: true, label: "B-roll" },
   bulletin: { enabled: true, label: "Bulletin board" },
   expenses: { enabled: true, label: "Pay up" },
+  chat: { enabled: false, label: "Chat" },
   members: { enabled: true, label: "Who's who" },
   account: { enabled: true, label: "About you" },
 };
@@ -18,6 +19,7 @@ export const FEATURE_ROUTES: Record<FeatureId, string> = {
   broll: "/(tabs)/broll",
   bulletin: "/(tabs)/bulletin",
   expenses: "/(tabs)/expenses",
+  chat: "/(tabs)/chat",
   members: "/members",
   account: "/(tabs)/account",
 };
@@ -29,6 +31,7 @@ export const FEATURE_ICONS: Record<FeatureId, string> = {
   broll: "camera",
   bulletin: "thumb-tack",
   expenses: "dollar",
+  chat: "comments",
   members: "users",
   account: "user",
 };
@@ -40,6 +43,7 @@ export const FEATURE_ORDER: FeatureId[] = [
   "broll",
   "bulletin",
   "expenses",
+  "chat",
   "members",
   "account",
 ];

@@ -14,7 +14,8 @@ export type FeatureId =
   | "bulletin"
   | "expenses"
   | "members"
-  | "account";
+  | "account"
+  | "chat";
 
 // Feature configuration per house
 export type FeatureConfig = {
@@ -395,22 +396,27 @@ export interface Database {
       messages: {
         Row: {
           id: string;
-          house_id: string;
+          house_id: string | null;
+          conversation_id: string | null;
           user_id: string;
           content: string;
           type: MessageType;
+          has_attachments: boolean;
           created_at: string;
         };
         Insert: {
           id?: string;
-          house_id: string;
+          house_id?: string | null;
+          conversation_id?: string | null;
           user_id: string;
           content: string;
           type?: MessageType;
+          has_attachments?: boolean;
           created_at?: string;
         };
         Update: {
           content?: string;
+          has_attachments?: boolean;
         };
         Relationships: [
           {
@@ -425,6 +431,153 @@ export interface Database {
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      conversations: {
+        Row: {
+          id: string;
+          house_id: string;
+          participant_1: string;
+          participant_2: string;
+          last_message_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          house_id: string;
+          participant_1: string;
+          participant_2: string;
+          last_message_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          last_message_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversations_house_id_fkey";
+            columns: ["house_id"];
+            isOneToOne: false;
+            referencedRelation: "houses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_participant_1_fkey";
+            columns: ["participant_1"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_participant_2_fkey";
+            columns: ["participant_2"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      message_attachments: {
+        Row: {
+          id: string;
+          message_id: string;
+          media_type: MediaType;
+          storage_path: string;
+          public_url: string;
+          thumbnail_url: string | null;
+          file_name: string;
+          file_size: number;
+          mime_type: string;
+          width: number | null;
+          height: number | null;
+          duration: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          message_id: string;
+          media_type: MediaType;
+          storage_path: string;
+          public_url: string;
+          thumbnail_url?: string | null;
+          file_name: string;
+          file_size: number;
+          mime_type: string;
+          width?: number | null;
+          height?: number | null;
+          duration?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          thumbnail_url?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "message_attachments_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      chat_read_receipts: {
+        Row: {
+          id: string;
+          user_id: string;
+          house_id: string | null;
+          conversation_id: string | null;
+          last_read_at: string;
+          last_read_message_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          house_id?: string | null;
+          conversation_id?: string | null;
+          last_read_at?: string;
+          last_read_message_id?: string | null;
+        };
+        Update: {
+          last_read_at?: string;
+          last_read_message_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "chat_read_receipts_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "chat_read_receipts_house_id_fkey";
+            columns: ["house_id"];
+            isOneToOne: false;
+            referencedRelation: "houses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "chat_read_receipts_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "chat_read_receipts_last_read_message_id_fkey";
+            columns: ["last_read_message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
             referencedColumns: ["id"];
           }
         ];
@@ -924,4 +1077,93 @@ export type EventWithParticipants = Event & {
   event_participants: (EventParticipant & {
     profiles: Profile;
   })[];
+};
+
+// ============================================
+// Chat Types
+// ============================================
+
+// Media type for chat attachments
+export type ChatMediaType = "image" | "video";
+
+// Conversation for direct messages
+export type Conversation = {
+  id: string;
+  house_id: string;
+  participant_1: string;
+  participant_2: string;
+  last_message_at: string;
+  created_at: string;
+};
+
+// Conversation with participant profiles
+export type ConversationWithProfiles = Conversation & {
+  participant_1_profile: Profile;
+  participant_2_profile: Profile;
+};
+
+// Conversation with latest message preview (for list display)
+export type ConversationWithLatest = ConversationWithProfiles & {
+  latest_message?: {
+    content: string;
+    created_at: string;
+    user_id: string;
+  };
+  unread_count: number;
+};
+
+// Message attachment
+export type MessageAttachment = {
+  id: string;
+  message_id: string;
+  media_type: ChatMediaType;
+  storage_path: string;
+  public_url: string;
+  thumbnail_url: string | null;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  width: number | null;
+  height: number | null;
+  duration: number | null; // seconds, for videos
+  created_at: string;
+};
+
+// Extended message type with optional conversation_id and attachments flag
+export type ChatMessage = {
+  id: string;
+  house_id: string | null; // null for DMs
+  conversation_id: string | null; // null for house chat
+  user_id: string;
+  content: string;
+  type: MessageType;
+  has_attachments: boolean;
+  created_at: string;
+};
+
+// Chat message with profile
+export type ChatMessageWithProfile = ChatMessage & {
+  profiles: Profile;
+};
+
+// Chat message with profile and attachments
+export type ChatMessageWithAttachments = ChatMessageWithProfile & {
+  message_attachments: MessageAttachment[];
+};
+
+// Read receipt for tracking unread messages
+export type ChatReadReceipt = {
+  id: string;
+  user_id: string;
+  house_id: string | null; // for house chat
+  conversation_id: string | null; // for DMs
+  last_read_at: string;
+  last_read_message_id: string | null;
+};
+
+// Unread counts summary
+export type ChatUnreadCounts = {
+  house_chat: number;
+  direct_messages: Record<string, number>; // conversation_id -> count
+  total: number;
 };
