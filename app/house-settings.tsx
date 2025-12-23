@@ -447,7 +447,7 @@ export default function HouseSettingsScreen() {
 
     if (Platform.OS === "web") {
       if (window.confirm(message)) {
-        doArchive();
+        await doArchive();
       }
     } else {
       Alert.alert(action, message, [
