@@ -83,7 +83,7 @@ export function ConversationList({
           )}
           {hasUnread && (
             <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
-              <Text style={styles.unreadBadgeText}>
+              <Text style={[styles.unreadBadgeText, { color: colors.primaryForeground }]}>
                 {item.unreadCount > 99 ? "99+" : item.unreadCount}
               </Text>
             </View>
@@ -157,8 +157,10 @@ export function ConversationList({
             style={[styles.newButton, { backgroundColor: colors.primary }]}
             onPress={onNewConversation}
           >
-            <FontAwesome name="plus" size={14} color="#FFFFFF" />
-            <Text style={styles.newButtonText}>New Message</Text>
+            <FontAwesome name="plus" size={14} color={colors.primaryForeground} />
+            <Text style={[styles.newButtonText, { color: colors.primaryForeground }]}>
+              New Message
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -231,7 +233,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   unreadBadgeText: {
-    color: "#FFFFFF",
     fontSize: 10,
     fontFamily: typography.fontFamily.chillaxMedium,
   },
@@ -296,7 +297,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   newButtonText: {
-    color: "#FFFFFF",
     fontSize: 14,
     fontFamily: typography.fontFamily.chillaxMedium,
   },

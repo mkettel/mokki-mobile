@@ -197,8 +197,10 @@ export default function ChatScreen() {
             style={[styles.newButton, { backgroundColor: colors.primary }]}
             onPress={() => setShowMemberPicker(true)}
           >
-            <FontAwesome name="plus" size={14} color="#FFFFFF" />
-            <Text style={styles.newButtonText}>New</Text>
+            <FontAwesome name="plus" size={14} color={colors.primaryForeground} />
+            <Text style={[styles.newButtonText, { color: colors.primaryForeground }]}>
+              New
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -229,7 +231,7 @@ export default function ChatScreen() {
                   { backgroundColor: colors.destructive },
                 ]}
               >
-                <Text style={styles.tabBadgeText}>
+                <Text style={[styles.tabBadgeText, { color: colors.destructiveForeground }]}>
                   {unreadHouseChat > 99 ? "99+" : unreadHouseChat}
                 </Text>
               </View>
@@ -271,7 +273,7 @@ export default function ChatScreen() {
                   { backgroundColor: colors.destructive },
                 ]}
               >
-                <Text style={styles.tabBadgeText}>
+                <Text style={[styles.tabBadgeText, { color: colors.destructiveForeground }]}>
                   {unreadDMTotal > 99 ? "99+" : unreadDMTotal}
                 </Text>
               </View>
@@ -386,7 +388,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   newButtonText: {
-    color: "#FFFFFF",
     fontSize: 13,
     fontFamily: typography.fontFamily.chillaxMedium,
   },
@@ -425,7 +426,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   tabBadgeText: {
-    color: "#fff",
     fontSize: 9,
     fontWeight: "600",
   },

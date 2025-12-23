@@ -276,7 +276,7 @@ export function MessageBubble({
               style={[
                 styles.messageText,
                 {
-                  color: isOwnMessage ? "#FFFFFF" : colors.foreground,
+                  color: isOwnMessage ? colors.primaryForeground : colors.foreground,
                 },
               ]}
             >

@@ -271,12 +271,12 @@ export function MessageInput({
             disabled={!canSend}
           >
             {isSending ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={colors.primaryForeground} />
             ) : (
               <FontAwesome
                 name="send"
                 size={16}
-                color={canSend ? "#FFFFFF" : colors.mutedForeground}
+                color={canSend ? colors.primaryForeground : colors.mutedForeground}
               />
             )}
           </TouchableOpacity>
