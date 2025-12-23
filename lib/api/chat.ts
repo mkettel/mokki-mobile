@@ -16,12 +16,63 @@ import {
   getMediaType,
   formatFileSize,
 } from "./broll";
+import {
+  sendHouseChatNotification,
+  sendDMNotification,
+} from "./notifications";
 
 // ============================================
 // Constants
 // ============================================
 
 export const MAX_MESSAGE_LENGTH = 2000;
+
+// ============================================
+// Notification Helpers
+// ============================================
+
+/**
+ * Get user's display name for notifications
+ */
+async function getSenderName(userId: string): Promise<string> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", userId)
+    .single();
+  return data?.display_name || "Someone";
+}
+
+/**
+ * Get house name for notifications
+ */
+async function getHouseName(houseId: string): Promise<string> {
+  const { data } = await supabase
+    .from("houses")
+    .select("name")
+    .eq("id", houseId)
+    .single();
+  return data?.name || "House";
+}
+
+/**
+ * Get the other participant's ID from a conversation
+ */
+async function getRecipientId(
+  conversationId: string,
+  senderId: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("conversations")
+    .select("participant_1, participant_2")
+    .eq("id", conversationId)
+    .single();
+
+  if (!data) return null;
+  return data.participant_1 === senderId
+    ? data.participant_2
+    : data.participant_1;
+}
 
 // ============================================
 // Types
@@ -121,6 +172,21 @@ export async function sendHouseMessage(
     if (error) {
       return { message: null, error };
     }
+
+    // Send push notification (fire and forget)
+    Promise.all([getSenderName(userId), getHouseName(houseId)])
+      .then(([senderName, houseName]) => {
+        sendHouseChatNotification({
+          messageId: message.id,
+          senderId: userId,
+          senderName,
+          content: trimmedContent,
+          hasAttachments: false,
+          houseId,
+          houseName,
+        }).catch((err) => console.error("Failed to send chat notification:", err));
+      })
+      .catch((err) => console.error("Failed to get notification data:", err));
 
     return { message, error: null };
   } catch (error) {
@@ -575,6 +641,23 @@ export async function sendDirectMessage(
       return { message: null, error };
     }
 
+    // Send push notification (fire and forget)
+    Promise.all([getSenderName(userId), getRecipientId(conversationId, userId)])
+      .then(([senderName, recipientId]) => {
+        if (recipientId) {
+          sendDMNotification({
+            messageId: message.id,
+            senderId: userId,
+            senderName,
+            content: trimmedContent,
+            hasAttachments: false,
+            conversationId,
+            recipientId,
+          }).catch((err) => console.error("Failed to send DM notification:", err));
+        }
+      })
+      .catch((err) => console.error("Failed to get notification data:", err));
+
     return { message, error: null };
   } catch (error) {
     console.error("Error sending direct message:", error);
@@ -883,6 +966,21 @@ export async function sendHouseMessageWithAttachments(
       }
     }
 
+    // Send push notification (fire and forget)
+    Promise.all([getSenderName(userId), getHouseName(houseId)])
+      .then(([senderName, houseName]) => {
+        sendHouseChatNotification({
+          messageId: message.id,
+          senderId: userId,
+          senderName,
+          content: trimmedContent,
+          hasAttachments: uploadedAttachments.length > 0,
+          houseId,
+          houseName,
+        }).catch((err) => console.error("Failed to send chat notification:", err));
+      })
+      .catch((err) => console.error("Failed to get notification data:", err));
+
     return { message, error: null };
   } catch (error) {
     console.error("Error sending message with attachments:", error);
@@ -982,6 +1080,23 @@ export async function sendDirectMessageWithAttachments(
         console.error("Error saving attachments:", attachmentError);
       }
     }
+
+    // Send push notification (fire and forget)
+    Promise.all([getSenderName(userId), getRecipientId(conversationId, userId)])
+      .then(([senderName, recipientId]) => {
+        if (recipientId) {
+          sendDMNotification({
+            messageId: message.id,
+            senderId: userId,
+            senderName,
+            content: trimmedContent,
+            hasAttachments: uploadedAttachments.length > 0,
+            conversationId,
+            recipientId,
+          }).catch((err) => console.error("Failed to send DM notification:", err));
+        }
+      })
+      .catch((err) => console.error("Failed to get notification data:", err));
 
     return { message, error: null };
   } catch (error) {
