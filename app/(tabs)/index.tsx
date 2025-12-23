@@ -6,6 +6,7 @@ import { FEATURE_ROUTES } from "@/constants/features";
 import { darkColors, lightColors, typography } from "@/constants/theme";
 import { getResort, getResortWeather } from "@/lib/api/weather";
 import { useAuth } from "@/lib/context/auth";
+import { useChat } from "@/lib/context/chat";
 import { useHouse } from "@/lib/context/house";
 import { useColors, useTheme } from "@/lib/context/theme";
 import { getEnabledFeatures, getFeatureLabel } from "@/lib/utils/features";
@@ -108,6 +109,7 @@ export default function HomeScreen() {
   const colors = useColors();
   const { isDark } = useTheme();
   const { activeHouse, isLoading } = useHouse();
+  const { unreadHouseChat } = useChat();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [currentWeather, setCurrentWeather] =
@@ -220,18 +222,30 @@ export default function HomeScreen() {
 
         {/* Navigation Links - Centered vertically, stacked in column */}
         <View style={styles.linksContainer}>
-          {links.map((link, index) => (
-            <TouchableOpacity
-              key={link.label}
-              onPress={() => router.push(link.href as any)}
-              style={styles.linkButton}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.linkText, { color: linkTextColor }]}>
-                {link.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {links.map((link, index) => {
+            const isChatLink = link.href.includes("chat");
+            const showUnreadDot = isChatLink && unreadHouseChat > 0;
+
+            return (
+              <TouchableOpacity
+                key={link.label}
+                onPress={() => router.push(link.href as any)}
+                style={styles.linkButton}
+                activeOpacity={0.7}
+              >
+                <View style={styles.linkRow}>
+                  <Text style={[styles.linkText, { color: linkTextColor }]}>
+                    {link.label}
+                  </Text>
+                  {showUnreadDot && (
+                    <View
+                      style={[styles.unreadDot, { backgroundColor: colors.red }]}
+                    />
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Temporary Sign Out - remove later */}
@@ -295,11 +309,21 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 8,
   },
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   linkText: {
     fontSize: 30,
     fontFamily: typography.fontFamily.boskaMedium,
     textTransform: "uppercase",
     textAlign: "center",
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   footer: {
     alignItems: "center",
