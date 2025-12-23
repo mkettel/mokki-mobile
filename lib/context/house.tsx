@@ -10,6 +10,7 @@ import {
   getActiveHouse,
   setActiveHouseId,
   acceptAllPendingInvites,
+  toggleHouseArchived,
   HouseWithRole,
 } from "@/lib/api/house";
 import { useAuth } from "./auth";
@@ -23,6 +24,7 @@ interface HouseContextType {
   error: Error | null;
   setActiveHouse: (house: HouseWithRole) => Promise<void>;
   refreshHouses: () => Promise<void>;
+  archiveHouse: (houseId: string, isArchived: boolean) => Promise<void>;
 }
 
 const HouseContext = createContext<HouseContextType | undefined>(undefined);
@@ -108,6 +110,36 @@ export function HouseProvider({ children }: { children: React.ReactNode }) {
     await fetchHouses();
   }, [fetchHouses]);
 
+  // Archive or unarchive a house for the current user
+  const archiveHouse = useCallback(
+    async (houseId: string, isArchived: boolean) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const { success, error } = await toggleHouseArchived(
+        houseId,
+        isArchived,
+        user.id
+      );
+
+      if (error || !success) {
+        console.error("Error archiving house:", error);
+        throw error || new Error("Failed to archive house");
+      }
+
+      // If archiving the active house, switch to another non-archived house
+      if (isArchived && activeHouse?.id === houseId) {
+        const nextHouse = houses.find((h) => h.id !== houseId && !h.isArchived);
+        if (nextHouse) {
+          await setActiveHouse(nextHouse);
+        }
+      }
+
+      // Refresh to get updated list
+      await fetchHouses();
+    },
+    [user, activeHouse, houses, fetchHouses, setActiveHouse]
+  );
+
   const value: HouseContextType = {
     activeHouse,
     houses,
@@ -115,6 +147,7 @@ export function HouseProvider({ children }: { children: React.ReactNode }) {
     error,
     setActiveHouse,
     refreshHouses,
+    archiveHouse,
   };
 
   return (

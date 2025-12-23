@@ -135,7 +135,7 @@ function FeatureRow({
 export default function HouseSettingsScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { activeHouse, refreshHouses } = useHouse();
+  const { activeHouse, refreshHouses, archiveHouse } = useHouse();
 
   const [isSaving, setIsSaving] = useState(false);
   const [localFeatures, setLocalFeatures] = useState<
@@ -422,6 +422,45 @@ export default function HouseSettingsScreen() {
     setIsSaving(false);
   };
 
+  const handleArchiveHouse = async () => {
+    if (!activeHouse) return;
+
+    const isArchived = activeHouse.isArchived;
+    const action = isArchived ? "Unarchive" : "Archive";
+    const message = isArchived
+      ? `Unarchive "${activeHouse.name}"? It will appear in your house list again.`
+      : `Archive "${activeHouse.name}"? You can still access it by toggling "Show Archived" in the house picker.`;
+
+    const doArchive = async () => {
+      try {
+        await archiveHouse(activeHouse.id, !isArchived);
+        router.back();
+      } catch (error) {
+        const errorMessage = `Failed to ${action.toLowerCase()} house`;
+        if (Platform.OS === "web") {
+          window.alert(errorMessage);
+        } else {
+          Alert.alert("Error", errorMessage);
+        }
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm(message)) {
+        doArchive();
+      }
+    } else {
+      Alert.alert(action, message, [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: action,
+          onPress: doArchive,
+          style: isArchived ? "default" : "destructive",
+        },
+      ]);
+    }
+  };
+
   const formatDateDisplay = (date: Date) => {
     return date.toLocaleDateString("en-US", {
       weekday: "short",
@@ -648,6 +687,54 @@ export default function HouseSettingsScreen() {
             )}
           </View>
         </View>
+
+        {/* Archive House Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Archive
+          </Text>
+          <Text style={[styles.sectionDescription, { color: colors.mutedForeground }]}>
+            {activeHouse.isArchived
+              ? "This house is currently archived. Unarchive it to show it in your house picker."
+              : "Archive this house to hide it from your house picker. You can unarchive it anytime."}
+          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.archiveButton,
+              {
+                backgroundColor: activeHouse.isArchived
+                  ? colors.primary
+                  : colors.muted,
+                borderColor: colors.border,
+              },
+            ]}
+            onPress={handleArchiveHouse}
+          >
+            <FontAwesome
+              name={activeHouse.isArchived ? "eye" : "archive"}
+              size={16}
+              color={
+                activeHouse.isArchived
+                  ? colors.primaryForeground
+                  : colors.foreground
+              }
+              style={styles.archiveButtonIcon}
+            />
+            <Text
+              style={[
+                styles.archiveButtonText,
+                {
+                  color: activeHouse.isArchived
+                    ? colors.primaryForeground
+                    : colors.foreground,
+                },
+              ]}
+            >
+              {activeHouse.isArchived ? "Unarchive House" : "Archive House"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -798,6 +885,21 @@ const styles = StyleSheet.create({
   },
   clearDatesText: {
     fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  archiveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  archiveButtonIcon: {
+    marginRight: 8,
+  },
+  archiveButtonText: {
+    fontSize: 15,
     fontFamily: typography.fontFamily.chillaxMedium,
   },
 });

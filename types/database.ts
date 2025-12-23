@@ -211,6 +211,7 @@ export interface Database {
           invited_email: string | null;
           invited_at: string;
           joined_at: string | null;
+          is_archived: boolean;
         };
         Insert: {
           id?: string;
@@ -221,12 +222,14 @@ export interface Database {
           invited_email?: string | null;
           invited_at?: string;
           joined_at?: string | null;
+          is_archived?: boolean;
         };
         Update: {
           role?: MemberRole;
           invite_status?: InviteStatus;
           user_id?: string | null;
           joined_at?: string | null;
+          is_archived?: boolean;
         };
         Relationships: [
           {

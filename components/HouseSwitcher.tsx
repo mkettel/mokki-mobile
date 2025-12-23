@@ -4,12 +4,15 @@ import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
+  Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -25,14 +28,36 @@ function getHouseNameFontSize(name: string): number {
 }
 
 export function HouseSwitcher() {
-  const { activeHouse, houses, setActiveHouse } = useHouse();
+  const { activeHouse, houses, setActiveHouse, archiveHouse } = useHouse();
   const colors = useColors();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const houseNameFontSize = activeHouse
     ? getHouseNameFontSize(activeHouse.name)
     : 16;
+
+  // Separate houses into active and archived
+  const { activeHouses, archivedHouses } = useMemo(() => {
+    const active: HouseWithRole[] = [];
+    const archived: HouseWithRole[] = [];
+
+    houses.forEach((house) => {
+      if (house.isArchived) {
+        archived.push(house);
+      } else {
+        active.push(house);
+      }
+    });
+
+    return { activeHouses: active, archivedHouses: archived };
+  }, [houses]);
+
+  // Houses to display based on toggle
+  const displayedHouses = showArchived
+    ? [...activeHouses, ...archivedHouses]
+    : activeHouses;
 
   const handleSelectHouse = async (house: HouseWithRole) => {
     await setActiveHouse(house);
@@ -42,6 +67,43 @@ export function HouseSwitcher() {
   const handleCreateHouse = () => {
     setIsOpen(false);
     router.push("/create-house");
+  };
+
+  const handleArchiveToggle = async (house: HouseWithRole) => {
+    const action = house.isArchived ? "unarchive" : "archive";
+    const message = `${action === "archive" ? "Archive" : "Unarchive"} "${house.name}"?`;
+
+    const doArchive = async () => {
+      try {
+        await archiveHouse(house.id, !house.isArchived);
+      } catch (error) {
+        const errorMessage = `Failed to ${action} house`;
+        if (Platform.OS === "web") {
+          window.alert(errorMessage);
+        } else {
+          Alert.alert("Error", errorMessage);
+        }
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm(message)) {
+        doArchive();
+      }
+    } else {
+      Alert.alert(
+        house.isArchived ? "Unarchive House" : "Archive House",
+        message,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: house.isArchived ? "Unarchive" : "Archive",
+            onPress: doArchive,
+            style: house.isArchived ? "default" : "destructive",
+          },
+        ]
+      );
+    }
   };
 
   if (!activeHouse) {
@@ -95,7 +157,7 @@ export function HouseSwitcher() {
             </Text>
 
             <ScrollView style={styles.houseList}>
-              {houses.map((house) => (
+              {displayedHouses.map((house) => (
                 <TouchableOpacity
                   key={house.id}
                   style={[
@@ -103,19 +165,45 @@ export function HouseSwitcher() {
                     activeHouse.id === house.id && {
                       backgroundColor: colors.accent,
                     },
+                    house.isArchived && styles.archivedHouse,
                   ]}
                   onPress={() => handleSelectHouse(house)}
+                  onLongPress={() => handleArchiveToggle(house)}
+                  delayLongPress={500}
                 >
                   <View style={styles.houseInfo}>
-                    <Text
-                      style={[
-                        styles.houseOptionName,
-                        { color: colors.foreground },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {house.name}
-                    </Text>
+                    <View style={styles.houseNameRow}>
+                      <Text
+                        style={[
+                          styles.houseOptionName,
+                          {
+                            color: house.isArchived
+                              ? colors.mutedForeground
+                              : colors.foreground,
+                          },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {house.name}
+                      </Text>
+                      {house.isArchived && (
+                        <View
+                          style={[
+                            styles.archivedBadge,
+                            { backgroundColor: colors.muted },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.archivedBadgeText,
+                              { color: colors.mutedForeground },
+                            ]}
+                          >
+                            Archived
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                     <Text
                       style={[
                         styles.houseRole,
@@ -136,6 +224,28 @@ export function HouseSwitcher() {
               ))}
             </ScrollView>
 
+            {/* Show Archived Toggle - only show if there are archived houses */}
+            {archivedHouses.length > 0 && (
+              <>
+                <View
+                  style={[styles.divider, { backgroundColor: colors.border }]}
+                />
+                <View style={styles.toggleRow}>
+                  <Text
+                    style={[styles.toggleLabel, { color: colors.mutedForeground }]}
+                  >
+                    Show Archived ({archivedHouses.length})
+                  </Text>
+                  <Switch
+                    value={showArchived}
+                    onValueChange={setShowArchived}
+                    trackColor={{ false: colors.muted, true: colors.accent }}
+                    thumbColor={colors.background}
+                  />
+                </View>
+              </>
+            )}
+
             <View
               style={[styles.divider, { backgroundColor: colors.border }]}
             />
@@ -154,6 +264,10 @@ export function HouseSwitcher() {
                 Create New House
               </Text>
             </TouchableOpacity>
+
+            <Text style={[styles.hintText, { color: colors.mutedForeground }]}>
+              Long-press a house to archive
+            </Text>
           </View>
         </Pressable>
       </Modal>
@@ -210,9 +324,28 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  houseNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   houseOptionName: {
     fontSize: 14,
     fontFamily: typography.fontFamily.chillax,
+    flexShrink: 1,
+  },
+  archivedHouse: {
+    opacity: 0.7,
+  },
+  archivedBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  archivedBadgeText: {
+    fontSize: 10,
+    fontFamily: typography.fontFamily.chillaxMedium,
+    textTransform: "uppercase",
   },
   houseRole: {
     fontSize: 12,
@@ -237,5 +370,23 @@ const styles = StyleSheet.create({
   createText: {
     fontSize: 14,
     fontFamily: typography.fontFamily.chillax,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  toggleLabel: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillax,
+  },
+  hintText: {
+    fontSize: 11,
+    fontFamily: typography.fontFamily.chillax,
+    textAlign: "center",
+    paddingVertical: 8,
+    fontStyle: "italic",
   },
 });

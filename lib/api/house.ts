@@ -8,6 +8,7 @@ type HouseMember = Database["public"]["Tables"]["house_members"]["Row"];
 
 export interface HouseWithRole extends House {
   role: "admin" | "member";
+  isArchived: boolean;
 }
 
 export interface HouseWithMembers extends House {
@@ -85,6 +86,7 @@ export async function getUserHouses(userId?: string): Promise<{
         house_id,
         role,
         invite_status,
+        is_archived,
         houses (
           id,
           name,
@@ -110,6 +112,7 @@ export async function getUserHouses(userId?: string): Promise<{
       .map((item) => ({
         ...(item.houses as House),
         role: item.role as "admin" | "member",
+        isArchived: item.is_archived ?? false,
       }));
 
     return { houses, error: null };
@@ -391,6 +394,49 @@ export async function updateHouseSettings(
     return { success: true, error: null };
   } catch (error) {
     console.error("Error in updateHouseSettings:", error);
+    return { success: false, error: error as Error };
+  }
+}
+
+/**
+ * Toggle the archived status of a house for the current user
+ * @param houseId - The house ID to archive/unarchive
+ * @param isArchived - The new archived status
+ * @param userId - Optional user ID to use
+ */
+export async function toggleHouseArchived(
+  houseId: string,
+  isArchived: boolean,
+  userId?: string
+): Promise<{ success: boolean; error: Error | null }> {
+  try {
+    let userIdToUse = userId;
+
+    if (!userIdToUse) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      userIdToUse = user?.id;
+    }
+
+    if (!userIdToUse) {
+      return { success: false, error: new Error("Not authenticated") };
+    }
+
+    const { error } = await supabase
+      .from("house_members")
+      .update({ is_archived: isArchived })
+      .eq("house_id", houseId)
+      .eq("user_id", userIdToUse);
+
+    if (error) {
+      console.error("Error toggling house archived status:", error);
+      return { success: false, error };
+    }
+
+    return { success: true, error: null };
+  } catch (error) {
+    console.error("Error in toggleHouseArchived:", error);
     return { success: false, error: error as Error };
   }
 }
