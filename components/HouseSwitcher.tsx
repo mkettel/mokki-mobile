@@ -4,7 +4,7 @@ import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Alert,
   Modal,
@@ -71,7 +71,9 @@ export function HouseSwitcher() {
 
   const handleArchiveToggle = async (house: HouseWithRole) => {
     const action = house.isArchived ? "unarchive" : "archive";
-    const message = `${action === "archive" ? "Archive" : "Unarchive"} "${house.name}"?`;
+    const message = `${action === "archive" ? "Archive" : "Unarchive"} "${
+      house.name
+    }"?`;
 
     const doArchive = async () => {
       try {
@@ -232,7 +234,10 @@ export function HouseSwitcher() {
                 />
                 <View style={styles.toggleRow}>
                   <Text
-                    style={[styles.toggleLabel, { color: colors.mutedForeground }]}
+                    style={[
+                      styles.toggleLabel,
+                      { color: colors.mutedForeground },
+                    ]}
                   >
                     Show Archived ({archivedHouses.length})
                   </Text>
@@ -296,7 +301,7 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     width: 280,
-    maxHeight: 400,
+    maxHeight: 450,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
     padding: 8,
