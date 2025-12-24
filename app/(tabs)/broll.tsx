@@ -114,40 +114,59 @@ export default function BRollScreen() {
     }
   };
 
-  const handleUpload = async (media: {
-    uri: string;
-    base64?: string | null;
-    fileName: string;
-    mimeType: string;
-    fileSize: number;
-    width?: number;
-    height?: number;
-    duration?: number;
-    caption: string;
-  }) => {
+  const handleUpload = async (
+    mediaItems: {
+      uri: string;
+      base64?: string | null;
+      fileName: string;
+      mimeType: string;
+      fileSize: number;
+      width?: number;
+      height?: number;
+      duration?: number;
+      caption: string;
+    }[],
+    onProgress?: (current: number, total: number) => void
+  ) => {
     if (!activeHouse?.id || !user?.id) return;
 
-    const { item, error } = await uploadBRollMedia(
-      activeHouse.id,
-      user.id,
-      {
-        uri: media.uri,
-        base64: media.base64,
-        fileName: media.fileName,
-        mimeType: media.mimeType,
-        fileSize: media.fileSize,
-        width: media.width,
-        height: media.height,
-        duration: media.duration,
-      },
-      media.caption || undefined
-    );
+    const total = mediaItems.length;
 
-    if (error) {
-      throw error;
+    // Upload each item sequentially
+    for (let i = 0; i < total; i++) {
+      const media = mediaItems[i];
+
+      // Report progress (1-indexed for user display)
+      onProgress?.(i + 1, total);
+
+      const { error } = await uploadBRollMedia(
+        activeHouse.id,
+        user.id,
+        {
+          uri: media.uri,
+          base64: media.base64,
+          fileName: media.fileName,
+          mimeType: media.mimeType,
+          fileSize: media.fileSize,
+          width: media.width,
+          height: media.height,
+          duration: media.duration,
+        },
+        media.caption || undefined
+      );
+
+      if (error) {
+        // If one fails, throw error with context
+        const errorWithContext = new Error(
+          total > 1
+            ? `Failed to upload item ${i + 1} of ${total}: ${error.message}`
+            : error.message
+        );
+        throw errorWithContext;
+      }
     }
 
-    // Refresh to get the new item with profile data
+    // Refresh to get the new items with profile data
     loadMedia(true);
   };
 
