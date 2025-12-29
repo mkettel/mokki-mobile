@@ -2,13 +2,18 @@ import { typography } from "@/constants/theme";
 import { useColors } from "@/lib/context/theme";
 import type { HouseNoteWithEditor } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import Autolink from "react-native-autolink";
@@ -23,6 +28,11 @@ export function HouseNoteCard({ note, onSave }: HouseNoteCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(note?.content || "");
   const [isSaving, setIsSaving] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -52,141 +62,182 @@ export function HouseNoteCard({ note, onSave }: HouseNoteCardProps) {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
-        },
-      ]}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.keyboardAvoid}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
     >
-      {/* Notebook holes decoration */}
-      <View style={styles.holesContainer}>
-        {[0, 1, 2, 3].map((i) => (
+      <TouchableWithoutFeedback onPress={dismissKeyboard}>
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View
-            key={i}
-            style={[styles.hole, { backgroundColor: colors.background }]}
-          />
-        ))}
-      </View>
-
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <FontAwesome name="sticky-note-o" size={16} color={colors.foreground} />
-          <Text style={[styles.title, { color: colors.foreground }]}>
-            House Notes
-          </Text>
-        </View>
-        {!isEditing && (
-          <TouchableOpacity
-            style={[styles.editButton, { backgroundColor: colors.muted }]}
-            onPress={() => setIsEditing(true)}
-          >
-            <FontAwesome name="pencil" size={12} color={colors.foreground} />
-            <Text style={[styles.editButtonText, { color: colors.foreground }]}>
-              Edit
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Red line under header */}
-      <View style={styles.redLine} />
-
-      {/* Content */}
-      <View style={styles.contentContainer}>
-        {isEditing ? (
-          <TextInput
             style={[
-              styles.textInput,
+              styles.container,
               {
-                color: colors.foreground,
+                backgroundColor: colors.card,
                 borderColor: colors.border,
               },
             ]}
-            value={content}
-            onChangeText={setContent}
-            multiline
-            placeholder="Write shared notes for the house..."
-            placeholderTextColor={colors.mutedForeground}
-            textAlignVertical="top"
-            autoFocus
-          />
-        ) : note?.content ? (
-          <Autolink
-            text={note.content}
-            url
-            email
-            phone
-            style={[styles.contentText, { color: colors.foreground }]}
-            linkStyle={{ color: colors.primary, textDecorationLine: "underline" }}
-          />
-        ) : (
-          <View style={styles.emptyState}>
-            <FontAwesome
-              name="pencil"
-              size={24}
-              color={colors.mutedForeground}
-            />
-            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-              No notes yet. Tap Edit to add shared house notes.
-            </Text>
+          >
+            {/* Notebook holes decoration */}
+            <View style={styles.holesContainer}>
+              {[0, 1, 2, 3].map((i) => (
+                <View
+                  key={i}
+                  style={[styles.hole, { backgroundColor: colors.background }]}
+                />
+              ))}
+            </View>
+
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.titleRow}>
+                <FontAwesome name="sticky-note-o" size={16} color={colors.foreground} />
+                <Text style={[styles.title, { color: colors.foreground }]}>
+                  House Notes
+                </Text>
+              </View>
+              {!isEditing ? (
+                <TouchableOpacity
+                  style={[styles.editButton, { backgroundColor: colors.muted }]}
+                  onPress={() => setIsEditing(true)}
+                >
+                  <FontAwesome name="pencil" size={12} color={colors.foreground} />
+                  <Text style={[styles.editButtonText, { color: colors.foreground }]}>
+                    Edit
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.doneButton, { backgroundColor: colors.muted }]}
+                  onPress={dismissKeyboard}
+                >
+                  <FontAwesome name="keyboard-o" size={12} color={colors.foreground} />
+                  <Text style={[styles.editButtonText, { color: colors.foreground }]}>
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Red line under header */}
+            <View style={styles.redLine} />
+
+            {/* Content */}
+            <View style={styles.contentContainer}>
+              {isEditing ? (
+                <TextInput
+                  style={[
+                    styles.textInput,
+                    {
+                      color: colors.foreground,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  value={content}
+                  onChangeText={setContent}
+                  multiline
+                  placeholder="Write shared notes for the house..."
+                  placeholderTextColor={colors.mutedForeground}
+                  textAlignVertical="top"
+                  autoFocus
+                  onFocus={() => {
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollToEnd({ animated: true });
+                    }, 300);
+                  }}
+                />
+              ) : note?.content ? (
+                <Autolink
+                  text={note.content}
+                  url
+                  email
+                  phone
+                  style={[styles.contentText, { color: colors.foreground }]}
+                  linkStyle={{ color: colors.primary, textDecorationLine: "underline" }}
+                />
+              ) : (
+                <View style={styles.emptyState}>
+                  <FontAwesome
+                    name="pencil"
+                    size={24}
+                    color={colors.mutedForeground}
+                  />
+                  <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                    No notes yet. Tap Edit to add shared house notes.
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Ruled lines background effect */}
+            <View style={[styles.ruledLines, { borderColor: colors.border }]} pointerEvents="none">
+              {[...Array(10)].map((_, i) => (
+                <View
+                  key={i}
+                  style={[styles.ruleLine, { borderBottomColor: `${colors.border}40` }]}
+                />
+              ))}
+            </View>
+
+            {/* Footer */}
+            {isEditing ? (
+              <View style={styles.editActions}>
+                <TouchableOpacity
+                  style={[styles.cancelButton, { borderColor: colors.border }]}
+                  onPress={handleCancel}
+                  disabled={isSaving}
+                >
+                  <Text style={[styles.cancelButtonText, { color: colors.foreground }]}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.saveButton, { backgroundColor: colors.primary }]}
+                  onPress={handleSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <FontAwesome name="check" size={12} color="#fff" />
+                      <Text style={styles.saveButtonText}>Save</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : note?.updated_at ? (
+              <View style={styles.footer}>
+                <Text style={[styles.footerText, { color: colors.mutedForeground }]}>
+                  Last edited by {note.profiles?.display_name || "Unknown"} on{" "}
+                  {formatDate(note.updated_at)}
+                </Text>
+              </View>
+            ) : null}
           </View>
-        )}
-      </View>
-
-      {/* Ruled lines background effect */}
-      <View style={[styles.ruledLines, { borderColor: colors.border }]} pointerEvents="none">
-        {[...Array(10)].map((_, i) => (
-          <View
-            key={i}
-            style={[styles.ruleLine, { borderBottomColor: `${colors.border}40` }]}
-          />
-        ))}
-      </View>
-
-      {/* Footer */}
-      {isEditing ? (
-        <View style={styles.editActions}>
-          <TouchableOpacity
-            style={[styles.cancelButton, { borderColor: colors.border }]}
-            onPress={handleCancel}
-            disabled={isSaving}
-          >
-            <Text style={[styles.cancelButtonText, { color: colors.foreground }]}>
-              Cancel
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.saveButton, { backgroundColor: colors.primary }]}
-            onPress={handleSave}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <FontAwesome name="check" size={12} color="#fff" />
-                <Text style={styles.saveButtonText}>Save</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-      ) : note?.updated_at ? (
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.mutedForeground }]}>
-            Last edited by {note.profiles?.display_name || "Unknown"} on{" "}
-            {formatDate(note.updated_at)}
-          </Text>
-        </View>
-      ) : null}
-    </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoid: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
   container: {
     borderRadius: 8,
     borderWidth: 1,
@@ -226,6 +277,14 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.chillaxSemibold,
   },
   editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    gap: 6,
+  },
+  doneButton: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
