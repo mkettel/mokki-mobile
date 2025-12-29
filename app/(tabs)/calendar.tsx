@@ -24,6 +24,7 @@ import {
   createStay,
   deleteStay,
   getHouseStays,
+  GUEST_FEE_PER_NIGHT,
   settleGuestFee,
   StayWithExpense,
   unsettleGuestFee,
@@ -32,7 +33,7 @@ import {
 import { useAuth } from "@/lib/context/auth";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
-import type { Profile } from "@/types/database";
+import type { HouseSettings, Profile } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -50,6 +51,11 @@ export default function CalendarScreen() {
   const colors = useColors();
   const { activeHouse } = useHouse();
   const { user } = useAuth();
+
+  // Get guest nightly rate from house settings (with fallback to default)
+  const guestNightlyRate =
+    (activeHouse?.settings as HouseSettings | undefined)?.guestNightlyRate ??
+    GUEST_FEE_PER_NIGHT;
 
   // Data state
   const [stays, setStays] = useState<StayWithExpense[]>([]);
@@ -131,7 +137,10 @@ export default function CalendarScreen() {
   }) => {
     if (!activeHouse || !user) return;
 
-    const { stay, error } = await createStay(activeHouse.id, user.id, data);
+    const { stay, error } = await createStay(activeHouse.id, user.id, {
+      ...data,
+      guestNightlyRate,
+    });
 
     if (error) {
       throw error;
@@ -148,7 +157,10 @@ export default function CalendarScreen() {
   }) => {
     if (!editingStay || !user) return;
 
-    const { error } = await updateStay(editingStay.id, user.id, data);
+    const { error } = await updateStay(editingStay.id, user.id, {
+      ...data,
+      guestNightlyRate,
+    });
 
     if (error) {
       throw error;
@@ -468,6 +480,7 @@ export default function CalendarScreen() {
         visible={showAddStayModal}
         onClose={() => setShowAddStayModal(false)}
         onSubmit={handleAddStay}
+        guestNightlyRate={guestNightlyRate}
       />
 
       <EditStayModal
@@ -478,6 +491,7 @@ export default function CalendarScreen() {
           setEditingStay(null);
         }}
         onSubmit={handleEditStay}
+        guestNightlyRate={guestNightlyRate}
       />
 
       {/* Event Modals */}

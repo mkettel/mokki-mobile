@@ -4,12 +4,13 @@ import { TopBar } from "@/components/TopBar";
 import { DEFAULT_FEATURE_CONFIG, FEATURE_ORDER } from "@/constants/features";
 import { typography } from "@/constants/theme";
 import { updateHouseSettings } from "@/lib/api/house";
+import { GUEST_FEE_PER_NIGHT } from "@/lib/api/stays";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
 import { getFeatureConfig } from "@/lib/utils/features";
 import type { FeatureId, HouseSettings } from "@/types/database";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { FontAwesome } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -102,11 +103,14 @@ function FeatureRow({
             maxLength={30}
           />
         ) : (
-          <TouchableOpacity onPress={handleEditStart} style={styles.labelTouchable}>
+          <TouchableOpacity
+            onPress={handleEditStart}
+            style={styles.labelTouchable}
+          >
             <Text
               style={[
                 styles.featureLabel,
-                { color: enabled ? colors.foreground : colors.mutedForeground },
+                { color: enabled ? colors.foreground : colors.foreground },
               ]}
             >
               {label}
@@ -114,7 +118,7 @@ function FeatureRow({
             <FontAwesome
               name="pencil"
               size={12}
-              color={colors.mutedForeground}
+              color={colors.foreground}
               style={styles.editIcon}
             />
           </TouchableOpacity>
@@ -122,7 +126,7 @@ function FeatureRow({
 
         {label !== defaultLabel && !isEditing && (
           <TouchableOpacity onPress={handleReset}>
-            <Text style={[styles.resetText, { color: colors.mutedForeground }]}>
+            <Text style={[styles.resetText, { color: colors.foreground }]}>
               Reset to default
             </Text>
           </TouchableOpacity>
@@ -152,6 +156,13 @@ export default function HouseSettingsScreen() {
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
+  // Guest fees state
+  const [localGuestNightlyRate, setLocalGuestNightlyRate] =
+    useState<number>(GUEST_FEE_PER_NIGHT);
+  const [guestRateInput, setGuestRateInput] = useState<string>(
+    GUEST_FEE_PER_NIGHT.toString()
+  );
+
   // Check if user is admin
   const isAdmin = activeHouse?.role === "admin";
 
@@ -176,8 +187,15 @@ export default function HouseSettingsScreen() {
       // Initialize trip timer settings
       const tripTimer = houseSettings?.tripTimer;
       setTripTimerEnabled(tripTimer?.enabled ?? false);
-      setTripStartDate(tripTimer?.startDate ? new Date(tripTimer.startDate) : null);
+      setTripStartDate(
+        tripTimer?.startDate ? new Date(tripTimer.startDate) : null
+      );
       setTripEndDate(tripTimer?.endDate ? new Date(tripTimer.endDate) : null);
+
+      // Initialize guest nightly rate
+      const rate = houseSettings?.guestNightlyRate ?? GUEST_FEE_PER_NIGHT;
+      setLocalGuestNightlyRate(rate);
+      setGuestRateInput(rate.toString());
     }
   }, [activeHouse]);
 
@@ -188,7 +206,10 @@ export default function HouseSettingsScreen() {
     }
   }, [activeHouse, isAdmin, router]);
 
-  const handleFeatureToggle = async (featureId: FeatureId, enabled: boolean) => {
+  const handleFeatureToggle = async (
+    featureId: FeatureId,
+    enabled: boolean
+  ) => {
     if (!activeHouse?.id) return;
 
     // Update local state immediately
@@ -422,6 +443,52 @@ export default function HouseSettingsScreen() {
     setIsSaving(false);
   };
 
+  const handleGuestRateChange = async (value: string) => {
+    // Update input immediately for responsive typing
+    setGuestRateInput(value);
+
+    // Parse the value
+    const numericValue = parseInt(value, 10);
+
+    // Only save if it's a valid non-negative number
+    if (isNaN(numericValue) || numericValue < 0) {
+      return;
+    }
+
+    if (!activeHouse?.id) return;
+
+    const previousRate = localGuestNightlyRate;
+    setLocalGuestNightlyRate(numericValue);
+    setIsSaving(true);
+
+    const { error } = await updateHouseSettings(activeHouse.id, {
+      guestNightlyRate: numericValue,
+    });
+
+    if (error) {
+      setLocalGuestNightlyRate(previousRate);
+      setGuestRateInput(previousRate.toString());
+      const message = "Failed to update guest nightly rate";
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Error", message);
+      }
+    } else {
+      await refreshHouses();
+    }
+
+    setIsSaving(false);
+  };
+
+  const handleGuestRateBlur = () => {
+    // On blur, if input is empty or invalid, reset to current value
+    const numericValue = parseInt(guestRateInput, 10);
+    if (isNaN(numericValue) || numericValue < 0) {
+      setGuestRateInput(localGuestNightlyRate.toString());
+    }
+  };
+
   const handleArchiveHouse = async () => {
     if (!activeHouse) return;
 
@@ -503,7 +570,7 @@ export default function HouseSettingsScreen() {
         </Text>
         <View style={styles.headerSpacer}>
           {isSaving && (
-            <ActivityIndicator size="small" color={colors.mutedForeground} />
+            <ActivityIndicator size="small" color={colors.foreground} />
           )}
         </View>
       </View>
@@ -535,8 +602,11 @@ export default function HouseSettingsScreen() {
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
             Features
           </Text>
-          <Text style={[styles.sectionDescription, { color: colors.mutedForeground }]}>
-            Toggle features on or off and customize their labels. Disabled features won't appear in navigation.
+          <Text
+            style={[styles.sectionDescription, { color: colors.foreground }]}
+          >
+            Toggle features on or off and customize their labels. Disabled
+            features won't appear in navigation.
           </Text>
 
           <View style={styles.featuresList}>
@@ -545,7 +615,10 @@ export default function HouseSettingsScreen() {
                 key={featureId}
                 featureId={featureId}
                 enabled={localFeatures[featureId]?.enabled ?? true}
-                label={localFeatures[featureId]?.label ?? DEFAULT_FEATURE_CONFIG[featureId].label}
+                label={
+                  localFeatures[featureId]?.label ??
+                  DEFAULT_FEATURE_CONFIG[featureId].label
+                }
                 defaultLabel={DEFAULT_FEATURE_CONFIG[featureId].label}
                 onToggle={(enabled) => handleFeatureToggle(featureId, enabled)}
                 onLabelChange={(label) => handleLabelChange(featureId, label)}
@@ -559,7 +632,9 @@ export default function HouseSettingsScreen() {
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
             Theme
           </Text>
-          <Text style={[styles.sectionDescription, { color: colors.mutedForeground }]}>
+          <Text
+            style={[styles.sectionDescription, { color: colors.foreground }]}
+          >
             Customize the mountain color for your house.
           </Text>
 
@@ -584,7 +659,9 @@ export default function HouseSettingsScreen() {
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
             Trip Timer
           </Text>
-          <Text style={[styles.sectionDescription, { color: colors.mutedForeground }]}>
+          <Text
+            style={[styles.sectionDescription, { color: colors.foreground }]}
+          >
             Display a countdown or trip day counter on the home screen.
           </Text>
 
@@ -596,7 +673,12 @@ export default function HouseSettingsScreen() {
           >
             {/* Enable/Disable Toggle */}
             <View style={styles.tripTimerToggleRow}>
-              <Text style={[styles.themeLabel, { color: colors.foreground, marginBottom: 0 }]}>
+              <Text
+                style={[
+                  styles.themeLabel,
+                  { color: colors.foreground, marginBottom: 0 },
+                ]}
+              >
                 Show Trip Timer
               </Text>
               <Switch
@@ -611,19 +693,32 @@ export default function HouseSettingsScreen() {
               <>
                 {/* Start Date Picker */}
                 <View style={styles.dateField}>
-                  <Text style={[styles.dateLabel, { color: colors.foreground }]}>
+                  <Text
+                    style={[styles.dateLabel, { color: colors.foreground }]}
+                  >
                     Trip Start Date
                   </Text>
                   <TouchableOpacity
                     style={[
                       styles.dateButton,
-                      { backgroundColor: colors.muted, borderColor: colors.border },
+                      {
+                        backgroundColor: colors.muted,
+                        borderColor: colors.border,
+                      },
                     ]}
                     onPress={() => setShowStartDatePicker(true)}
                   >
-                    <FontAwesome name="calendar" size={16} color={colors.mutedForeground} />
-                    <Text style={[styles.dateText, { color: colors.foreground }]}>
-                      {tripStartDate ? formatDateDisplay(tripStartDate) : "Select date..."}
+                    <FontAwesome
+                      name="calendar"
+                      size={16}
+                      color={colors.foreground}
+                    />
+                    <Text
+                      style={[styles.dateText, { color: colors.foreground }]}
+                    >
+                      {tripStartDate
+                        ? formatDateDisplay(tripStartDate)
+                        : "Select date..."}
                     </Text>
                   </TouchableOpacity>
                   {(showStartDatePicker || Platform.OS === "ios") && (
@@ -635,26 +730,41 @@ export default function HouseSettingsScreen() {
                         setShowStartDatePicker(false);
                         if (date) handleStartDateChange(date);
                       }}
-                      style={Platform.OS === "ios" ? styles.iosPicker : undefined}
+                      style={
+                        Platform.OS === "ios" ? styles.iosPicker : undefined
+                      }
                     />
                   )}
                 </View>
 
                 {/* End Date Picker (Optional) */}
                 <View style={styles.dateField}>
-                  <Text style={[styles.dateLabel, { color: colors.foreground }]}>
+                  <Text
+                    style={[styles.dateLabel, { color: colors.foreground }]}
+                  >
                     Trip End Date (Optional)
                   </Text>
                   <TouchableOpacity
                     style={[
                       styles.dateButton,
-                      { backgroundColor: colors.muted, borderColor: colors.border },
+                      {
+                        backgroundColor: colors.muted,
+                        borderColor: colors.border,
+                      },
                     ]}
                     onPress={() => setShowEndDatePicker(true)}
                   >
-                    <FontAwesome name="calendar" size={16} color={colors.mutedForeground} />
-                    <Text style={[styles.dateText, { color: colors.foreground }]}>
-                      {tripEndDate ? formatDateDisplay(tripEndDate) : "No end date"}
+                    <FontAwesome
+                      name="calendar"
+                      size={16}
+                      color={colors.foreground}
+                    />
+                    <Text
+                      style={[styles.dateText, { color: colors.foreground }]}
+                    >
+                      {tripEndDate
+                        ? formatDateDisplay(tripEndDate)
+                        : "No end date"}
                     </Text>
                   </TouchableOpacity>
                   {(showEndDatePicker || Platform.OS === "ios") && (
@@ -667,7 +777,9 @@ export default function HouseSettingsScreen() {
                         if (date) handleEndDateChange(date);
                       }}
                       minimumDate={tripStartDate || undefined}
-                      style={Platform.OS === "ios" ? styles.iosPicker : undefined}
+                      style={
+                        Platform.OS === "ios" ? styles.iosPicker : undefined
+                      }
                     />
                   )}
                 </View>
@@ -678,7 +790,12 @@ export default function HouseSettingsScreen() {
                     onPress={handleClearDates}
                     style={styles.clearDatesButton}
                   >
-                    <Text style={[styles.clearDatesText, { color: colors.destructive }]}>
+                    <Text
+                      style={[
+                        styles.clearDatesText,
+                        { color: colors.destructive },
+                      ]}
+                    >
                       Clear Dates
                     </Text>
                   </TouchableOpacity>
@@ -688,12 +805,68 @@ export default function HouseSettingsScreen() {
           </View>
         </View>
 
+        {/* Guest Fees Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Guest Fees
+          </Text>
+          <Text
+            style={[styles.sectionDescription, { color: colors.foreground }]}
+          >
+            Set the nightly rate charged per guest. Set to 0 for free guests.
+          </Text>
+
+          <View
+            style={[
+              styles.themeCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Text
+              style={[
+                styles.themeLabel,
+                { color: colors.foreground, marginBottom: 0 },
+              ]}
+            >
+              Nightly Rate
+            </Text>
+            <View style={styles.guestRateRow}>
+              <Text
+                style={[styles.currencyPrefix, { color: colors.foreground }]}
+              >
+                $
+              </Text>
+              <TextInput
+                style={[
+                  styles.guestRateInput,
+                  {
+                    color: colors.foreground,
+                    borderColor: colors.border,
+                    backgroundColor: colors.muted,
+                  },
+                ]}
+                value={guestRateInput}
+                onChangeText={handleGuestRateChange}
+                onBlur={handleGuestRateBlur}
+                keyboardType="numeric"
+                maxLength={5}
+                selectTextOnFocus
+              />
+              <Text style={[styles.rateSuffix, { color: colors.foreground }]}>
+                per guest per night
+              </Text>
+            </View>
+          </View>
+        </View>
+
         {/* Archive House Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
             Archive
           </Text>
-          <Text style={[styles.sectionDescription, { color: colors.mutedForeground }]}>
+          <Text
+            style={[styles.sectionDescription, { color: colors.foreground }]}
+          >
             {activeHouse.isArchived
               ? "This house is currently archived. Unarchive it to show it in your house picker."
               : "Archive this house to hide it from your house picker. You can unarchive it anytime."}
@@ -901,5 +1074,29 @@ const styles = StyleSheet.create({
   archiveButtonText: {
     fontSize: 15,
     fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  guestRateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    gap: 8,
+  },
+  currencyPrefix: {
+    fontSize: 18,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  guestRateInput: {
+    fontSize: 18,
+    fontFamily: typography.fontFamily.chillaxMedium,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    minWidth: 80,
+    textAlign: "center",
+  },
+  rateSuffix: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillax,
+    flex: 1,
   },
 });

@@ -55,6 +55,8 @@ export type HouseSettings = {
     startDate?: string; // ISO date YYYY-MM-DD
     endDate?: string; // ISO date YYYY-MM-DD (optional)
   };
+  // Guest nightly rate - fee per guest per night (defaults to 50)
+  guestNightlyRate?: number;
 };
 
 export type MemberRole = "admin" | "member";

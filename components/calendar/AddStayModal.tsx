@@ -15,7 +15,6 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { FontAwesome } from "@expo/vector-icons";
 import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
-import { GUEST_FEE_PER_NIGHT } from "@/lib/api/stays";
 
 interface AddStayModalProps {
   visible: boolean;
@@ -26,9 +25,10 @@ interface AddStayModalProps {
     notes?: string;
     guestCount: number;
   }) => Promise<void>;
+  guestNightlyRate: number;
 }
 
-export function AddStayModal({ visible, onClose, onSubmit }: AddStayModalProps) {
+export function AddStayModal({ visible, onClose, onSubmit, guestNightlyRate }: AddStayModalProps) {
   const colors = useColors();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -91,7 +91,7 @@ export function AddStayModal({ visible, onClose, onSubmit }: AddStayModalProps) 
     1,
     Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
   );
-  const guestFee = guestCount * nights * GUEST_FEE_PER_NIGHT;
+  const guestFee = guestCount * nights * guestNightlyRate;
 
   const incrementGuests = () => {
     if (guestCount < 20) setGuestCount(guestCount + 1);
@@ -223,9 +223,15 @@ export function AddStayModal({ visible, onClose, onSubmit }: AddStayModalProps) 
             <Text style={[styles.label, { color: colors.foreground }]}>
               Bringing Guests?
             </Text>
-            <Text style={[styles.sublabel, { color: colors.mutedForeground }]}>
-              Extra guests incur a ${GUEST_FEE_PER_NIGHT}/night fee
-            </Text>
+            {guestNightlyRate > 0 ? (
+              <Text style={[styles.sublabel, { color: colors.mutedForeground }]}>
+                Extra guests incur a ${guestNightlyRate}/night fee
+              </Text>
+            ) : (
+              <Text style={[styles.sublabel, { color: colors.mutedForeground }]}>
+                Extra guests are free
+              </Text>
+            )}
             <View style={styles.guestCounter}>
               <TouchableOpacity
                 style={[
@@ -262,7 +268,7 @@ export function AddStayModal({ visible, onClose, onSubmit }: AddStayModalProps) 
           </View>
 
           {/* Guest Fee Preview */}
-          {guestCount > 0 && nights > 0 && (
+          {guestCount > 0 && nights > 0 && guestNightlyRate > 0 && (
             <View
               style={[
                 styles.feePreview,
@@ -272,7 +278,7 @@ export function AddStayModal({ visible, onClose, onSubmit }: AddStayModalProps) 
               <FontAwesome name="info-circle" size={16} color={colors.primary} />
               <Text style={[styles.feePreviewText, { color: colors.foreground }]}>
                 {guestCount} guest{guestCount > 1 ? "s" : ""} × {nights} night
-                {nights > 1 ? "s" : ""} × ${GUEST_FEE_PER_NIGHT} ={" "}
+                {nights > 1 ? "s" : ""} × ${guestNightlyRate} ={" "}
                 <Text style={styles.feeAmount}>${guestFee}</Text>
               </Text>
             </View>

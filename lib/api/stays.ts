@@ -9,7 +9,7 @@ import type {
   ExpenseSplit,
 } from "@/types/database";
 
-// Guest fee constant - matches web app
+// Default guest fee constant - can be overridden per house in settings
 export const GUEST_FEE_PER_NIGHT = 50;
 
 // Extended type for stays with expense info
@@ -215,13 +215,14 @@ export async function createStay(
     checkOut: string;
     notes?: string;
     guestCount?: number;
+    guestNightlyRate?: number;
   }
 ): Promise<{
   stay: Stay | null;
   error: Error | null;
 }> {
   try {
-    const { checkIn, checkOut, notes, guestCount = 0 } = data;
+    const { checkIn, checkOut, notes, guestCount = 0, guestNightlyRate = GUEST_FEE_PER_NIGHT } = data;
 
     // Validate dates
     if (new Date(checkOut) < new Date(checkIn)) {
@@ -230,12 +231,12 @@ export async function createStay(
 
     let linkedExpenseId: string | null = null;
 
-    // If guests, create linked expense
-    if (guestCount > 0) {
+    // If guests and rate > 0, create linked expense
+    if (guestCount > 0 && guestNightlyRate > 0) {
       const nights = Math.ceil(
         (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)
       );
-      const amount = guestCount * nights * GUEST_FEE_PER_NIGHT;
+      const amount = guestCount * nights * guestNightlyRate;
 
       // Get house admin (first admin by joined_at)
       const { data: adminMember } = await supabase
@@ -318,13 +319,14 @@ export async function updateStay(
     checkOut: string;
     notes?: string;
     guestCount?: number;
+    guestNightlyRate?: number;
   }
 ): Promise<{
   stay: Stay | null;
   error: Error | null;
 }> {
   try {
-    const { checkIn, checkOut, notes, guestCount = 0 } = data;
+    const { checkIn, checkOut, notes, guestCount = 0, guestNightlyRate = GUEST_FEE_PER_NIGHT } = data;
 
     // Validate dates
     if (new Date(checkOut) < new Date(checkIn)) {
@@ -342,12 +344,12 @@ export async function updateStay(
       return { stay: null, error: new Error("Stay not found") };
     }
 
-    const hadGuests = (existingStay.guest_count || 0) > 0;
-    const hasGuests = guestCount > 0;
+    const hadGuests = (existingStay.guest_count || 0) > 0 && existingStay.linked_expense_id;
+    const hasGuests = guestCount > 0 && guestNightlyRate > 0;
     const nights = Math.ceil(
       (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)
     );
-    const newAmount = guestCount * nights * GUEST_FEE_PER_NIGHT;
+    const newAmount = guestCount * nights * guestNightlyRate;
 
     let linkedExpenseId = existingStay.linked_expense_id;
 
