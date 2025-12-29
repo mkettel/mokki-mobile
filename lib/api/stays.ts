@@ -7,6 +7,7 @@ import type {
   Profile,
   Expense,
   ExpenseSplit,
+  HouseSettings,
 } from "@/types/database";
 
 // Default guest fee constant - can be overridden per house in settings
@@ -49,11 +50,13 @@ export async function getHouseStays(houseId: string): Promise<{
     }
 
     // Fetch linked expenses separately for stays that have them
-    const stayIds = stays?.filter(s => s.linked_expense_id).map(s => s.linked_expense_id) || [];
+    const expenseIds = (stays || [])
+      .map(s => s.linked_expense_id)
+      .filter((id): id is string => !!id);
 
     let expenseMap: Record<string, { id: string; amount: number; split?: { id: string; settled: boolean; settled_at: string | null } }> = {};
 
-    if (stayIds.length > 0) {
+    if (expenseIds.length > 0) {
       const { data: expenses } = await supabase
         .from("expenses")
         .select(`
@@ -66,7 +69,7 @@ export async function getHouseStays(houseId: string): Promise<{
             settled_at
           )
         `)
-        .in("id", stayIds);
+        .in("id", expenseIds);
 
       if (expenses) {
         for (const expense of expenses) {
@@ -238,24 +241,38 @@ export async function createStay(
       );
       const amount = guestCount * nights * guestNightlyRate;
 
-      // Get house admin (first admin by joined_at)
-      const { data: adminMember } = await supabase
-        .from("house_members")
-        .select("user_id")
-        .eq("house_id", houseId)
-        .eq("role", "admin")
-        .order("joined_at", { ascending: true })
-        .limit(1)
+      // Get house settings to find guestFeeRecipient
+      const { data: house } = await supabase
+        .from("houses")
+        .select("settings")
+        .eq("id", houseId)
         .single();
 
-      if (adminMember?.user_id) {
+      const houseSettings = house?.settings as HouseSettings | undefined;
+      let recipientId = houseSettings?.guestFeeRecipient;
+
+      // Fallback to first admin if no recipient set
+      if (!recipientId) {
+        const { data: adminMember } = await supabase
+          .from("house_members")
+          .select("user_id")
+          .eq("house_id", houseId)
+          .eq("role", "admin")
+          .order("joined_at", { ascending: true })
+          .limit(1)
+          .single();
+        recipientId = adminMember?.user_id ?? undefined;
+      }
+
+      if (recipientId) {
         // Create expense
         const { data: expense, error: expenseError } = await supabase
           .from("expenses")
           .insert({
             house_id: houseId,
-            paid_by: adminMember.user_id,
-            created_by: adminMember.user_id,
+            paid_by: recipientId,
+            created_by: recipientId,
+            title: "Guest Fee",
             amount,
             description: `Guest fees: ${guestCount} guest(s) × ${nights} night(s)`,
             category: "guest_fees",
@@ -264,16 +281,23 @@ export async function createStay(
           .select()
           .single();
 
+        if (expenseError) {
+          console.error("Error creating guest fee expense:", expenseError);
+        }
+
         if (expense && !expenseError) {
           linkedExpenseId = expense.id;
 
           // Create expense split for the stay creator
-          await supabase.from("expense_splits").insert({
+          const { error: splitError } = await supabase.from("expense_splits").insert({
             expense_id: expense.id,
             user_id: userId,
             amount,
             settled: false,
           });
+          if (splitError) {
+            console.error("Error creating expense split:", splitError);
+          }
         }
       }
     }
@@ -356,22 +380,37 @@ export async function updateStay(
     // Handle guest fee expense changes
     if (!hadGuests && hasGuests) {
       // Case 1: No guests before, has guests now - create expense
-      const { data: adminMember } = await supabase
-        .from("house_members")
-        .select("user_id")
-        .eq("house_id", existingStay.house_id)
-        .eq("role", "admin")
-        .order("joined_at", { ascending: true })
-        .limit(1)
+      // Get house settings to find guestFeeRecipient
+      const { data: house } = await supabase
+        .from("houses")
+        .select("settings")
+        .eq("id", existingStay.house_id)
         .single();
 
-      if (adminMember?.user_id) {
+      const houseSettings = house?.settings as HouseSettings | undefined;
+      let recipientId = houseSettings?.guestFeeRecipient;
+
+      // Fallback to first admin if no recipient set
+      if (!recipientId) {
+        const { data: adminMember } = await supabase
+          .from("house_members")
+          .select("user_id")
+          .eq("house_id", existingStay.house_id)
+          .eq("role", "admin")
+          .order("joined_at", { ascending: true })
+          .limit(1)
+          .single();
+        recipientId = adminMember?.user_id ?? undefined;
+      }
+
+      if (recipientId) {
         const { data: expense } = await supabase
           .from("expenses")
           .insert({
             house_id: existingStay.house_id,
-            paid_by: adminMember.user_id,
-            created_by: adminMember.user_id,
+            paid_by: recipientId,
+            created_by: recipientId,
+            title: "Guest Fee",
             amount: newAmount,
             description: `Guest fees: ${guestCount} guest(s) × ${nights} night(s)`,
             category: "guest_fees",

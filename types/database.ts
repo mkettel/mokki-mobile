@@ -57,6 +57,8 @@ export type HouseSettings = {
   };
   // Guest nightly rate - fee per guest per night (defaults to 50)
   guestNightlyRate?: number;
+  // Guest fee recipient - user ID who receives guest fee payments (defaults to first admin)
+  guestFeeRecipient?: string;
 };
 
 export type MemberRole = "admin" | "member";

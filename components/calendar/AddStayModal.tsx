@@ -123,7 +123,12 @@ export function AddStayModal({ visible, onClose, onSubmit, guestNightlyRate }: A
           <View style={styles.closeButton} />
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Check-in Date */}
           <View style={styles.field}>
             <Text style={[styles.label, { color: colors.foreground }]}>
@@ -141,13 +146,15 @@ export function AddStayModal({ visible, onClose, onSubmit, guestNightlyRate }: A
                 {formatDate(checkIn)}
               </Text>
             </TouchableOpacity>
-            {(showCheckInPicker || Platform.OS === "ios") && (
+            {showCheckInPicker && (
               <DateTimePicker
                 value={checkIn}
                 mode="date"
                 display={Platform.OS === "ios" ? "spinner" : "default"}
                 onChange={(event, date) => {
-                  setShowCheckInPicker(false);
+                  if (Platform.OS === "android") {
+                    setShowCheckInPicker(false);
+                  }
                   if (date) {
                     setCheckIn(date);
                     // Auto-adjust checkout if needed
@@ -159,6 +166,16 @@ export function AddStayModal({ visible, onClose, onSubmit, guestNightlyRate }: A
                 minimumDate={new Date()}
                 style={Platform.OS === "ios" ? styles.iosPicker : undefined}
               />
+            )}
+            {showCheckInPicker && Platform.OS === "ios" && (
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={() => setShowCheckInPicker(false)}
+              >
+                <Text style={[styles.doneButtonText, { color: colors.primary }]}>
+                  Done
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -179,18 +196,30 @@ export function AddStayModal({ visible, onClose, onSubmit, guestNightlyRate }: A
                 {formatDate(checkOut)}
               </Text>
             </TouchableOpacity>
-            {(showCheckOutPicker || Platform.OS === "ios") && (
+            {showCheckOutPicker && (
               <DateTimePicker
                 value={checkOut}
                 mode="date"
                 display={Platform.OS === "ios" ? "spinner" : "default"}
                 onChange={(event, date) => {
-                  setShowCheckOutPicker(false);
+                  if (Platform.OS === "android") {
+                    setShowCheckOutPicker(false);
+                  }
                   if (date) setCheckOut(date);
                 }}
                 minimumDate={new Date(checkIn.getTime() + 86400000)}
                 style={Platform.OS === "ios" ? styles.iosPicker : undefined}
               />
+            )}
+            {showCheckOutPicker && Platform.OS === "ios" && (
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={() => setShowCheckOutPicker(false)}
+              >
+                <Text style={[styles.doneButtonText, { color: colors.primary }]}>
+                  Done
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -330,7 +359,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     padding: 20,
+    paddingBottom: 100, // Extra padding so content can scroll above keyboard
   },
   field: {
     marginBottom: 24,
@@ -358,8 +390,18 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.chillax,
   },
   iosPicker: {
-    height: 120,
-    marginTop: -8,
+    height: 150,
+    marginTop: 8,
+  },
+  doneButton: {
+    alignSelf: "flex-end",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 4,
+  },
+  doneButtonText: {
+    fontSize: 16,
+    fontFamily: typography.fontFamily.chillaxMedium,
   },
   textInput: {
     padding: 14,

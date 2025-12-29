@@ -47,8 +47,7 @@ export default function BRollScreen() {
   const [offset, setOffset] = useState(0);
 
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [selectedItem, setSelectedItem] =
-    useState<BRollMediaWithProfile | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const [showViewer, setShowViewer] = useState(false);
 
   const LIMIT = 20;
@@ -171,7 +170,8 @@ export default function BRollScreen() {
   };
 
   const handleItemPress = (item: BRollMediaWithProfile) => {
-    setSelectedItem(item);
+    const index = mediaItems.findIndex((m) => m.id === item.id);
+    setSelectedIndex(index);
     setShowViewer(true);
   };
 
@@ -201,11 +201,6 @@ export default function BRollScreen() {
         )
       )
     );
-
-    // Update selected item if it's the one being edited
-    if (selectedItem?.id === itemId) {
-      setSelectedItem({ ...selectedItem, caption });
-    }
   };
 
   const handleDelete = async (itemId: string) => {
@@ -218,11 +213,19 @@ export default function BRollScreen() {
     const updatedItems = mediaItems.filter((item) => item.id !== itemId);
     setMediaItems(updatedItems);
     setGroupedMedia(groupMediaByDate(updatedItems));
+
+    // Handle viewer state after deletion
+    if (updatedItems.length === 0) {
+      setShowViewer(false);
+      setSelectedIndex(-1);
+    } else if (selectedIndex >= updatedItems.length) {
+      setSelectedIndex(updatedItems.length - 1);
+    }
   };
 
   const handleCloseViewer = () => {
     setShowViewer(false);
-    setSelectedItem(null);
+    setSelectedIndex(-1);
   };
 
   if (!activeHouse) {
@@ -295,7 +298,8 @@ export default function BRollScreen() {
 
       {/* Media Viewer */}
       <MediaViewer
-        item={selectedItem}
+        items={mediaItems}
+        initialIndex={selectedIndex}
         visible={showViewer}
         currentUserId={user?.id || ""}
         onClose={handleCloseViewer}

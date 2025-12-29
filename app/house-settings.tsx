@@ -3,12 +3,13 @@ import { ColorPicker } from "@/components/settings";
 import { TopBar } from "@/components/TopBar";
 import { DEFAULT_FEATURE_CONFIG, FEATURE_ORDER } from "@/constants/features";
 import { typography } from "@/constants/theme";
+import { getHouseMembersForExpenses } from "@/lib/api/expenses";
 import { updateHouseSettings } from "@/lib/api/house";
 import { GUEST_FEE_PER_NIGHT } from "@/lib/api/stays";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
 import { getFeatureConfig } from "@/lib/utils/features";
-import type { FeatureId, HouseSettings } from "@/types/database";
+import type { FeatureId, HouseSettings, Profile } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
@@ -16,6 +17,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -163,6 +165,12 @@ export default function HouseSettingsScreen() {
     GUEST_FEE_PER_NIGHT.toString()
   );
 
+  // Guest fee recipient state
+  const [localGuestFeeRecipient, setLocalGuestFeeRecipient] = useState<
+    string | null
+  >(null);
+  const [members, setMembers] = useState<Profile[]>([]);
+
   // Check if user is admin
   const isAdmin = activeHouse?.role === "admin";
 
@@ -196,8 +204,20 @@ export default function HouseSettingsScreen() {
       const rate = houseSettings?.guestNightlyRate ?? GUEST_FEE_PER_NIGHT;
       setLocalGuestNightlyRate(rate);
       setGuestRateInput(rate.toString());
+
+      // Initialize guest fee recipient
+      setLocalGuestFeeRecipient(houseSettings?.guestFeeRecipient ?? null);
     }
   }, [activeHouse]);
+
+  // Fetch house members for recipient picker
+  useEffect(() => {
+    if (activeHouse?.id) {
+      getHouseMembersForExpenses(activeHouse.id).then(({ members: m }) => {
+        setMembers(m);
+      });
+    }
+  }, [activeHouse?.id]);
 
   // Redirect if not admin
   useEffect(() => {
@@ -487,6 +507,32 @@ export default function HouseSettingsScreen() {
     if (isNaN(numericValue) || numericValue < 0) {
       setGuestRateInput(localGuestNightlyRate.toString());
     }
+  };
+
+  const handleGuestFeeRecipientChange = async (userId: string | null) => {
+    if (!activeHouse?.id) return;
+
+    const previousRecipient = localGuestFeeRecipient;
+    setLocalGuestFeeRecipient(userId);
+    setIsSaving(true);
+
+    const { error } = await updateHouseSettings(activeHouse.id, {
+      guestFeeRecipient: userId ?? undefined,
+    });
+
+    if (error) {
+      setLocalGuestFeeRecipient(previousRecipient);
+      const message = "Failed to update guest fee recipient";
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Error", message);
+      }
+    } else {
+      await refreshHouses();
+    }
+
+    setIsSaving(false);
   };
 
   const handleArchiveHouse = async () => {
@@ -857,6 +903,84 @@ export default function HouseSettingsScreen() {
               </Text>
             </View>
           </View>
+
+          {/* Guest Fee Recipient */}
+          <Text
+            style={[
+              styles.themeLabel,
+              { color: colors.foreground, marginTop: 16 },
+            ]}
+          >
+            Fee Recipient
+          </Text>
+          <Text
+            style={[
+              styles.sectionDescription,
+              { color: colors.foreground, marginBottom: 12 },
+            ]}
+          >
+            Who receives guest fee payments. Defaults to the first admin.
+          </Text>
+
+          <View style={styles.recipientList}>
+            {members.map((member) => {
+              const isSelected = localGuestFeeRecipient === member.id;
+              const displayName =
+                member.display_name || member.email.split("@")[0];
+              const initial = displayName.charAt(0).toUpperCase();
+
+              return (
+                <TouchableOpacity
+                  key={member.id}
+                  style={[
+                    styles.recipientOption,
+                    {
+                      backgroundColor: isSelected
+                        ? colors.primary + "20"
+                        : colors.card,
+                      borderColor: isSelected ? colors.primary : colors.border,
+                    },
+                  ]}
+                  onPress={() => handleGuestFeeRecipientChange(member.id)}
+                >
+                  {member.avatar_url ? (
+                    <Image
+                      source={{ uri: member.avatar_url }}
+                      style={styles.recipientAvatar}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.recipientAvatar,
+                        { backgroundColor: colors.muted },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.recipientAvatarText,
+                          { color: colors.foreground },
+                        ]}
+                      >
+                        {initial}
+                      </Text>
+                    </View>
+                  )}
+                  <Text
+                    style={[styles.recipientName, { color: colors.foreground }]}
+                  >
+                    {displayName}
+                  </Text>
+                  {isSelected && (
+                    <FontAwesome
+                      name="check"
+                      size={16}
+                      color={colors.primary}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         {/* Archive House Section */}
@@ -1098,5 +1222,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: typography.fontFamily.chillax,
     flex: 1,
+  },
+  recipientList: {
+    gap: 8,
+  },
+  recipientOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 12,
+  },
+  recipientAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  recipientAvatarText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  recipientName: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxMedium,
   },
 });

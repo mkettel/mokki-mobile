@@ -295,7 +295,7 @@ export function StaysList({
                   <Text
                     style={[styles.feeAmount, { color: colors.foreground }]}
                   >
-                    ${stay.linkedExpense.amount.toFixed(0)}
+                    {stay.linkedExpense.amount.toFixed(0)}
                   </Text>
                   {stay.linkedExpense.split && (
                     <View
@@ -493,11 +493,12 @@ const styles = StyleSheet.create({
   feeInfo: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 1,
   },
   feeAmount: {
     fontSize: 14,
     fontFamily: typography.fontFamily.chillaxMedium,
+    marginRight: 5,
   },
   paidBadge: {
     paddingHorizontal: 8,

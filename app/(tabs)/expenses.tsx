@@ -5,6 +5,7 @@ import {
   EditExpenseModal,
   ExpenseList,
   ExpenseSummaryCards,
+  GuestFeesList,
 } from "@/components/expenses";
 import type { ReceiptFile } from "@/components/expenses/ReceiptPicker";
 import { GeometricBackground } from "@/components/GeometricBackground";
@@ -27,6 +28,12 @@ import {
   removeReceiptFromExpense,
   uploadReceiptAndUpdateExpense,
 } from "@/lib/api/receipts";
+import {
+  getHouseStays,
+  settleGuestFee,
+  unsettleGuestFee,
+  type StayWithExpense,
+} from "@/lib/api/stays";
 import { useAuth } from "@/lib/context/auth";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
@@ -34,6 +41,7 @@ import type {
   ExpenseBalanceData,
   ExpenseCategory,
   ExpenseWithDetails,
+  HouseSettings,
   Profile,
   UserBalance,
 } from "@/types/database";
@@ -48,7 +56,7 @@ import {
   View,
 } from "react-native";
 
-type TabType = "balances" | "expenses";
+type TabType = "balances" | "expenses" | "guest_fees";
 
 export default function ExpensesScreen() {
   const colors = useColors();
@@ -62,6 +70,12 @@ export default function ExpensesScreen() {
   );
   const [members, setMembers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Guest fees state
+  const [guestFeeStays, setGuestFeeStays] = useState<StayWithExpense[]>([]);
+  const [guestFeeRecipientId, setGuestFeeRecipientId] = useState<string | null>(
+    null
+  );
 
   // UI state
   const [activeTab, setActiveTab] = useState<TabType>("balances");
@@ -77,13 +91,13 @@ export default function ExpensesScreen() {
     if (!activeHouse || !user) return;
 
     try {
-      const [expensesResult, balancesResult, membersResult] = await Promise.all(
-        [
+      const [expensesResult, balancesResult, membersResult, staysResult] =
+        await Promise.all([
           getHouseExpenses(activeHouse.id),
           getUserBalances(activeHouse.id, user.id),
           getHouseMembersForExpenses(activeHouse.id),
-        ]
-      );
+          getHouseStays(activeHouse.id),
+        ]);
 
       if (expensesResult.error) {
         console.error("Error fetching expenses:", expensesResult.error);
@@ -102,6 +116,18 @@ export default function ExpensesScreen() {
       } else {
         setMembers(membersResult.members);
       }
+
+      if (staysResult.error) {
+        console.error("Error fetching stays:", staysResult.error);
+      } else {
+        // Filter to stays with guest fees
+        const staysWithFees = staysResult.stays.filter((s) => s.linkedExpense);
+        setGuestFeeStays(staysWithFees);
+      }
+
+      // Get recipient ID from house settings
+      const settings = activeHouse.settings as HouseSettings | undefined;
+      setGuestFeeRecipientId(settings?.guestFeeRecipient ?? null);
     } catch (error) {
       console.error("Error fetching expense data:", error);
     } finally {
@@ -266,6 +292,24 @@ export default function ExpensesScreen() {
     }
   };
 
+  const handleSettleGuestFee = async (splitId: string) => {
+    const { error } = await settleGuestFee(splitId);
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      fetchData();
+    }
+  };
+
+  const handleUnsettleGuestFee = async (splitId: string) => {
+    const { error } = await unsettleGuestFee(splitId);
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      fetchData();
+    }
+  };
+
   const openEditModal = (expense: ExpenseWithDetails) => {
     setEditingExpense(expense);
     setShowEditModal(true);
@@ -393,20 +437,51 @@ export default function ExpensesScreen() {
               },
             ]}
           >
-            All Expenses
+            Expenses
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            activeTab === "guest_fees" && { backgroundColor: colors.background },
+          ]}
+          onPress={() => setActiveTab("guest_fees")}
+        >
+          <FontAwesome
+            name="bed"
+            size={14}
+            color={
+              activeTab === "guest_fees"
+                ? colors.foreground
+                : colors.mutedForeground
+            }
+          />
+          <Text
+            style={[
+              styles.tabText,
+              {
+                color:
+                  activeTab === "guest_fees"
+                    ? colors.foreground
+                    : colors.mutedForeground,
+              },
+            ]}
+          >
+            Guest Fees
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Content */}
       <View style={styles.content}>
-        {activeTab === "balances" ? (
+        {activeTab === "balances" && (
           <BalanceList
             balances={balanceData?.balances || []}
             onSettleAll={handleSettleAllWithUser}
             onSelectBalance={openBalanceDetail}
           />
-        ) : (
+        )}
+        {activeTab === "expenses" && (
           <ExpenseList
             expenses={expenses}
             currentUserId={user?.id || ""}
@@ -414,6 +489,15 @@ export default function ExpensesScreen() {
             onDeleteExpense={handleDeleteExpense}
             onSettleSplit={handleSettleSplit}
             onUnsettleSplit={handleUnsettleSplit}
+          />
+        )}
+        {activeTab === "guest_fees" && (
+          <GuestFeesList
+            stays={guestFeeStays}
+            recipientId={guestFeeRecipientId}
+            currentUserId={user?.id || ""}
+            onSettleGuestFee={handleSettleGuestFee}
+            onUnsettleGuestFee={handleUnsettleGuestFee}
           />
         )}
       </View>
