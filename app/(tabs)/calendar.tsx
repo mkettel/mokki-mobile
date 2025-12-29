@@ -451,6 +451,7 @@ export default function CalendarScreen() {
             onDeleteStay={handleDeleteStay}
             onSettleGuestFee={handleSettleGuestFee}
             onUnsettleGuestFee={handleUnsettleGuestFee}
+            showAll={true}
           />
         ) : (
           <EventsList
