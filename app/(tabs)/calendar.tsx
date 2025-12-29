@@ -6,6 +6,7 @@ import {
   EventDetailModal,
   EventsList,
   StaysCalendar,
+  StayDetailModal,
   StaysList,
 } from "@/components/calendar";
 import { GeometricBackground } from "@/components/GeometricBackground";
@@ -70,7 +71,9 @@ export default function CalendarScreen() {
   // Stay modals
   const [showAddStayModal, setShowAddStayModal] = useState(false);
   const [showEditStayModal, setShowEditStayModal] = useState(false);
+  const [showStayDetailModal, setShowStayDetailModal] = useState(false);
   const [editingStay, setEditingStay] = useState<StayWithExpense | null>(null);
+  const [viewingStay, setViewingStay] = useState<StayWithExpense | null>(null);
 
   // Event modals
   const [showAddEventModal, setShowAddEventModal] = useState(false);
@@ -212,6 +215,23 @@ export default function CalendarScreen() {
   const openEditStayModal = (stay: StayWithExpense) => {
     setEditingStay(stay);
     setShowEditStayModal(true);
+  };
+
+  const openStayDetailModal = (stay: StayWithExpense) => {
+    setViewingStay(stay);
+    setShowStayDetailModal(true);
+  };
+
+  const handleStayDetailEdit = (stay: StayWithExpense) => {
+    setViewingStay(null);
+    setShowStayDetailModal(false);
+    openEditStayModal(stay);
+  };
+
+  const handleStayDetailDelete = (stay: StayWithExpense) => {
+    setViewingStay(null);
+    setShowStayDetailModal(false);
+    handleDeleteStay(stay);
   };
 
   // Event actions
@@ -453,12 +473,13 @@ export default function CalendarScreen() {
           <StaysCalendar
             stays={stays}
             events={events}
-            onStayPress={openEditStayModal}
+            onStayPress={openStayDetailModal}
             onEventPress={(event) => openEventDetailModal(event.id)}
           />
         ) : activeTab === "stays" ? (
           <StaysList
             stays={stays}
+            onViewStay={openStayDetailModal}
             onEditStay={openEditStayModal}
             onDeleteStay={handleDeleteStay}
             onSettleGuestFee={handleSettleGuestFee}
@@ -492,6 +513,18 @@ export default function CalendarScreen() {
         }}
         onSubmit={handleEditStay}
         guestNightlyRate={guestNightlyRate}
+      />
+
+      <StayDetailModal
+        visible={showStayDetailModal}
+        stay={viewingStay}
+        currentUserId={user?.id || ""}
+        onClose={() => {
+          setShowStayDetailModal(false);
+          setViewingStay(null);
+        }}
+        onEdit={handleStayDetailEdit}
+        onDelete={handleStayDetailDelete}
       />
 
       {/* Event Modals */}

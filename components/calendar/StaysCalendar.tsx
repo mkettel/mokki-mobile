@@ -27,6 +27,14 @@ const STAY_COLORS = [
   "#fda4af", // rose-300
 ];
 
+// Format date as YYYY-MM-DD using local time (avoids timezone issues)
+function formatDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 // Simple hash function for user ID to color
 function getUserColor(userId: string): string {
   let hash = 0;
@@ -118,7 +126,7 @@ export function StaysCalendar({
       // Add stay to each day in range
       let current = new Date(checkIn);
       while (current <= checkOut) {
-        const key = current.toISOString().split("T")[0];
+        const key = formatDateKey(current);
         if (!map[key]) {
           map[key] = { stays: [], events: [] };
         }
@@ -134,7 +142,7 @@ export function StaysCalendar({
 
       let current = new Date(startDate);
       while (current <= endDate) {
-        const key = current.toISOString().split("T")[0];
+        const key = formatDateKey(current);
         if (!map[key]) {
           map[key] = { stays: [], events: [] };
         }
@@ -237,7 +245,7 @@ export function StaysCalendar({
       >
         <View style={styles.daysContainer}>
           {calendarDays.map((dayInfo, index) => {
-            const dateKey = dayInfo.date.toISOString().split("T")[0];
+            const dateKey = formatDateKey(dayInfo.date);
             const dayItems = itemsByDate[dateKey] || { stays: [], events: [] };
             const isTodayDate = isToday(dayInfo.date);
 
@@ -272,7 +280,7 @@ export function StaysCalendar({
                             ? colors.primaryForeground
                             : dayInfo.isCurrentMonth
                             ? colors.foreground
-                            : colors.mutedForeground,
+                            : colors.foreground,
                         },
                       ]}
                     >
@@ -335,10 +343,7 @@ export function StaysCalendar({
                     {/* +X more indicator */}
                     {remainingCount > 0 && (
                       <Text
-                        style={[
-                          styles.moreText,
-                          { color: colors.mutedForeground },
-                        ]}
+                        style={[styles.moreText, { color: colors.foreground }]}
                       >
                         +{remainingCount} more
                       </Text>
@@ -357,13 +362,13 @@ export function StaysCalendar({
           <View
             style={[styles.legendDot, { backgroundColor: STAY_COLORS[0] }]}
           />
-          <Text style={[styles.legendText, { color: colors.mutedForeground }]}>
+          <Text style={[styles.legendText, { color: colors.foreground }]}>
             Stays
           </Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: "#fcd34d" }]} />
-          <Text style={[styles.legendText, { color: colors.mutedForeground }]}>
+          <Text style={[styles.legendText, { color: colors.foreground }]}>
             Events
           </Text>
         </View>

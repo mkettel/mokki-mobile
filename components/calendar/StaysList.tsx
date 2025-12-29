@@ -14,6 +14,7 @@ import {
 
 interface StaysListProps {
   stays: StayWithExpense[];
+  onViewStay?: (stay: StayWithExpense) => void;
   onEditStay?: (stay: StayWithExpense) => void;
   onDeleteStay?: (stay: StayWithExpense) => void;
   onSettleGuestFee?: (splitId: string) => void;
@@ -63,6 +64,7 @@ function formatDateRange(checkIn: string, checkOut: string): string {
 
 export function StaysList({
   stays,
+  onViewStay,
   onEditStay,
   onDeleteStay,
   onSettleGuestFee,
@@ -169,12 +171,14 @@ export function StaysList({
         const canDelete = isOwner(stay) && !isPast(stay);
 
         return (
-          <View
+          <TouchableOpacity
             key={stay.id}
             style={[
               styles.stayCard,
               { backgroundColor: colors.card, borderColor: colors.border },
             ]}
+            onPress={() => onViewStay?.(stay)}
+            activeOpacity={0.7}
           >
             {/* Header row */}
             <View style={styles.cardHeader}>
@@ -363,7 +367,7 @@ export function StaysList({
                 )}
               </View>
             )}
-          </View>
+          </TouchableOpacity>
         );
       })}
 
