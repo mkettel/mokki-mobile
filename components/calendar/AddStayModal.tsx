@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,11 +10,17 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { FontAwesome } from "@expo/vector-icons";
 import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
+import { isWindowOpenForDates, getUserBedClaim } from "@/lib/api/bedSignups";
+import { BedSelectionModal } from "@/components/beds";
+import type { BedSignup, Bed, Room } from "@/types/database";
+
+type UserClaimInfo = BedSignup & { beds: Bed & { rooms: Room } };
 
 interface AddStayModalProps {
   visible: boolean;
@@ -24,11 +30,23 @@ interface AddStayModalProps {
     checkOut: string;
     notes?: string;
     guestCount: number;
+    bedSignupId?: string;
   }) => Promise<void>;
   guestNightlyRate: number;
+  houseId?: string;
+  userId?: string;
+  bedSignupEnabled?: boolean;
 }
 
-export function AddStayModal({ visible, onClose, onSubmit, guestNightlyRate }: AddStayModalProps) {
+export function AddStayModal({
+  visible,
+  onClose,
+  onSubmit,
+  guestNightlyRate,
+  houseId,
+  userId,
+  bedSignupEnabled = false,
+}: AddStayModalProps) {
   const colors = useColors();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -38,15 +56,66 @@ export function AddStayModal({ visible, onClose, onSubmit, guestNightlyRate }: A
   const [notes, setNotes] = useState("");
   const [guestCount, setGuestCount] = useState(0);
 
+  // Bed selection state
+  const [bedSignupId, setBedSignupId] = useState<string | null>(null);
+  const [selectedBedName, setSelectedBedName] = useState<string | null>(null);
+  const [showBedSelection, setShowBedSelection] = useState(false);
+  const [checkingBedWindow, setCheckingBedWindow] = useState(false);
+  const [bedWindowOpen, setBedWindowOpen] = useState(false);
+  const [existingClaim, setExistingClaim] = useState<UserClaimInfo | null>(null);
+
   // Date picker visibility (for Android)
   const [showCheckInPicker, setShowCheckInPicker] = useState(false);
   const [showCheckOutPicker, setShowCheckOutPicker] = useState(false);
+
+  // Check if bed signup window is open for selected dates
+  const checkBedWindow = useCallback(async () => {
+    if (!bedSignupEnabled || !houseId || !userId) {
+      setBedWindowOpen(false);
+      return;
+    }
+
+    setCheckingBedWindow(true);
+    try {
+      const checkInStr = checkIn.toISOString().split("T")[0];
+      const checkOutStr = checkOut.toISOString().split("T")[0];
+      const { isOpen, window } = await isWindowOpenForDates(houseId, checkInStr, checkOutStr);
+
+      setBedWindowOpen(isOpen);
+
+      if (isOpen && window) {
+        // Check if user already has a claim for this window
+        const { claim } = await getUserBedClaim(window.id, userId);
+        setExistingClaim(claim);
+        if (claim) {
+          setBedSignupId(claim.id);
+        }
+      } else {
+        setExistingClaim(null);
+      }
+    } catch (error) {
+      console.error("Error checking bed window:", error);
+      setBedWindowOpen(false);
+    } finally {
+      setCheckingBedWindow(false);
+    }
+  }, [bedSignupEnabled, houseId, userId, checkIn, checkOut]);
+
+  useEffect(() => {
+    if (visible) {
+      checkBedWindow();
+    }
+  }, [visible, checkIn, checkOut, checkBedWindow]);
 
   const resetForm = () => {
     setCheckIn(new Date());
     setCheckOut(new Date(Date.now() + 86400000));
     setNotes("");
     setGuestCount(0);
+    setBedSignupId(null);
+    setSelectedBedName(null);
+    setBedWindowOpen(false);
+    setExistingClaim(null);
   };
 
   const handleClose = () => {
@@ -68,6 +137,7 @@ export function AddStayModal({ visible, onClose, onSubmit, guestNightlyRate }: A
         checkOut: checkOut.toISOString().split("T")[0],
         notes: notes.trim() || undefined,
         guestCount,
+        bedSignupId: bedSignupId || undefined,
       });
       handleClose();
     } catch (error) {
@@ -75,6 +145,19 @@ export function AddStayModal({ visible, onClose, onSubmit, guestNightlyRate }: A
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleBedSelected = (bedId: string, signupId: string) => {
+    setBedSignupId(signupId);
+    // We could fetch the bed name here, but for simplicity just show "Bed selected"
+    setSelectedBedName("Bed selected");
+    setShowBedSelection(false);
+  };
+
+  const handleBedSkipped = () => {
+    setBedSignupId(null);
+    setSelectedBedName(null);
+    setShowBedSelection(false);
   };
 
   const formatDate = (date: Date) => {
@@ -312,7 +395,107 @@ export function AddStayModal({ visible, onClose, onSubmit, guestNightlyRate }: A
               </Text>
             </View>
           )}
+
+          {/* Bed Selection - Only show if bed signup is enabled and window is open */}
+          {bedSignupEnabled && (
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.foreground }]}>
+                Bed Selection
+              </Text>
+              {checkingBedWindow ? (
+                <View style={styles.bedCheckingRow}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={[styles.bedCheckingText, { color: colors.mutedForeground }]}>
+                    Checking availability...
+                  </Text>
+                </View>
+              ) : bedWindowOpen ? (
+                <View>
+                  {existingClaim ? (
+                    <View
+                      style={[
+                        styles.bedSelectedCard,
+                        { backgroundColor: colors.primary + "20", borderColor: colors.primary },
+                      ]}
+                    >
+                      <FontAwesome name="check-circle" size={18} color={colors.primary} />
+                      <View style={styles.bedSelectedInfo}>
+                        <Text style={[styles.bedSelectedLabel, { color: colors.mutedForeground }]}>
+                          Your bed for this weekend
+                        </Text>
+                        <Text style={[styles.bedSelectedName, { color: colors.foreground }]}>
+                          Already claimed
+                        </Text>
+                      </View>
+                    </View>
+                  ) : bedSignupId ? (
+                    <View
+                      style={[
+                        styles.bedSelectedCard,
+                        { backgroundColor: colors.primary + "20", borderColor: colors.primary },
+                      ]}
+                    >
+                      <FontAwesome name="bed" size={18} color={colors.primary} />
+                      <View style={styles.bedSelectedInfo}>
+                        <Text style={[styles.bedSelectedLabel, { color: colors.mutedForeground }]}>
+                          Selected
+                        </Text>
+                        <Text style={[styles.bedSelectedName, { color: colors.foreground }]}>
+                          {selectedBedName || "Bed selected"}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.changeBedButton, { borderColor: colors.border }]}
+                        onPress={() => setShowBedSelection(true)}
+                      >
+                        <Text style={[styles.changeBedText, { color: colors.primary }]}>
+                          Change
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={[
+                        styles.selectBedButton,
+                        { backgroundColor: colors.muted, borderColor: colors.border },
+                      ]}
+                      onPress={() => setShowBedSelection(true)}
+                    >
+                      <FontAwesome name="bed" size={18} color={colors.mutedForeground} />
+                      <View style={styles.selectBedContent}>
+                        <Text style={[styles.selectBedTitle, { color: colors.foreground }]}>
+                          Select a Bed
+                        </Text>
+                        <Text style={[styles.selectBedSubtitle, { color: colors.mutedForeground }]}>
+                          Bed sign-up is open for this weekend
+                        </Text>
+                      </View>
+                      <FontAwesome name="chevron-right" size={14} color={colors.mutedForeground} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ) : (
+                <Text style={[styles.bedNotAvailable, { color: colors.mutedForeground }]}>
+                  Bed sign-up is not open for these dates
+                </Text>
+              )}
+            </View>
+          )}
         </ScrollView>
+
+        {/* Bed Selection Modal */}
+        {houseId && userId && (
+          <BedSelectionModal
+            visible={showBedSelection}
+            houseId={houseId}
+            userId={userId}
+            checkIn={checkIn.toISOString().split("T")[0]}
+            checkOut={checkOut.toISOString().split("T")[0]}
+            onClose={() => setShowBedSelection(false)}
+            onBedSelected={handleBedSelected}
+            onSkip={handleBedSkipped}
+          />
+        )}
 
         {/* Submit Button */}
         <View style={[styles.footer, { borderTopColor: colors.border }]}>
@@ -463,5 +646,70 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontFamily: typography.fontFamily.chillaxSemibold,
+  },
+  bedCheckingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 8,
+  },
+  bedCheckingText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillax,
+  },
+  bedSelectedCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 12,
+  },
+  bedSelectedInfo: {
+    flex: 1,
+  },
+  bedSelectedLabel: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily.chillax,
+  },
+  bedSelectedName: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxMedium,
+    marginTop: 2,
+  },
+  changeBedButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  changeBedText: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  selectBedButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 12,
+  },
+  selectBedContent: {
+    flex: 1,
+  },
+  selectBedTitle: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  selectBedSubtitle: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily.chillax,
+    marginTop: 2,
+  },
+  bedNotAvailable: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillax,
+    paddingVertical: 8,
   },
 });

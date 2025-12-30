@@ -59,6 +59,10 @@ export type HouseSettings = {
   guestNightlyRate?: number;
   // Guest fee recipient - user ID who receives guest fee payments (defaults to first admin)
   guestFeeRecipient?: string;
+  // Bed sign-up feature - enables weekly bed/room sign-up for the house
+  bedSignupEnabled?: boolean;
+  // Auto-schedule bed sign-up windows (Mon/Tue random time for following weekend)
+  autoScheduleWindows?: boolean;
 };
 
 export type MemberRole = "admin" | "member";
@@ -77,6 +81,9 @@ export type RiderType = "skier" | "snowboarder" | "both";
 export type BulletinCategory = "wifi" | "house_rules" | "emergency" | "local_tips";
 export type BulletinStyle = "sticky" | "paper" | "sticker" | "keychain";
 export type MediaType = "image" | "video";
+export type RoomType = "bedroom" | "bunk_room";
+export type BedType = "king" | "queen" | "full" | "twin";
+export type SignupWindowStatus = "scheduled" | "open" | "closed";
 
 // Webcam configuration for resorts
 export type WebcamConfig = {
@@ -262,6 +269,7 @@ export interface Database {
           notes: string | null;
           guest_count: number;
           linked_expense_id: string | null;
+          bed_signup_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -273,6 +281,7 @@ export interface Database {
           notes?: string | null;
           guest_count?: number;
           linked_expense_id?: string | null;
+          bed_signup_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -281,6 +290,7 @@ export interface Database {
           notes?: string | null;
           guest_count?: number;
           linked_expense_id?: string | null;
+          bed_signup_id?: string | null;
         };
         Relationships: [
           {
@@ -295,6 +305,13 @@ export interface Database {
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "stays_bed_signup_id_fkey";
+            columns: ["bed_signup_id"];
+            isOneToOne: false;
+            referencedRelation: "bed_signups";
             referencedColumns: ["id"];
           }
         ];
@@ -861,6 +878,179 @@ export interface Database {
           }
         ];
       };
+      rooms: {
+        Row: {
+          id: string;
+          house_id: string;
+          name: string;
+          room_type: RoomType;
+          display_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          house_id: string;
+          name: string;
+          room_type?: RoomType;
+          display_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          room_type?: RoomType;
+          display_order?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rooms_house_id_fkey";
+            columns: ["house_id"];
+            isOneToOne: false;
+            referencedRelation: "houses";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      beds: {
+        Row: {
+          id: string;
+          room_id: string;
+          house_id: string;
+          name: string;
+          bed_type: BedType;
+          is_premium: boolean;
+          display_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          room_id: string;
+          house_id: string;
+          name: string;
+          bed_type?: BedType;
+          is_premium?: boolean;
+          display_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          bed_type?: BedType;
+          is_premium?: boolean;
+          display_order?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "beds_room_id_fkey";
+            columns: ["room_id"];
+            isOneToOne: false;
+            referencedRelation: "rooms";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "beds_house_id_fkey";
+            columns: ["house_id"];
+            isOneToOne: false;
+            referencedRelation: "houses";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      signup_windows: {
+        Row: {
+          id: string;
+          house_id: string;
+          target_weekend_start: string;
+          target_weekend_end: string;
+          opens_at: string;
+          closed_at: string | null;
+          status: SignupWindowStatus;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          house_id: string;
+          target_weekend_start: string;
+          target_weekend_end: string;
+          opens_at: string;
+          closed_at?: string | null;
+          status?: SignupWindowStatus;
+          created_at?: string;
+        };
+        Update: {
+          target_weekend_start?: string;
+          target_weekend_end?: string;
+          opens_at?: string;
+          closed_at?: string | null;
+          status?: SignupWindowStatus;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "signup_windows_house_id_fkey";
+            columns: ["house_id"];
+            isOneToOne: false;
+            referencedRelation: "houses";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      bed_signups: {
+        Row: {
+          id: string;
+          signup_window_id: string;
+          bed_id: string;
+          user_id: string;
+          stay_id: string | null;
+          claimed_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          signup_window_id: string;
+          bed_id: string;
+          user_id: string;
+          stay_id?: string | null;
+          claimed_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          stay_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "bed_signups_signup_window_id_fkey";
+            columns: ["signup_window_id"];
+            isOneToOne: false;
+            referencedRelation: "signup_windows";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bed_signups_bed_id_fkey";
+            columns: ["bed_id"];
+            isOneToOne: false;
+            referencedRelation: "beds";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bed_signups_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bed_signups_stay_id_fkey";
+            columns: ["stay_id"];
+            isOneToOne: false;
+            referencedRelation: "stays";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {};
     Functions: {};
@@ -872,6 +1062,9 @@ export interface Database {
       rider_type: RiderType;
       bulletin_category: BulletinCategory;
       media_type: MediaType;
+      room_type: RoomType;
+      bed_type: BedType;
+      signup_window_status: SignupWindowStatus;
     };
     CompositeTypes: {};
   };
@@ -1173,4 +1366,76 @@ export type ChatUnreadCounts = {
   house_chat: number;
   direct_messages: Record<string, number>; // conversation_id -> count
   total: number;
+};
+
+// ============================================
+// Bed Sign-Up Types
+// ============================================
+
+// Base types from database
+export type Room = Database["public"]["Tables"]["rooms"]["Row"];
+export type Bed = Database["public"]["Tables"]["beds"]["Row"];
+export type SignupWindow = Database["public"]["Tables"]["signup_windows"]["Row"];
+export type BedSignup = Database["public"]["Tables"]["bed_signups"]["Row"];
+
+// Room with its beds
+export type RoomWithBeds = Room & {
+  beds: Bed[];
+};
+
+// Bed with room info
+export type BedWithRoom = Bed & {
+  rooms: Room;
+};
+
+// Signup window with house info
+export type SignupWindowWithHouse = SignupWindow & {
+  houses: House;
+};
+
+// Bed signup with profile (who claimed)
+export type BedSignupWithProfile = BedSignup & {
+  profiles: Profile;
+};
+
+// Bed signup with all related info
+export type BedSignupWithDetails = BedSignup & {
+  profiles: Profile;
+  beds: Bed & {
+    rooms: Room;
+  };
+};
+
+// Bed with current signup status (for display)
+export type BedWithSignupStatus = Bed & {
+  rooms: Room;
+  bed_signups?: (BedSignup & {
+    profiles: Profile;
+  })[];
+};
+
+// Full room configuration for admin view
+export type RoomConfiguration = Room & {
+  beds: Bed[];
+};
+
+// Signup window with all bed claims for display
+export type SignupWindowWithClaims = SignupWindow & {
+  bed_signups: (BedSignup & {
+    profiles: Profile;
+    beds: Bed & {
+      rooms: Room;
+    };
+  })[];
+};
+
+// Bed signup history entry for admin log
+export type BedSignupHistoryEntry = {
+  signupWindow: SignupWindow;
+  claims: (BedSignup & {
+    profiles: Profile;
+    beds: Bed & {
+      rooms: Room;
+    };
+  })[];
 };

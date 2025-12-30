@@ -3,8 +3,16 @@ import { ColorPicker } from "@/components/settings";
 import { TopBar } from "@/components/TopBar";
 import { DEFAULT_FEATURE_CONFIG, FEATURE_ORDER } from "@/constants/features";
 import { typography } from "@/constants/theme";
+import {
+  closeSignupWindow,
+  createSignupWindow,
+  getWindowStatus,
+  openSignupWindow,
+  WindowStatus,
+} from "@/lib/api/bedSignups";
 import { getHouseMembersForExpenses } from "@/lib/api/expenses";
 import { updateHouseSettings } from "@/lib/api/house";
+import { hasRoomsConfigured } from "@/lib/api/rooms";
 import { GUEST_FEE_PER_NIGHT } from "@/lib/api/stays";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
@@ -171,6 +179,17 @@ export default function HouseSettingsScreen() {
   >(null);
   const [members, setMembers] = useState<Profile[]>([]);
 
+  // Bed sign-up state
+  const [bedSignupEnabled, setBedSignupEnabled] = useState(false);
+  const [autoScheduleWindows, setAutoScheduleWindows] = useState(true);
+  const [roomCount, setRoomCount] = useState(0);
+  const [bedCount, setBedCount] = useState(0);
+  const [windowStatus, setWindowStatus] = useState<WindowStatus | null>(null);
+  const [isLoadingWindowStatus, setIsLoadingWindowStatus] = useState(false);
+  const [showCustomWindowModal, setShowCustomWindowModal] = useState(false);
+  const [customWeekendStart, setCustomWeekendStart] = useState<Date | null>(null);
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+
   // Check if user is admin
   const isAdmin = activeHouse?.role === "admin";
 
@@ -207,6 +226,10 @@ export default function HouseSettingsScreen() {
 
       // Initialize guest fee recipient
       setLocalGuestFeeRecipient(houseSettings?.guestFeeRecipient ?? null);
+
+      // Initialize bed sign-up
+      setBedSignupEnabled(houseSettings?.bedSignupEnabled ?? false);
+      setAutoScheduleWindows(houseSettings?.autoScheduleWindows ?? true);
     }
   }, [activeHouse]);
 
@@ -218,6 +241,32 @@ export default function HouseSettingsScreen() {
       });
     }
   }, [activeHouse?.id]);
+
+  // Fetch room/bed counts for bed sign-up section
+  useEffect(() => {
+    if (activeHouse?.id) {
+      hasRoomsConfigured(activeHouse.id).then(({ roomCount: rc, bedCount: bc }) => {
+        setRoomCount(rc);
+        setBedCount(bc);
+      });
+    }
+  }, [activeHouse?.id]);
+
+  // Fetch window status for bed sign-up section
+  const fetchWindowStatus = async () => {
+    if (!activeHouse?.id || !bedSignupEnabled) return;
+
+    setIsLoadingWindowStatus(true);
+    const { status, error } = await getWindowStatus(activeHouse.id);
+    if (!error) {
+      setWindowStatus(status);
+    }
+    setIsLoadingWindowStatus(false);
+  };
+
+  useEffect(() => {
+    fetchWindowStatus();
+  }, [activeHouse?.id, bedSignupEnabled]);
 
   // Redirect if not admin
   useEffect(() => {
@@ -533,6 +582,195 @@ export default function HouseSettingsScreen() {
     }
 
     setIsSaving(false);
+  };
+
+  const handleBedSignupToggle = async (enabled: boolean) => {
+    if (!activeHouse?.id) return;
+
+    const previousValue = bedSignupEnabled;
+    setBedSignupEnabled(enabled);
+    setIsSaving(true);
+
+    const { error } = await updateHouseSettings(activeHouse.id, {
+      bedSignupEnabled: enabled,
+    });
+
+    if (error) {
+      setBedSignupEnabled(previousValue);
+      const message = "Failed to update bed sign-up setting";
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Error", message);
+      }
+    } else {
+      await refreshHouses();
+    }
+
+    setIsSaving(false);
+  };
+
+  const handleAutoScheduleToggle = async (enabled: boolean) => {
+    if (!activeHouse?.id) return;
+
+    const previousValue = autoScheduleWindows;
+    setAutoScheduleWindows(enabled);
+    setIsSaving(true);
+
+    const { error } = await updateHouseSettings(activeHouse.id, {
+      autoScheduleWindows: enabled,
+    });
+
+    if (error) {
+      setAutoScheduleWindows(previousValue);
+      const message = "Failed to update auto-schedule setting";
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Error", message);
+      }
+    } else {
+      await refreshHouses();
+    }
+
+    setIsSaving(false);
+  };
+
+  const handleOpenWindowNow = async () => {
+    if (!windowStatus?.nextScheduledWindow?.id) return;
+
+    const confirmMessage = `Open sign-up now for the ${formatWeekendDates(
+      windowStatus.nextScheduledWindow.target_weekend_start,
+      windowStatus.nextScheduledWindow.target_weekend_end
+    )} weekend?`;
+
+    const doOpen = async () => {
+      setIsSaving(true);
+      const { error } = await openSignupWindow(windowStatus.nextScheduledWindow!.id);
+      if (error) {
+        const message = "Failed to open sign-up window";
+        if (Platform.OS === "web") {
+          window.alert(message);
+        } else {
+          Alert.alert("Error", message);
+        }
+      } else {
+        await fetchWindowStatus();
+      }
+      setIsSaving(false);
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm(confirmMessage)) {
+        await doOpen();
+      }
+    } else {
+      Alert.alert("Open Sign-Up Now", confirmMessage, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Open Now", onPress: doOpen },
+      ]);
+    }
+  };
+
+  const handleCloseWindow = async () => {
+    if (!windowStatus?.activeWindow?.id) return;
+
+    const confirmMessage = `Close sign-up for the ${formatWeekendDates(
+      windowStatus.activeWindow.target_weekend_start,
+      windowStatus.activeWindow.target_weekend_end
+    )} weekend? This cannot be undone.`;
+
+    const doClose = async () => {
+      setIsSaving(true);
+      const { error } = await closeSignupWindow(windowStatus.activeWindow!.id);
+      if (error) {
+        const message = "Failed to close sign-up window";
+        if (Platform.OS === "web") {
+          window.alert(message);
+        } else {
+          Alert.alert("Error", message);
+        }
+      } else {
+        await fetchWindowStatus();
+      }
+      setIsSaving(false);
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm(confirmMessage)) {
+        await doClose();
+      }
+    } else {
+      Alert.alert("Close Sign-Up", confirmMessage, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Close", onPress: doClose, style: "destructive" },
+      ]);
+    }
+  };
+
+  const handleCreateCustomWindow = async () => {
+    if (!activeHouse?.id || !customWeekendStart) return;
+
+    // Calculate weekend end (Sunday = start + 2 days)
+    const weekendEnd = new Date(customWeekendStart);
+    weekendEnd.setDate(weekendEnd.getDate() + 2);
+
+    setIsSaving(true);
+    const { window: newWindow, error } = await createSignupWindow(activeHouse.id, {
+      targetWeekendStart: customWeekendStart.toISOString().split("T")[0],
+      targetWeekendEnd: weekendEnd.toISOString().split("T")[0],
+      opensAt: new Date().toISOString(),
+      status: "open",
+    });
+
+    if (error) {
+      const message = "Failed to create sign-up window";
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Error", message);
+      }
+    } else {
+      setShowCustomWindowModal(false);
+      setCustomWeekendStart(null);
+      await fetchWindowStatus();
+    }
+    setIsSaving(false);
+  };
+
+  const formatWeekendDates = (start: string, end: string) => {
+    const startDate = new Date(start + "T00:00:00");
+    const endDate = new Date(end + "T00:00:00");
+    const startMonth = startDate.toLocaleDateString("en-US", { month: "short" });
+    const endMonth = endDate.toLocaleDateString("en-US", { month: "short" });
+    const startDay = startDate.getDate();
+    const endDay = endDate.getDate();
+
+    if (startMonth === endMonth) {
+      return `${startMonth} ${startDay}-${endDay}`;
+    }
+    return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+  };
+
+  const formatScheduledTime = (opensAt: string) => {
+    const date = new Date(opensAt);
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  // Get the next Friday for custom window default
+  const getNextFriday = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysUntilFriday = (5 - dayOfWeek + 7) % 7 || 7; // If today is Friday, get next Friday
+    const nextFriday = new Date(today);
+    nextFriday.setDate(today.getDate() + daysUntilFriday);
+    return nextFriday;
   };
 
   const handleArchiveHouse = async () => {
@@ -983,6 +1221,335 @@ export default function HouseSettingsScreen() {
           </View>
         </View>
 
+        {/* Bed Sign-Up Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Bed Sign-Up
+          </Text>
+          <Text
+            style={[styles.sectionDescription, { color: colors.foreground }]}
+          >
+            Allow house members to sign up for specific beds each week.
+          </Text>
+
+          <View
+            style={[
+              styles.themeCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            {/* Enable/Disable Toggle */}
+            <View style={styles.tripTimerToggleRow}>
+              <Text
+                style={[
+                  styles.themeLabel,
+                  { color: colors.foreground, marginBottom: 0 },
+                ]}
+              >
+                Enable Bed Sign-Up
+              </Text>
+              <Switch
+                value={bedSignupEnabled}
+                onValueChange={handleBedSignupToggle}
+                trackColor={{ false: colors.muted, true: colors.primary }}
+                thumbColor={colors.background}
+              />
+            </View>
+
+            {bedSignupEnabled && (
+              <>
+                {/* Room Configuration Status */}
+                <View style={styles.bedSignupStatus}>
+                  <FontAwesome
+                    name={roomCount > 0 ? "check-circle" : "info-circle"}
+                    size={16}
+                    color={roomCount > 0 ? colors.primary : colors.mutedForeground}
+                  />
+                  <Text
+                    style={[
+                      styles.bedSignupStatusText,
+                      { color: roomCount > 0 ? colors.foreground : colors.mutedForeground },
+                    ]}
+                  >
+                    {roomCount > 0
+                      ? `${roomCount} room${roomCount !== 1 ? "s" : ""}, ${bedCount} bed${bedCount !== 1 ? "s" : ""} configured`
+                      : "No rooms configured yet"}
+                  </Text>
+                </View>
+
+                {/* Configure Rooms Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.configureRoomsButton,
+                    {
+                      backgroundColor: colors.primary,
+                    },
+                  ]}
+                  onPress={() => router.push("/room-configuration")}
+                >
+                  <FontAwesome
+                    name="bed"
+                    size={16}
+                    color={colors.primaryForeground}
+                  />
+                  <Text
+                    style={[
+                      styles.configureRoomsButtonText,
+                      { color: colors.primaryForeground },
+                    ]}
+                  >
+                    Configure Rooms & Beds
+                  </Text>
+                </TouchableOpacity>
+
+                {/* View History Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.viewHistoryButton,
+                    {
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  onPress={() => router.push("/bed-history")}
+                >
+                  <FontAwesome
+                    name="history"
+                    size={16}
+                    color={colors.foreground}
+                  />
+                  <Text
+                    style={[
+                      styles.viewHistoryButtonText,
+                      { color: colors.foreground },
+                    ]}
+                  >
+                    View Bed History
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+
+          {/* Sign-Up Windows Section (only when bed signup is enabled) */}
+          {bedSignupEnabled && (
+            <View
+              style={[
+                styles.themeCard,
+                { backgroundColor: colors.card, borderColor: colors.border, marginTop: 16 },
+              ]}
+            >
+              <Text style={[styles.themeLabel, { color: colors.foreground }]}>
+                Sign-Up Windows
+              </Text>
+
+              {/* Current Status */}
+              {isLoadingWindowStatus ? (
+                <ActivityIndicator size="small" color={colors.foreground} />
+              ) : windowStatus?.activeWindow ? (
+                // Active window
+                <View style={styles.windowStatusSection}>
+                  <View style={[styles.statusBadge, { backgroundColor: colors.primary + "20" }]}>
+                    <View style={[styles.statusDot, { backgroundColor: colors.primary }]} />
+                    <Text style={[styles.statusBadgeText, { color: colors.primary }]}>
+                      SIGN-UP OPEN
+                    </Text>
+                  </View>
+                  <Text style={[styles.windowDateText, { color: colors.foreground }]}>
+                    {formatWeekendDates(
+                      windowStatus.activeWindow.target_weekend_start,
+                      windowStatus.activeWindow.target_weekend_end
+                    )} weekend
+                  </Text>
+                  <Text style={[styles.windowSubtext, { color: colors.mutedForeground }]}>
+                    {windowStatus.activeWindow.claimedBeds} of {windowStatus.activeWindow.totalBeds} beds claimed
+                  </Text>
+
+                  <TouchableOpacity
+                    style={[styles.closeWindowButton, { borderColor: colors.destructive }]}
+                    onPress={handleCloseWindow}
+                  >
+                    <FontAwesome name="times-circle" size={14} color={colors.destructive} />
+                    <Text style={[styles.closeWindowButtonText, { color: colors.destructive }]}>
+                      Close Sign-Up Early
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : windowStatus?.nextScheduledWindow ? (
+                // Scheduled window
+                <View style={styles.windowStatusSection}>
+                  <View style={[styles.statusBadge, { backgroundColor: colors.muted }]}>
+                    <FontAwesome name="clock-o" size={12} color={colors.mutedForeground} />
+                    <Text style={[styles.statusBadgeText, { color: colors.mutedForeground }]}>
+                      SCHEDULED
+                    </Text>
+                  </View>
+                  <Text style={[styles.windowDateText, { color: colors.foreground }]}>
+                    {formatWeekendDates(
+                      windowStatus.nextScheduledWindow.target_weekend_start,
+                      windowStatus.nextScheduledWindow.target_weekend_end
+                    )} weekend
+                  </Text>
+                  <Text style={[styles.windowSubtext, { color: colors.mutedForeground }]}>
+                    Opens: {formatScheduledTime(windowStatus.nextScheduledWindow.opens_at)}
+                  </Text>
+
+                  <TouchableOpacity
+                    style={[styles.openNowButton, { backgroundColor: colors.primary }]}
+                    onPress={handleOpenWindowNow}
+                  >
+                    <FontAwesome name="unlock" size={14} color={colors.primaryForeground} />
+                    <Text style={[styles.openNowButtonText, { color: colors.primaryForeground }]}>
+                      Open Sign-Up Now
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                // No window
+                <View style={styles.windowStatusSection}>
+                  <Text style={[styles.noWindowText, { color: colors.mutedForeground }]}>
+                    No sign-up window scheduled
+                  </Text>
+                </View>
+              )}
+
+              {/* Create Custom Window Button (when no active window) */}
+              {!windowStatus?.activeWindow && (
+                <TouchableOpacity
+                  style={[styles.createCustomButton, { borderColor: colors.border }]}
+                  onPress={() => {
+                    setCustomWeekendStart(getNextFriday());
+                    setShowCustomWindowModal(true);
+                  }}
+                >
+                  <FontAwesome name="plus" size={14} color={colors.foreground} />
+                  <Text style={[styles.createCustomButtonText, { color: colors.foreground }]}>
+                    Create Custom Window
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Auto-Schedule Toggle */}
+              <View style={[styles.autoScheduleRow, { borderTopColor: colors.border }]}>
+                <View style={styles.autoScheduleInfo}>
+                  <Text style={[styles.autoScheduleLabel, { color: colors.foreground }]}>
+                    Auto-schedule
+                  </Text>
+                  <Text style={[styles.autoScheduleHint, { color: colors.mutedForeground }]}>
+                    Open at random time Mon/Tue
+                  </Text>
+                </View>
+                <Switch
+                  value={autoScheduleWindows}
+                  onValueChange={handleAutoScheduleToggle}
+                  trackColor={{ false: colors.muted, true: colors.primary }}
+                  thumbColor={colors.background}
+                />
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Custom Window Modal */}
+        {showCustomWindowModal && (
+          <View style={styles.modalOverlay}>
+            <View
+              style={[
+                styles.customWindowModal,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                  Create Custom Window
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowCustomWindowModal(false);
+                    setCustomWeekendStart(null);
+                  }}
+                >
+                  <FontAwesome name="times" size={20} color={colors.foreground} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modalBody}>
+                <Text style={[styles.modalLabel, { color: colors.foreground }]}>
+                  Weekend Start (Friday)
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.dateButton,
+                    { backgroundColor: colors.muted, borderColor: colors.border },
+                  ]}
+                  onPress={() => setShowCustomDatePicker(true)}
+                >
+                  <FontAwesome name="calendar" size={16} color={colors.foreground} />
+                  <Text style={[styles.dateText, { color: colors.foreground }]}>
+                    {customWeekendStart
+                      ? formatDateDisplay(customWeekendStart)
+                      : "Select Friday..."}
+                  </Text>
+                </TouchableOpacity>
+
+                {(showCustomDatePicker || Platform.OS === "ios") && (
+                  <DateTimePicker
+                    value={customWeekendStart || getNextFriday()}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={(event, date) => {
+                      setShowCustomDatePicker(false);
+                      if (date) setCustomWeekendStart(date);
+                    }}
+                    minimumDate={new Date()}
+                    style={Platform.OS === "ios" ? styles.iosPicker : undefined}
+                  />
+                )}
+
+                <Text style={[styles.modalHint, { color: colors.mutedForeground }]}>
+                  This will immediately open sign-up for the selected weekend.
+                </Text>
+              </View>
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={[styles.modalCancelButton, { borderColor: colors.border }]}
+                  onPress={() => {
+                    setShowCustomWindowModal(false);
+                    setCustomWeekendStart(null);
+                  }}
+                >
+                  <Text style={[styles.modalCancelText, { color: colors.foreground }]}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modalCreateButton,
+                    {
+                      backgroundColor: customWeekendStart ? colors.primary : colors.muted,
+                    },
+                  ]}
+                  onPress={handleCreateCustomWindow}
+                  disabled={!customWeekendStart || isSaving}
+                >
+                  {isSaving ? (
+                    <ActivityIndicator size="small" color={colors.primaryForeground} />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.modalCreateText,
+                        { color: customWeekendStart ? colors.primaryForeground : colors.mutedForeground },
+                      ]}
+                    >
+                      Create & Open
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Archive House Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
@@ -1248,6 +1815,220 @@ const styles = StyleSheet.create({
   recipientName: {
     flex: 1,
     fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  bedSignupStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(128, 128, 128, 0.2)",
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  bedSignupStatusText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillax,
+  },
+  configureRoomsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 14,
+    borderRadius: 8,
+    gap: 8,
+  },
+  configureRoomsButtonText: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  viewHistoryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 10,
+    gap: 8,
+  },
+  viewHistoryButtonText: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  // Window management styles
+  windowStatusSection: {
+    marginBottom: 12,
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 6,
+    marginBottom: 8,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontFamily: typography.fontFamily.chillaxSemibold,
+    letterSpacing: 0.5,
+  },
+  windowDateText: {
+    fontSize: 16,
+    fontFamily: typography.fontFamily.chillaxMedium,
+    marginBottom: 4,
+  },
+  windowSubtext: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.chillax,
+    marginBottom: 12,
+  },
+  noWindowText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillax,
+    fontStyle: "italic",
+    marginBottom: 8,
+  },
+  openNowButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  openNowButtonText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  closeWindowButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 8,
+  },
+  closeWindowButtonText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  createCustomButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    gap: 8,
+    marginBottom: 16,
+  },
+  createCustomButtonText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  autoScheduleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 16,
+    borderTopWidth: 1,
+  },
+  autoScheduleInfo: {
+    flex: 1,
+  },
+  autoScheduleLabel: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  autoScheduleHint: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily.chillax,
+    marginTop: 2,
+  },
+  // Custom window modal styles
+  modalOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  customWindowModal: {
+    width: "100%",
+    maxWidth: 400,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(128, 128, 128, 0.2)",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: typography.fontFamily.chillaxSemibold,
+  },
+  modalBody: {
+    padding: 16,
+  },
+  modalLabel: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
+    marginBottom: 8,
+  },
+  modalHint: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily.chillax,
+    marginTop: 12,
+    lineHeight: 18,
+  },
+  modalFooter: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(128, 128, 128, 0.2)",
+  },
+  modalCancelButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  modalCreateButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 120,
+    alignItems: "center",
+  },
+  modalCreateText: {
+    fontSize: 14,
     fontFamily: typography.fontFamily.chillaxMedium,
   },
 });

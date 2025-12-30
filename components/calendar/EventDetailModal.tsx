@@ -22,8 +22,20 @@ interface EventDetailModalProps {
   onDelete: (event: EventWithDetails) => void;
 }
 
+// Parse a date string as local time (not UTC)
+// YYYY-MM-DD strings are interpreted as UTC by default, which causes timezone issues
+function parseLocalDate(dateString: string): Date {
+  // If it's a date-only string (YYYY-MM-DD), parse as local time
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    const [year, month, day] = dateString.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+  // Otherwise, let Date parse it normally (for full timestamps)
+  return new Date(dateString);
+}
+
 function formatEventDate(event: EventWithDetails): string {
-  const startDate = new Date(event.event_date);
+  const startDate = parseLocalDate(event.event_date);
   const options: Intl.DateTimeFormatOptions = {
     weekday: "long",
     month: "long",
@@ -34,7 +46,7 @@ function formatEventDate(event: EventWithDetails): string {
   let dateStr = startDate.toLocaleDateString("en-US", options);
 
   if (event.end_date && event.end_date !== event.event_date) {
-    const endDate = new Date(event.end_date);
+    const endDate = parseLocalDate(event.end_date);
     dateStr += ` - ${endDate.toLocaleDateString("en-US", options)}`;
   }
 
@@ -76,10 +88,10 @@ function getEventStatus(event: EventWithDetails): "today" | "upcoming" | "past" 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const eventDate = new Date(event.event_date);
+  const eventDate = parseLocalDate(event.event_date);
   eventDate.setHours(0, 0, 0, 0);
 
-  const endDate = event.end_date ? new Date(event.end_date) : eventDate;
+  const endDate = event.end_date ? parseLocalDate(event.end_date) : eventDate;
   endDate.setHours(0, 0, 0, 0);
 
   if (eventDate.getTime() === today.getTime()) {

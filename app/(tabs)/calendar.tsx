@@ -58,6 +58,11 @@ export default function CalendarScreen() {
     (activeHouse?.settings as HouseSettings | undefined)?.guestNightlyRate ??
     GUEST_FEE_PER_NIGHT;
 
+  // Get bed signup enabled status from house settings
+  const bedSignupEnabled =
+    (activeHouse?.settings as HouseSettings | undefined)?.bedSignupEnabled ??
+    false;
+
   // Data state
   const [stays, setStays] = useState<StayWithExpense[]>([]);
   const [events, setEvents] = useState<EventWithDetails[]>([]);
@@ -502,6 +507,9 @@ export default function CalendarScreen() {
         onClose={() => setShowAddStayModal(false)}
         onSubmit={handleAddStay}
         guestNightlyRate={guestNightlyRate}
+        houseId={activeHouse?.id}
+        userId={user?.id}
+        bedSignupEnabled={bedSignupEnabled}
       />
 
       <EditStayModal

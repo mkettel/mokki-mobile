@@ -35,6 +35,18 @@ function formatDateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+// Parse a date string as local time (not UTC)
+// YYYY-MM-DD strings are interpreted as UTC by default, which causes timezone issues
+function parseLocalDate(dateString: string): Date {
+  // If it's a date-only string (YYYY-MM-DD), parse as local time
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    const [year, month, day] = dateString.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+  // Otherwise, let Date parse it normally (for full timestamps)
+  return new Date(dateString);
+}
+
 // Simple hash function for user ID to color
 function getUserColor(userId: string): string {
   let hash = 0;
@@ -137,8 +149,8 @@ export function StaysCalendar({
 
     // Add events
     events.forEach((event) => {
-      const startDate = new Date(event.event_date);
-      const endDate = event.end_date ? new Date(event.end_date) : startDate;
+      const startDate = parseLocalDate(event.event_date);
+      const endDate = event.end_date ? parseLocalDate(event.end_date) : startDate;
 
       let current = new Date(startDate);
       while (current <= endDate) {
