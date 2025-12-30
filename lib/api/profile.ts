@@ -1,5 +1,8 @@
 import { supabase } from "@/lib/supabase/client";
 import type { Profile, RiderType } from "@/types/database";
+import { decode } from "base64-arraybuffer";
+import { File } from "expo-file-system";
+import { Platform } from "react-native";
 
 // Validation constants
 export const MAX_DISPLAY_NAME_LENGTH = 100;
@@ -220,26 +223,54 @@ export async function uploadAvatar(imageUri: string, mimeType: string): Promise<
       await supabase.storage.from("avatars").remove(filesToDelete);
     }
 
-    // Fetch the image as a blob
-    const response = await fetch(imageUri);
-    const blob = await response.blob();
-
-    // Validate file size
-    if (blob.size > MAX_AVATAR_SIZE) {
-      return {
-        avatarUrl: null,
-        error: new Error("Image must be 5MB or less"),
-      };
-    }
-
     // Upload to Supabase storage
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(storagePath, blob, {
-        contentType: mimeType,
-        cacheControl: "3600",
-        upsert: true,
-      });
+    let uploadError: Error | null = null;
+
+    if (Platform.OS === "web") {
+      // Web: fetch and upload as blob
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+
+      // Validate file size
+      if (blob.size > MAX_AVATAR_SIZE) {
+        return {
+          avatarUrl: null,
+          error: new Error("Image must be 5MB or less"),
+        };
+      }
+
+      const { error } = await supabase.storage
+        .from("avatars")
+        .upload(storagePath, blob, {
+          contentType: mimeType,
+          cacheControl: "3600",
+          upsert: true,
+        });
+      uploadError = error;
+    } else {
+      // Mobile (iOS/Android): use File class to read the file properly
+      // fetch() doesn't work with local file:// URIs on mobile
+      const localFile = new File(imageUri);
+      const base64Data = await localFile.base64();
+
+      // Validate file size (base64 is ~33% larger than original)
+      const estimatedSize = (base64Data.length * 3) / 4;
+      if (estimatedSize > MAX_AVATAR_SIZE) {
+        return {
+          avatarUrl: null,
+          error: new Error("Image must be 5MB or less"),
+        };
+      }
+
+      const { error } = await supabase.storage
+        .from("avatars")
+        .upload(storagePath, decode(base64Data), {
+          contentType: mimeType,
+          cacheControl: "3600",
+          upsert: true,
+        });
+      uploadError = error;
+    }
 
     if (uploadError) {
       return { avatarUrl: null, error: uploadError };
