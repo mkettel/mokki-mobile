@@ -142,6 +142,7 @@ export default function CalendarScreen() {
     checkOut: string;
     notes?: string;
     guestCount: number;
+    bedSignupId?: string;
   }) => {
     if (!activeHouse || !user) return;
 
@@ -162,6 +163,7 @@ export default function CalendarScreen() {
     checkOut: string;
     notes?: string;
     guestCount: number;
+    bedSignupId?: string;
   }) => {
     if (!editingStay || !user) return;
 
@@ -521,6 +523,9 @@ export default function CalendarScreen() {
         }}
         onSubmit={handleEditStay}
         guestNightlyRate={guestNightlyRate}
+        houseId={activeHouse?.id}
+        userId={user?.id}
+        bedSignupEnabled={bedSignupEnabled}
       />
 
       <StayDetailModal

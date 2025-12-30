@@ -190,6 +190,34 @@ export function StayDetailModal({
             </View>
           )}
 
+          {/* Bed Assignment */}
+          {stay.bedSignup ? (
+            <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+              <FontAwesome name="bed" size={16} color={colors.mutedForeground} />
+              <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>
+                Bed
+              </Text>
+              <View style={styles.bedInfoContainer}>
+                <Text style={[styles.infoValue, { color: colors.foreground }]}>
+                  {stay.bedSignup.bedName}
+                </Text>
+                <Text style={[styles.bedSubtext, { color: colors.mutedForeground }]}>
+                  {stay.bedSignup.roomName}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+              <FontAwesome name="bed" size={16} color={colors.mutedForeground} />
+              <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>
+                Bed
+              </Text>
+              <Text style={[styles.infoValue, { color: colors.mutedForeground, fontStyle: "italic" }]}>
+                Not assigned
+              </Text>
+            </View>
+          )}
+
           {/* Notes */}
           {stay.notes && (
             <View style={styles.notesSection}>
@@ -366,6 +394,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: typography.fontFamily.chillaxMedium,
     textAlign: "right",
+  },
+  bedInfoContainer: {
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  bedSubtext: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily.chillax,
+    marginTop: 2,
   },
   notesSection: {
     marginTop: 24,

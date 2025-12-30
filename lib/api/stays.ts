@@ -25,6 +25,13 @@ export type StayWithExpense = Stay & {
       settled_at: string | null;
     };
   } | null;
+  bedSignup?: {
+    id: string;
+    bedName: string;
+    bedType: string;
+    roomName: string;
+    isPremium: boolean;
+  } | null;
 };
 
 /**
@@ -86,11 +93,54 @@ export async function getHouseStays(houseId: string): Promise<{
       }
     }
 
+    // Fetch bed signups for stays that have them
+    const bedSignupIds = (stays || [])
+      .map(s => s.bed_signup_id)
+      .filter((id): id is string => !!id);
+
+    let bedSignupMap: Record<string, { id: string; bedName: string; bedType: string; roomName: string; isPremium: boolean }> = {};
+
+    if (bedSignupIds.length > 0) {
+      const { data: bedSignups } = await supabase
+        .from("bed_signups")
+        .select(`
+          id,
+          beds (
+            id,
+            name,
+            bed_type,
+            is_premium,
+            rooms (
+              id,
+              name
+            )
+          )
+        `)
+        .in("id", bedSignupIds);
+
+      if (bedSignups) {
+        for (const signup of bedSignups) {
+          const bed = signup.beds as any;
+          const room = bed?.rooms as any;
+          if (bed && room) {
+            bedSignupMap[signup.id] = {
+              id: signup.id,
+              bedName: bed.name,
+              bedType: bed.bed_type,
+              roomName: room.name,
+              isPremium: bed.is_premium,
+            };
+          }
+        }
+      }
+    }
+
     // Transform data
     const transformedStays: StayWithExpense[] = (stays || []).map(stay => ({
       ...stay,
       profiles: stay.profiles as Profile,
       linkedExpense: stay.linked_expense_id ? expenseMap[stay.linked_expense_id] : null,
+      bedSignup: stay.bed_signup_id ? bedSignupMap[stay.bed_signup_id] : null,
     }));
 
     return { stays: transformedStays, error: null };
@@ -219,13 +269,14 @@ export async function createStay(
     notes?: string;
     guestCount?: number;
     guestNightlyRate?: number;
+    bedSignupId?: string;
   }
 ): Promise<{
   stay: Stay | null;
   error: Error | null;
 }> {
   try {
-    const { checkIn, checkOut, notes, guestCount = 0, guestNightlyRate = GUEST_FEE_PER_NIGHT } = data;
+    const { checkIn, checkOut, notes, guestCount = 0, guestNightlyRate = GUEST_FEE_PER_NIGHT, bedSignupId } = data;
 
     // Validate dates
     if (new Date(checkOut) < new Date(checkIn)) {
@@ -313,6 +364,7 @@ export async function createStay(
         notes: notes || null,
         guest_count: guestCount,
         linked_expense_id: linkedExpenseId,
+        bed_signup_id: bedSignupId || null,
       })
       .select()
       .single();
@@ -344,13 +396,14 @@ export async function updateStay(
     notes?: string;
     guestCount?: number;
     guestNightlyRate?: number;
+    bedSignupId?: string;
   }
 ): Promise<{
   stay: Stay | null;
   error: Error | null;
 }> {
   try {
-    const { checkIn, checkOut, notes, guestCount = 0, guestNightlyRate = GUEST_FEE_PER_NIGHT } = data;
+    const { checkIn, checkOut, notes, guestCount = 0, guestNightlyRate = GUEST_FEE_PER_NIGHT, bedSignupId } = data;
 
     // Validate dates
     if (new Date(checkOut) < new Date(checkIn)) {
@@ -462,6 +515,7 @@ export async function updateStay(
         notes: notes || null,
         guest_count: guestCount,
         linked_expense_id: linkedExpenseId,
+        bed_signup_id: bedSignupId !== undefined ? (bedSignupId || null) : undefined,
       })
       .eq("id", stayId)
       .select()
@@ -486,16 +540,21 @@ export async function deleteStay(stayId: string): Promise<{
   error: Error | null;
 }> {
   try {
-    // Get the stay first to check for linked expense
+    // Get the stay first to check for linked expense and bed signup
     const { data: stay } = await supabase
       .from("stays")
-      .select("linked_expense_id")
+      .select("linked_expense_id, bed_signup_id")
       .eq("id", stayId)
       .single();
 
     // Delete linked expense if exists (cascades to splits)
     if (stay?.linked_expense_id) {
       await supabase.from("expenses").delete().eq("id", stay.linked_expense_id);
+    }
+
+    // Delete bed signup if exists (releases the bed claim)
+    if (stay?.bed_signup_id) {
+      await supabase.from("bed_signups").delete().eq("id", stay.bed_signup_id);
     }
 
     // Delete the stay

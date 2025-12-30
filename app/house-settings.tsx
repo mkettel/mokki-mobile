@@ -1005,19 +1005,33 @@ export default function HouseSettingsScreen() {
                         : "Select date..."}
                     </Text>
                   </TouchableOpacity>
-                  {(showStartDatePicker || Platform.OS === "ios") && (
-                    <DateTimePicker
-                      value={tripStartDate || new Date()}
-                      mode="date"
-                      display={Platform.OS === "ios" ? "spinner" : "default"}
-                      onChange={(event, date) => {
-                        setShowStartDatePicker(false);
-                        if (date) handleStartDateChange(date);
-                      }}
-                      style={
-                        Platform.OS === "ios" ? styles.iosPicker : undefined
-                      }
-                    />
+                  {showStartDatePicker && (
+                    <>
+                      <DateTimePicker
+                        value={tripStartDate || new Date()}
+                        mode="date"
+                        display={Platform.OS === "ios" ? "spinner" : "default"}
+                        onChange={(event, date) => {
+                          if (Platform.OS === "android") {
+                            setShowStartDatePicker(false);
+                          }
+                          if (date) handleStartDateChange(date);
+                        }}
+                        style={
+                          Platform.OS === "ios" ? styles.iosPicker : undefined
+                        }
+                      />
+                      {Platform.OS === "ios" && (
+                        <TouchableOpacity
+                          style={styles.pickerDoneButton}
+                          onPress={() => setShowStartDatePicker(false)}
+                        >
+                          <Text style={[styles.pickerDoneText, { color: colors.primary }]}>
+                            Done
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </>
                   )}
                 </View>
 
@@ -1051,20 +1065,34 @@ export default function HouseSettingsScreen() {
                         : "No end date"}
                     </Text>
                   </TouchableOpacity>
-                  {(showEndDatePicker || Platform.OS === "ios") && (
-                    <DateTimePicker
-                      value={tripEndDate || tripStartDate || new Date()}
-                      mode="date"
-                      display={Platform.OS === "ios" ? "spinner" : "default"}
-                      onChange={(event, date) => {
-                        setShowEndDatePicker(false);
-                        if (date) handleEndDateChange(date);
-                      }}
-                      minimumDate={tripStartDate || undefined}
-                      style={
-                        Platform.OS === "ios" ? styles.iosPicker : undefined
-                      }
-                    />
+                  {showEndDatePicker && (
+                    <>
+                      <DateTimePicker
+                        value={tripEndDate || tripStartDate || new Date()}
+                        mode="date"
+                        display={Platform.OS === "ios" ? "spinner" : "default"}
+                        onChange={(event, date) => {
+                          if (Platform.OS === "android") {
+                            setShowEndDatePicker(false);
+                          }
+                          if (date) handleEndDateChange(date);
+                        }}
+                        minimumDate={tripStartDate || undefined}
+                        style={
+                          Platform.OS === "ios" ? styles.iosPicker : undefined
+                        }
+                      />
+                      {Platform.OS === "ios" && (
+                        <TouchableOpacity
+                          style={styles.pickerDoneButton}
+                          onPress={() => setShowEndDatePicker(false)}
+                        >
+                          <Text style={[styles.pickerDoneText, { color: colors.primary }]}>
+                            Done
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </>
                   )}
                 </View>
 
@@ -1742,6 +1770,16 @@ const styles = StyleSheet.create({
   iosPicker: {
     height: 120,
     marginTop: -8,
+  },
+  pickerDoneButton: {
+    alignSelf: "flex-end",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 4,
+  },
+  pickerDoneText: {
+    fontSize: 16,
+    fontFamily: typography.fontFamily.chillaxMedium,
   },
   clearDatesButton: {
     alignItems: "center",

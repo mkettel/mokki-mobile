@@ -10,12 +10,15 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { FontAwesome } from "@expo/vector-icons";
 import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
 import { StayWithExpense } from "@/lib/api/stays";
+import { BedSelectionModal } from "@/components/beds";
+import { isWindowOpenForDates, getUserBedClaim } from "@/lib/api/bedSignups";
 
 interface EditStayModalProps {
   visible: boolean;
@@ -26,11 +29,24 @@ interface EditStayModalProps {
     checkOut: string;
     notes?: string;
     guestCount: number;
+    bedSignupId?: string;
   }) => Promise<void>;
   guestNightlyRate: number;
+  houseId?: string;
+  userId?: string;
+  bedSignupEnabled?: boolean;
 }
 
-export function EditStayModal({ visible, stay, onClose, onSubmit, guestNightlyRate }: EditStayModalProps) {
+export function EditStayModal({
+  visible,
+  stay,
+  onClose,
+  onSubmit,
+  guestNightlyRate,
+  houseId,
+  userId,
+  bedSignupEnabled = false,
+}: EditStayModalProps) {
   const colors = useColors();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,6 +55,13 @@ export function EditStayModal({ visible, stay, onClose, onSubmit, guestNightlyRa
   const [checkOut, setCheckOut] = useState(new Date());
   const [notes, setNotes] = useState("");
   const [guestCount, setGuestCount] = useState(0);
+
+  // Bed selection state
+  const [bedSignupId, setBedSignupId] = useState<string | null>(null);
+  const [selectedBedName, setSelectedBedName] = useState<string | null>(null);
+  const [showBedSelection, setShowBedSelection] = useState(false);
+  const [checkingBedWindow, setCheckingBedWindow] = useState(false);
+  const [bedWindowOpen, setBedWindowOpen] = useState(false);
 
   // Date picker visibility (for Android)
   const [showCheckInPicker, setShowCheckInPicker] = useState(false);
@@ -51,8 +74,54 @@ export function EditStayModal({ visible, stay, onClose, onSubmit, guestNightlyRa
       setCheckOut(new Date(stay.check_out));
       setNotes(stay.notes || "");
       setGuestCount(stay.guest_count || 0);
+      // Set existing bed info
+      if (stay.bedSignup) {
+        setBedSignupId(stay.bedSignup.id);
+        setSelectedBedName(`${stay.bedSignup.bedName} (${stay.bedSignup.roomName})`);
+      } else {
+        setBedSignupId(null);
+        setSelectedBedName(null);
+      }
     }
   }, [stay]);
+
+  // Check if bed signup window is open for these dates
+  useEffect(() => {
+    const checkBedWindow = async () => {
+      if (!bedSignupEnabled || !houseId || !userId) {
+        setBedWindowOpen(false);
+        return;
+      }
+
+      const checkInStr = checkIn.toISOString().split("T")[0];
+      const checkOutStr = checkOut.toISOString().split("T")[0];
+
+      setCheckingBedWindow(true);
+      try {
+        const { isOpen, window } = await isWindowOpenForDates(houseId, checkInStr, checkOutStr);
+        setBedWindowOpen(isOpen);
+
+        // If window is open and user doesn't have existing claim from stay, check for one
+        if (isOpen && window && !bedSignupId) {
+          const { claim } = await getUserBedClaim(window.id, userId);
+          if (claim) {
+            setBedSignupId(claim.id);
+            const bed = claim.beds;
+            const room = bed?.rooms;
+            if (bed && room) {
+              setSelectedBedName(`${bed.name} (${room.name})`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error checking bed window:", error);
+        setBedWindowOpen(false);
+      }
+      setCheckingBedWindow(false);
+    };
+
+    checkBedWindow();
+  }, [bedSignupEnabled, houseId, userId, checkIn, checkOut]);
 
   const handleClose = () => {
     onClose();
@@ -72,6 +141,7 @@ export function EditStayModal({ visible, stay, onClose, onSubmit, guestNightlyRa
         checkOut: checkOut.toISOString().split("T")[0],
         notes: notes.trim() || undefined,
         guestCount,
+        bedSignupId: bedSignupId || undefined,
       });
       handleClose();
     } catch (error) {
@@ -79,6 +149,18 @@ export function EditStayModal({ visible, stay, onClose, onSubmit, guestNightlyRa
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleBedSelected = (bedId: string, signupId: string) => {
+    setBedSignupId(signupId);
+    setSelectedBedName("Bed selected");
+    setShowBedSelection(false);
+  };
+
+  const handleBedSkipped = () => {
+    setBedSignupId(null);
+    setSelectedBedName(null);
+    setShowBedSelection(false);
   };
 
   const formatDate = (date: Date) => {
@@ -317,7 +399,85 @@ export function EditStayModal({ visible, stay, onClose, onSubmit, guestNightlyRa
               </Text>
             </View>
           )}
+
+          {/* Bed Selection */}
+          {bedSignupEnabled && (
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.foreground }]}>
+                Bed Assignment
+              </Text>
+              {checkingBedWindow ? (
+                <View style={styles.bedLoadingContainer}>
+                  <ActivityIndicator size="small" color={colors.mutedForeground} />
+                  <Text style={[styles.bedLoadingText, { color: colors.mutedForeground }]}>
+                    Checking availability...
+                  </Text>
+                </View>
+              ) : bedWindowOpen ? (
+                <TouchableOpacity
+                  style={[
+                    styles.bedButton,
+                    {
+                      backgroundColor: bedSignupId ? colors.primary + "15" : colors.muted,
+                      borderColor: bedSignupId ? colors.primary : colors.border,
+                    },
+                  ]}
+                  onPress={() => setShowBedSelection(true)}
+                >
+                  <FontAwesome
+                    name="bed"
+                    size={16}
+                    color={bedSignupId ? colors.primary : colors.mutedForeground}
+                  />
+                  <Text
+                    style={[
+                      styles.bedButtonText,
+                      { color: bedSignupId ? colors.primary : colors.foreground },
+                    ]}
+                  >
+                    {selectedBedName || "Select a bed..."}
+                  </Text>
+                  <FontAwesome
+                    name="chevron-right"
+                    size={12}
+                    color={colors.mutedForeground}
+                  />
+                </TouchableOpacity>
+              ) : selectedBedName ? (
+                // Show existing bed but can't change (window closed)
+                <View
+                  style={[
+                    styles.bedButton,
+                    { backgroundColor: colors.muted, borderColor: colors.border },
+                  ]}
+                >
+                  <FontAwesome name="bed" size={16} color={colors.mutedForeground} />
+                  <Text style={[styles.bedButtonText, { color: colors.foreground }]}>
+                    {selectedBedName}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={[styles.sublabel, { color: colors.mutedForeground }]}>
+                  No bed sign-up window is currently open for these dates
+                </Text>
+              )}
+            </View>
+          )}
         </ScrollView>
+
+        {/* Bed Selection Modal */}
+        {houseId && userId && (
+          <BedSelectionModal
+            visible={showBedSelection}
+            houseId={houseId}
+            userId={userId}
+            checkIn={checkIn.toISOString().split("T")[0]}
+            checkOut={checkOut.toISOString().split("T")[0]}
+            onClose={() => setShowBedSelection(false)}
+            onBedSelected={handleBedSelected}
+            onSkip={handleBedSkipped}
+          />
+        )}
 
         {/* Submit Button */}
         <View style={[styles.footer, { borderTopColor: colors.border }]}>
@@ -468,5 +628,28 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontFamily: typography.fontFamily.chillaxSemibold,
+  },
+  bedLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 8,
+  },
+  bedLoadingText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillax,
+  },
+  bedButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 12,
+  },
+  bedButtonText: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillax,
   },
 });
