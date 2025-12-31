@@ -12,6 +12,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -66,6 +67,9 @@ export function AddExpenseModal({
   // Receipt state
   const [receipt, setReceipt] = useState<ReceiptFile | null>(null);
 
+  // Include myself in split toggle (for even split mode)
+  const [includeMyself, setIncludeMyself] = useState(false);
+
   // Filter out current user from members list
   const otherMembers = useMemo(
     () => members.filter((m) => m.id !== currentUserId),
@@ -81,13 +85,16 @@ export function AddExpenseModal({
     }
 
     if (splitMode === "even") {
-      const perPerson = formatAmount(amount / selectedMembers.length);
-      const remainder = formatAmount(
-        amount - perPerson * selectedMembers.length
-      );
+      // When includeMyself is on, divide by (selectedMembers + 1)
+      const totalSplitters = includeMyself
+        ? selectedMembers.length + 1
+        : selectedMembers.length;
+      const perPerson = formatAmount(amount / totalSplitters);
+      const remainder = formatAmount(amount - perPerson * totalSplitters);
 
       return selectedMembers.map((userId, index) => ({
         userId,
+        // Give remainder to first selected member (not payer)
         amount: index === 0 ? formatAmount(perPerson + remainder) : perPerson,
       }));
     } else {
@@ -96,10 +103,27 @@ export function AddExpenseModal({
         amount: parseFloat(customAmounts[userId] || "0") || 0,
       }));
     }
-  }, [selectedMembers, amount, splitMode, customAmounts]);
+  }, [selectedMembers, amount, splitMode, customAmounts, includeMyself]);
+
+  // Calculate payer's share for display (when includeMyself is on)
+  const payerShare = useMemo(() => {
+    if (
+      !includeMyself ||
+      splitMode !== "even" ||
+      selectedMembers.length === 0 ||
+      amount === 0
+    ) {
+      return 0;
+    }
+    const totalSplitters = selectedMembers.length + 1;
+    return formatAmount(amount / totalSplitters);
+  }, [includeMyself, splitMode, selectedMembers.length, amount]);
 
   const splitsTotal = calculatedSplits.reduce((sum, s) => sum + s.amount, 0);
-  const isBalanced = Math.abs(splitsTotal - amount) < 0.01;
+  // When includeMyself is on, the total should equal splits + payer's share
+  const effectiveTotal =
+    includeMyself && splitMode === "even" ? splitsTotal + payerShare : splitsTotal;
+  const isBalanced = Math.abs(effectiveTotal - amount) < 0.01;
 
   const resetForm = () => {
     setTitle("");
@@ -111,6 +135,7 @@ export function AddExpenseModal({
     setSelectedMembers([]);
     setCustomAmounts({});
     setReceipt(null);
+    setIncludeMyself(false);
   };
 
   const handleClose = () => {
@@ -470,6 +495,36 @@ export function AddExpenseModal({
               </View>
             </View>
 
+            {/* Include myself toggle - only shown in even split mode */}
+            {splitMode === "even" && (
+              <View style={styles.includeMyselfRow}>
+                <View style={styles.includeMyselfLeft}>
+                  <Text
+                    style={[
+                      styles.includeMyselfLabel,
+                      { color: colors.foreground },
+                    ]}
+                  >
+                    Include myself in split
+                  </Text>
+                  <Text
+                    style={[
+                      styles.includeMyselfHint,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
+                    Divide evenly including your share
+                  </Text>
+                </View>
+                <Switch
+                  value={includeMyself}
+                  onValueChange={setIncludeMyself}
+                  trackColor={{ false: colors.muted, true: colors.primary }}
+                  thumbColor={colors.background}
+                />
+              </View>
+            )}
+
             {/* Quick select buttons */}
             <View style={styles.quickSelectRow}>
               <TouchableOpacity onPress={selectAllMembers}>
@@ -487,6 +542,41 @@ export function AddExpenseModal({
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {/* Payer's share display (when include myself is on) */}
+            {includeMyself && splitMode === "even" && payerShare > 0 && (
+              <View
+                style={[
+                  styles.payerShareRow,
+                  { backgroundColor: colors.muted, borderColor: colors.border },
+                ]}
+              >
+                <View style={styles.memberLeft}>
+                  <View
+                    style={[
+                      styles.payerBadge,
+                      { backgroundColor: colors.primary },
+                    ]}
+                  >
+                    <FontAwesome
+                      name="user"
+                      size={12}
+                      color={colors.primaryForeground}
+                    />
+                  </View>
+                  <Text
+                    style={[styles.memberName, { color: colors.foreground }]}
+                  >
+                    You (paying)
+                  </Text>
+                </View>
+                <Text
+                  style={[styles.splitAmountText, { color: colors.foreground }]}
+                >
+                  ${payerShare.toFixed(2)}
+                </Text>
+              </View>
+            )}
 
             {/* Members list */}
             <View style={styles.membersList}>
@@ -790,6 +880,42 @@ const styles = StyleSheet.create({
   splitModeText: {
     fontSize: 12,
     fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  includeMyselfRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  includeMyselfLeft: {
+    flex: 1,
+  },
+  includeMyselfLabel: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  includeMyselfHint: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily.chillax,
+    marginTop: 2,
+  },
+  payerShareRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    marginBottom: 8,
+  },
+  payerBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
   quickSelectRow: {
     flexDirection: "row",
