@@ -395,7 +395,7 @@ export function AddExpenseModal({
                 {formatDate(date)}
               </Text>
             </TouchableOpacity>
-            {(showDatePicker || Platform.OS === "ios") && (
+            {showDatePicker && (
               <DateTimePicker
                 value={date}
                 mode="date"
