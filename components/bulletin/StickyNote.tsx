@@ -119,7 +119,7 @@ export function StickyNote({ item, onEdit, onDelete }: StickyNoteProps) {
       )}
 
       {/* Title */}
-      <Text style={[styles.title, { color: colorInfo.text }]} numberOfLines={2}>
+      <Text style={[styles.title, { color: colorInfo.text }]}>
         {item.title}
       </Text>
 
@@ -129,7 +129,6 @@ export function StickyNote({ item, onEdit, onDelete }: StickyNoteProps) {
         url
         email
         phone
-        numberOfLines={6}
         style={[styles.content, { color: colorInfo.text }]}
         linkStyle={{ textDecorationLine: "underline" }}
       />
@@ -234,7 +233,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: typography.fontFamily.chillax,
     lineHeight: 18,
-    flex: 1,
   },
   footer: {
     marginTop: 12,
