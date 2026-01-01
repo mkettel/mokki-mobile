@@ -1,5 +1,5 @@
 import { typography } from "@/constants/theme";
-import { getColorInfo, getCategoryInfo } from "@/lib/api/bulletin";
+import { getColorInfo, getCategoryInfo, parseChecklistContent } from "@/lib/api/bulletin";
 import { useColors } from "@/lib/context/theme";
 import type { BulletinItemWithProfile, BulletinStyle } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
@@ -16,9 +16,10 @@ interface StickyNoteProps {
   item: BulletinItemWithProfile;
   onEdit?: (item: BulletinItemWithProfile) => void;
   onDelete?: (item: BulletinItemWithProfile) => void;
+  onToggleChecklistItem?: (item: BulletinItemWithProfile, itemId: string) => void;
 }
 
-export function StickyNote({ item, onEdit, onDelete }: StickyNoteProps) {
+export function StickyNote({ item, onEdit, onDelete, onToggleChecklistItem }: StickyNoteProps) {
   const colors = useColors();
   const colorInfo = getColorInfo(item.color);
   const categoryInfo = getCategoryInfo(item.category);
@@ -49,6 +50,12 @@ export function StickyNote({ item, onEdit, onDelete }: StickyNoteProps) {
         return (
           <View style={styles.keychainHole}>
             <View style={[styles.keychainRing, { borderColor: colors.mutedForeground }]} />
+          </View>
+        );
+      case "todo":
+        return (
+          <View style={styles.todoIcon}>
+            <FontAwesome name="check-square-o" size={14} color={colorInfo.text} />
           </View>
         );
       default:
@@ -124,14 +131,42 @@ export function StickyNote({ item, onEdit, onDelete }: StickyNoteProps) {
       </Text>
 
       {/* Content */}
-      <Autolink
-        text={item.content}
-        url
-        email
-        phone
-        style={[styles.content, { color: colorInfo.text }]}
-        linkStyle={{ textDecorationLine: "underline" }}
-      />
+      {item.style === "todo" ? (
+        <View style={styles.checklistContainer}>
+          {parseChecklistContent(item.content).map((checkItem) => (
+            <TouchableOpacity
+              key={checkItem.id}
+              style={styles.checklistItem}
+              onPress={() => onToggleChecklistItem?.(item, checkItem.id)}
+              activeOpacity={0.7}
+            >
+              <FontAwesome
+                name={checkItem.completed ? "check-square" : "square-o"}
+                size={16}
+                color={colorInfo.text}
+              />
+              <Text
+                style={[
+                  styles.checklistText,
+                  { color: colorInfo.text },
+                  checkItem.completed && styles.checklistTextCompleted,
+                ]}
+              >
+                {checkItem.text}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : (
+        <Autolink
+          text={item.content}
+          url
+          email
+          phone
+          style={[styles.content, { color: colorInfo.text }]}
+          linkStyle={{ textDecorationLine: "underline" }}
+        />
+      )}
 
       {/* Footer with creator */}
       <View style={styles.footer}>
@@ -209,6 +244,29 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     borderWidth: 2,
+  },
+  todoIcon: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+  },
+  checklistContainer: {
+    gap: 8,
+  },
+  checklistItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  checklistText: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.chillax,
+    flex: 1,
+    lineHeight: 18,
+  },
+  checklistTextCompleted: {
+    textDecorationLine: "line-through",
+    opacity: 0.6,
   },
   categoryBadge: {
     flexDirection: "row",

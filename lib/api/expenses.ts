@@ -266,17 +266,20 @@ export async function createExpense(
     category: ExpenseCategory;
     date: string;
     splits: { userId: string; amount: number }[];
+    payerShare?: number;
   }
 ): Promise<{
   expense: Expense | null;
   error: Error | null;
 }> {
   try {
-    const { title, amount, description, category, date, splits } = data;
+    const { title, amount, description, category, date, splits, payerShare = 0 } = data;
 
     // Validate splits sum to total (with tolerance for floating point)
+    // When payer includes themselves in the split, payerShare represents their portion
     const splitsTotal = splits.reduce((sum, s) => sum + s.amount, 0);
-    if (Math.abs(splitsTotal - amount) > 0.01) {
+    const effectiveTotal = splitsTotal + payerShare;
+    if (Math.abs(effectiveTotal - amount) > 0.01) {
       return {
         expense: null,
         error: new Error("Split amounts must equal the total expense amount"),

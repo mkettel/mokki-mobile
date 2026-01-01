@@ -3,12 +3,16 @@ import {
   BULLETIN_CATEGORIES,
   BULLETIN_COLORS,
   BULLETIN_STYLES,
+  generateChecklistItemId,
+  parseChecklistContent,
+  serializeChecklistContent,
 } from "@/lib/api/bulletin";
 import { useColors } from "@/lib/context/theme";
 import type {
   BulletinCategory,
   BulletinItemWithProfile,
   BulletinStyle,
+  ChecklistItem,
 } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
@@ -50,6 +54,10 @@ export function NoteModal({ visible, item, onClose, onSubmit }: NoteModalProps) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Checklist state for to-do list style
+  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
+  const [newItemText, setNewItemText] = useState("");
+
   // Reset form when modal opens/closes or item changes
   useEffect(() => {
     if (visible) {
@@ -59,13 +67,21 @@ export function NoteModal({ visible, item, onClose, onSubmit }: NoteModalProps) 
         setCategory(item.category);
         setColor(item.color);
         setStyle(item.style);
+        // Parse checklist if editing a todo
+        if (item.style === "todo") {
+          setChecklistItems(parseChecklistContent(item.content));
+        } else {
+          setChecklistItems([]);
+        }
       } else {
         setTitle("");
         setContent("");
         setCategory(null);
         setColor("yellow");
         setStyle("sticky");
+        setChecklistItems([]);
       }
+      setNewItemText("");
       setError(null);
     }
   }, [visible, item]);
@@ -75,18 +91,33 @@ export function NoteModal({ visible, item, onClose, onSubmit }: NoteModalProps) 
       setError("Title is required");
       return;
     }
-    if (!content.trim()) {
-      setError("Content is required");
-      return;
+
+    // Validate based on style type
+    if (style === "todo") {
+      if (checklistItems.length === 0) {
+        setError("Add at least one checklist item");
+        return;
+      }
+    } else {
+      if (!content.trim()) {
+        setError("Content is required");
+        return;
+      }
     }
 
     setIsSubmitting(true);
     setError(null);
 
     try {
+      // Serialize checklist content for todo style
+      const finalContent =
+        style === "todo"
+          ? serializeChecklistContent(checklistItems)
+          : content.trim();
+
       await onSubmit({
         title: title.trim(),
-        content: content.trim(),
+        content: finalContent,
         category,
         color,
         style,
@@ -97,6 +128,26 @@ export function NoteModal({ visible, item, onClose, onSubmit }: NoteModalProps) 
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Checklist helper functions
+  const addChecklistItem = () => {
+    if (!newItemText.trim()) return;
+    setChecklistItems([
+      ...checklistItems,
+      { id: generateChecklistItemId(), text: newItemText.trim(), completed: false },
+    ]);
+    setNewItemText("");
+  };
+
+  const removeChecklistItem = (id: string) => {
+    setChecklistItems(checklistItems.filter((item) => item.id !== id));
+  };
+
+  const updateChecklistItem = (id: string, text: string) => {
+    setChecklistItems(
+      checklistItems.map((item) => (item.id === id ? { ...item, text } : item))
+    );
   };
 
   const getCategoryIcon = (icon: string): React.ComponentProps<typeof FontAwesome>["name"] => {
@@ -245,32 +296,96 @@ export function NoteModal({ visible, item, onClose, onSubmit }: NoteModalProps) 
             </Text>
           </View>
 
-          {/* Content input */}
-          <View style={styles.section}>
-            <Text style={[styles.label, { color: colors.foreground }]}>
-              Content *
-            </Text>
-            <TextInput
-              style={[
-                styles.textArea,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  color: colors.foreground,
-                },
-              ]}
-              value={content}
-              onChangeText={setContent}
-              placeholder="Write your note..."
-              placeholderTextColor={colors.mutedForeground}
-              multiline
-              textAlignVertical="top"
-              maxLength={1000}
-            />
-            <Text style={[styles.charCount, { color: colors.mutedForeground }]}>
-              {content.length}/1000
-            </Text>
-          </View>
+          {/* Content input - different UI for todo style */}
+          {style === "todo" ? (
+            <View style={styles.section}>
+              <Text style={[styles.label, { color: colors.foreground }]}>
+                Checklist Items *
+              </Text>
+
+              {/* Existing checklist items */}
+              {checklistItems.map((item) => (
+                <View
+                  key={item.id}
+                  style={[
+                    styles.checklistInputRow,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <TextInput
+                    style={[styles.checklistItemInput, { color: colors.foreground }]}
+                    value={item.text}
+                    onChangeText={(text) => updateChecklistItem(item.id, text)}
+                    placeholder="Item text..."
+                    placeholderTextColor={colors.mutedForeground}
+                  />
+                  <TouchableOpacity
+                    style={styles.removeItemButton}
+                    onPress={() => removeChecklistItem(item.id)}
+                  >
+                    <FontAwesome name="times" size={16} color={colors.mutedForeground} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              {/* Add new item input */}
+              <View
+                style={[
+                  styles.addItemRow,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <TextInput
+                  style={[styles.addItemInput, { color: colors.foreground }]}
+                  value={newItemText}
+                  onChangeText={setNewItemText}
+                  placeholder="Add item..."
+                  placeholderTextColor={colors.mutedForeground}
+                  onSubmitEditing={addChecklistItem}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity style={styles.addItemButton} onPress={addChecklistItem}>
+                  <FontAwesome name="plus" size={16} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={[styles.charCount, { color: colors.mutedForeground }]}>
+                {checklistItems.length} item{checklistItems.length !== 1 ? "s" : ""}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.section}>
+              <Text style={[styles.label, { color: colors.foreground }]}>
+                Content *
+              </Text>
+              <TextInput
+                style={[
+                  styles.textArea,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    color: colors.foreground,
+                  },
+                ]}
+                value={content}
+                onChangeText={setContent}
+                placeholder="Write your note..."
+                placeholderTextColor={colors.mutedForeground}
+                multiline
+                textAlignVertical="top"
+                maxLength={1000}
+              />
+              <Text style={[styles.charCount, { color: colors.mutedForeground }]}>
+                {content.length}/1000
+              </Text>
+            </View>
+          )}
 
           {/* Color picker */}
           <View style={styles.section}>
@@ -424,6 +539,44 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: typography.fontFamily.chillax,
     minHeight: 120,
+  },
+  checklistInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
+    gap: 8,
+  },
+  checklistItemInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillax,
+    paddingVertical: 4,
+  },
+  removeItemButton: {
+    padding: 4,
+  },
+  addItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+    borderStyle: "dashed",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  addItemInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillax,
+    paddingVertical: 4,
+  },
+  addItemButton: {
+    padding: 4,
   },
   charCount: {
     fontSize: 11,

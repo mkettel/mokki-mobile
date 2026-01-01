@@ -10,12 +10,14 @@ interface BulletinGridProps {
   items: BulletinItemWithProfile[];
   onEditItem?: (item: BulletinItemWithProfile) => void;
   onDeleteItem?: (item: BulletinItemWithProfile) => void;
+  onToggleChecklistItem?: (item: BulletinItemWithProfile, itemId: string) => void;
 }
 
 export function BulletinGrid({
   items,
   onEditItem,
   onDeleteItem,
+  onToggleChecklistItem,
 }: BulletinGridProps) {
   const colors = useColors();
   const screenWidth = Dimensions.get("window").width;
@@ -60,6 +62,7 @@ export function BulletinGrid({
                   item={item}
                   onEdit={onEditItem}
                   onDelete={onDeleteItem}
+                  onToggleChecklistItem={onToggleChecklistItem}
                 />
               </View>
             ))}

@@ -30,6 +30,7 @@ interface AddExpenseModalProps {
     category: ExpenseCategory;
     date: string;
     splits: { userId: string; amount: number }[];
+    payerShare?: number;
     receipt?: ReceiptFile;
   }) => Promise<void>;
   members: Profile[];
@@ -67,8 +68,9 @@ export function AddExpenseModal({
   // Receipt state
   const [receipt, setReceipt] = useState<ReceiptFile | null>(null);
 
-  // Include myself in split toggle (for even split mode)
+  // Include myself in split toggle
   const [includeMyself, setIncludeMyself] = useState(false);
+  const [myCustomAmount, setMyCustomAmount] = useState("");
 
   // Filter out current user from members list
   const otherMembers = useMemo(
@@ -107,22 +109,22 @@ export function AddExpenseModal({
 
   // Calculate payer's share for display (when includeMyself is on)
   const payerShare = useMemo(() => {
-    if (
-      !includeMyself ||
-      splitMode !== "even" ||
-      selectedMembers.length === 0 ||
-      amount === 0
-    ) {
+    if (!includeMyself || selectedMembers.length === 0 || amount === 0) {
       return 0;
     }
-    const totalSplitters = selectedMembers.length + 1;
-    return formatAmount(amount / totalSplitters);
-  }, [includeMyself, splitMode, selectedMembers.length, amount]);
+
+    if (splitMode === "even") {
+      const totalSplitters = selectedMembers.length + 1;
+      return formatAmount(amount / totalSplitters);
+    } else {
+      // Custom mode - use manually entered amount
+      return parseFloat(myCustomAmount) || 0;
+    }
+  }, [includeMyself, splitMode, selectedMembers.length, amount, myCustomAmount]);
 
   const splitsTotal = calculatedSplits.reduce((sum, s) => sum + s.amount, 0);
   // When includeMyself is on, the total should equal splits + payer's share
-  const effectiveTotal =
-    includeMyself && splitMode === "even" ? splitsTotal + payerShare : splitsTotal;
+  const effectiveTotal = includeMyself ? splitsTotal + payerShare : splitsTotal;
   const isBalanced = Math.abs(effectiveTotal - amount) < 0.01;
 
   const resetForm = () => {
@@ -136,6 +138,7 @@ export function AddExpenseModal({
     setCustomAmounts({});
     setReceipt(null);
     setIncludeMyself(false);
+    setMyCustomAmount("");
   };
 
   const handleClose = () => {
@@ -179,6 +182,7 @@ export function AddExpenseModal({
         category,
         date: date.toISOString().split("T")[0],
         splits: calculatedSplits,
+        payerShare: includeMyself ? payerShare : undefined,
         receipt: receipt || undefined,
       });
       handleClose();
@@ -495,35 +499,35 @@ export function AddExpenseModal({
               </View>
             </View>
 
-            {/* Include myself toggle - only shown in even split mode */}
-            {splitMode === "even" && (
-              <View style={styles.includeMyselfRow}>
-                <View style={styles.includeMyselfLeft}>
-                  <Text
-                    style={[
-                      styles.includeMyselfLabel,
-                      { color: colors.foreground },
-                    ]}
-                  >
-                    Include myself in split
-                  </Text>
-                  <Text
-                    style={[
-                      styles.includeMyselfHint,
-                      { color: colors.mutedForeground },
-                    ]}
-                  >
-                    Divide evenly including your share
-                  </Text>
-                </View>
-                <Switch
-                  value={includeMyself}
-                  onValueChange={setIncludeMyself}
-                  trackColor={{ false: colors.muted, true: colors.primary }}
-                  thumbColor={colors.background}
-                />
+            {/* Include myself toggle */}
+            <View style={styles.includeMyselfRow}>
+              <View style={styles.includeMyselfLeft}>
+                <Text
+                  style={[
+                    styles.includeMyselfLabel,
+                    { color: colors.foreground },
+                  ]}
+                >
+                  Include myself in split
+                </Text>
+                <Text
+                  style={[
+                    styles.includeMyselfHint,
+                    { color: colors.mutedForeground },
+                  ]}
+                >
+                  {splitMode === "even"
+                    ? "Divide evenly including your share"
+                    : "Enter your share of the expense"}
+                </Text>
               </View>
-            )}
+              <Switch
+                value={includeMyself}
+                onValueChange={setIncludeMyself}
+                trackColor={{ false: colors.muted, true: colors.primary }}
+                thumbColor={colors.background}
+              />
+            </View>
 
             {/* Quick select buttons */}
             <View style={styles.quickSelectRow}>
@@ -544,7 +548,7 @@ export function AddExpenseModal({
             </View>
 
             {/* Payer's share display (when include myself is on) */}
-            {includeMyself && splitMode === "even" && payerShare > 0 && (
+            {includeMyself && (
               <View
                 style={[
                   styles.payerShareRow,
@@ -570,11 +574,40 @@ export function AddExpenseModal({
                     You (paying)
                   </Text>
                 </View>
-                <Text
-                  style={[styles.splitAmountText, { color: colors.foreground }]}
-                >
-                  ${payerShare.toFixed(2)}
-                </Text>
+                {splitMode === "custom" ? (
+                  <View
+                    style={[
+                      styles.customAmountInput,
+                      {
+                        backgroundColor: colors.background,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.dollarSignSmall,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      $
+                    </Text>
+                    <TextInput
+                      style={[styles.customInput, { color: colors.foreground }]}
+                      value={myCustomAmount}
+                      onChangeText={setMyCustomAmount}
+                      placeholder="0.00"
+                      placeholderTextColor={colors.mutedForeground}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                ) : (
+                  <Text
+                    style={[styles.splitAmountText, { color: colors.foreground }]}
+                  >
+                    ${payerShare.toFixed(2)}
+                  </Text>
+                )}
               </View>
             )}
 
@@ -716,12 +749,15 @@ export function AddExpenseModal({
                     { color: isBalanced ? "#166534" : "#991b1b" },
                   ]}
                 >
-                  Split Total: ${splitsTotal.toFixed(2)}
+                  Split Total: ${effectiveTotal.toFixed(2)}
+                  {includeMyself && payerShare > 0 && (
+                    ` (incl. $${payerShare.toFixed(2)} you)`
+                  )}
                 </Text>
                 {!isBalanced && (
                   <Text style={[styles.splitTotalDiff, { color: "#991b1b" }]}>
-                    {splitsTotal > amount ? "Over" : "Under"} by $
-                    {Math.abs(splitsTotal - amount).toFixed(2)}
+                    {effectiveTotal > amount ? "Over" : "Under"} by $
+                    {Math.abs(effectiveTotal - amount).toFixed(2)}
                   </Text>
                 )}
                 {isBalanced && (

@@ -147,6 +147,7 @@ export default function ExpensesScreen() {
     category: ExpenseCategory;
     date: string;
     splits: { userId: string; amount: number }[];
+    payerShare?: number;
     receipt?: ReceiptFile;
   }) => {
     if (!activeHouse || !user) return;

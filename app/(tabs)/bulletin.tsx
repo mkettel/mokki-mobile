@@ -8,6 +8,8 @@ import {
   deleteBulletinItem,
   getBulletinItems,
   getHouseNote,
+  parseChecklistContent,
+  serializeChecklistContent,
   updateBulletinItem,
   updateHouseNote,
 } from "@/lib/api/bulletin";
@@ -171,6 +173,38 @@ export default function BulletinScreen() {
     fetchData();
   };
 
+  // Toggle checklist item completion
+  const handleToggleChecklistItem = async (
+    bulletinItem: BulletinItemWithProfile,
+    checklistItemId: string
+  ) => {
+    const items = parseChecklistContent(bulletinItem.content);
+    const updatedItems = items.map((item) =>
+      item.id === checklistItemId ? { ...item, completed: !item.completed } : item
+    );
+
+    const { error } = await updateBulletinItem(bulletinItem.id, {
+      title: bulletinItem.title,
+      content: serializeChecklistContent(updatedItems),
+      category: bulletinItem.category,
+      color: bulletinItem.color,
+      style: bulletinItem.style,
+    });
+
+    if (error) {
+      console.error("Error toggling checklist item:", error);
+    } else {
+      // Update local state optimistically
+      setBulletinItems((prev) =>
+        prev.map((item) =>
+          item.id === bulletinItem.id
+            ? { ...item, content: serializeChecklistContent(updatedItems) }
+            : item
+        )
+      );
+    }
+  };
+
   if (isLoading) {
     return (
       <View
@@ -285,6 +319,7 @@ export default function BulletinScreen() {
             items={bulletinItems}
             onEditItem={openEditModal}
             onDeleteItem={handleDeleteItem}
+            onToggleChecklistItem={handleToggleChecklistItem}
           />
         ) : (
           <HouseNoteCard note={houseNote} onSave={handleSaveHouseNote} />

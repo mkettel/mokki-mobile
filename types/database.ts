@@ -79,8 +79,15 @@ export type ExpenseCategory =
 export type MessageType = "text" | "system";
 export type RiderType = "skier" | "snowboarder" | "both";
 export type BulletinCategory = "wifi" | "house_rules" | "emergency" | "local_tips";
-export type BulletinStyle = "sticky" | "paper" | "sticker" | "keychain";
+export type BulletinStyle = "sticky" | "paper" | "sticker" | "keychain" | "todo";
 export type MediaType = "image" | "video";
+
+// Checklist item for to-do list style bulletin notes
+export type ChecklistItem = {
+  id: string;
+  text: string;
+  completed: boolean;
+};
 export type RoomType = "bedroom" | "bunk_room";
 export type BedType = "king" | "queen" | "full" | "twin";
 export type SignupWindowStatus = "scheduled" | "open" | "closed";

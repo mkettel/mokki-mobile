@@ -4,6 +4,7 @@ import type {
   BulletinItemWithProfile,
   BulletinCategory,
   BulletinStyle,
+  ChecklistItem,
   HouseNote,
   HouseNoteWithEditor,
 } from "@/types/database";
@@ -23,6 +24,7 @@ export const BULLETIN_STYLES: { value: BulletinStyle; label: string; emoji: stri
   { value: "paper", label: "Paper", emoji: "📄" },
   { value: "sticker", label: "Sticker", emoji: "🏷️" },
   { value: "keychain", label: "Keychain", emoji: "🔑" },
+  { value: "todo", label: "To-Do List", emoji: "☑️" },
 ];
 
 // Category options for bulletin notes
@@ -44,6 +46,24 @@ export function getCategoryInfo(category: BulletinCategory | null) {
 
 export function getStyleInfo(style: BulletinStyle) {
   return BULLETIN_STYLES.find((s) => s.value === style) || BULLETIN_STYLES[0];
+}
+
+// Checklist helper functions for to-do list style notes
+export function parseChecklistContent(content: string): ChecklistItem[] {
+  try {
+    const parsed = JSON.parse(content);
+    return parsed.items || [];
+  } catch {
+    return [];
+  }
+}
+
+export function serializeChecklistContent(items: ChecklistItem[]): string {
+  return JSON.stringify({ items });
+}
+
+export function generateChecklistItemId(): string {
+  return Math.random().toString(36).substring(2, 9);
 }
 
 /**
