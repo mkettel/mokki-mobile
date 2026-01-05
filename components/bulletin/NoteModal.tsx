@@ -230,7 +230,7 @@ export function NoteModal({ visible, item, onClose, onSubmit }: NoteModalProps) 
                 <Text
                   style={[
                     styles.categoryChipText,
-                    { color: !category ? "#fff" : colors.foreground },
+                    { color: !category ? colors.primaryForeground : colors.foreground },
                   ]}
                 >
                   None
@@ -253,14 +253,14 @@ export function NoteModal({ visible, item, onClose, onSubmit }: NoteModalProps) 
                   <FontAwesome
                     name={getCategoryIcon(cat.icon)}
                     size={12}
-                    color={category === cat.value ? "#fff" : colors.foreground}
+                    color={category === cat.value ? colors.primaryForeground : colors.foreground}
                   />
                   <Text
                     style={[
                       styles.categoryChipText,
                       {
                         color:
-                          category === cat.value ? "#fff" : colors.foreground,
+                          category === cat.value ? colors.primaryForeground : colors.foreground,
                       },
                     ]}
                   >
@@ -435,7 +435,7 @@ export function NoteModal({ visible, item, onClose, onSubmit }: NoteModalProps) 
                   <Text
                     style={[
                       styles.styleLabel,
-                      { color: style === s.value ? "#fff" : colors.foreground },
+                      { color: style === s.value ? colors.primaryForeground : colors.foreground },
                     ]}
                   >
                     {s.label}

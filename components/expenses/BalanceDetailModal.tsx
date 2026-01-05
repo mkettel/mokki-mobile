@@ -695,8 +695,17 @@ export function BalanceDetailModal({
                     onPress={handleSettleUp}
                     disabled={isSettling}
                   >
-                    <FontAwesome name="check" size={16} color="#fff" />
-                    <Text style={styles.footerButtonText}>
+                    <FontAwesome
+                      name="check"
+                      size={16}
+                      color={theyOweYou ? "#fff" : colors.primaryForeground}
+                    />
+                    <Text
+                      style={[
+                        styles.footerButtonText,
+                        { color: theyOweYou ? "#fff" : colors.primaryForeground },
+                      ]}
+                    >
                       {isSettling ? "Settling..." : "Mark All as Settled"}
                     </Text>
                   </TouchableOpacity>

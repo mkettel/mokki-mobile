@@ -79,8 +79,10 @@ export function ReceiptViewer({
             style={[styles.openButton, { backgroundColor: colors.primary }]}
             onPress={handleOpenInBrowser}
           >
-            <FontAwesome name="external-link" size={16} color="#fff" />
-            <Text style={styles.openButtonText}>Open in Browser</Text>
+            <FontAwesome name="external-link" size={16} color={colors.primaryForeground} />
+            <Text style={[styles.openButtonText, { color: colors.primaryForeground }]}>
+              Open in Browser
+            </Text>
           </TouchableOpacity>
         </View>
       );

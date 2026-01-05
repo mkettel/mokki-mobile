@@ -35,6 +35,7 @@ import {
   type StayWithExpense,
 } from "@/lib/api/stays";
 import { useAuth } from "@/lib/context/auth";
+import { supabase } from "@/lib/supabase/client";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
 import type {
@@ -50,6 +51,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -85,6 +87,7 @@ export default function ExpensesScreen() {
     useState<ExpenseWithDetails | null>(null);
   const [showBalanceDetail, setShowBalanceDetail] = useState(false);
   const [selectedBalance, setSelectedBalance] = useState<UserBalance | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -138,6 +141,50 @@ export default function ExpensesScreen() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Real-time subscription for expenses and splits
+  useEffect(() => {
+    if (!activeHouse) return;
+
+    const channel = supabase
+      .channel(`expenses:${activeHouse.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "expenses",
+          filter: `house_id=eq.${activeHouse.id}`,
+        },
+        () => {
+          fetchData();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "expense_splits",
+        },
+        () => {
+          // Reload when splits change (settlements)
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeHouse?.id, fetchData]);
+
+  // Pull-to-refresh handler
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   // Expense actions
   const handleAddExpense = async (data: {
@@ -480,6 +527,8 @@ export default function ExpensesScreen() {
             balances={balanceData?.balances || []}
             onSettleAll={handleSettleAllWithUser}
             onSelectBalance={openBalanceDetail}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
           />
         )}
         {activeTab === "expenses" && (
@@ -490,6 +539,8 @@ export default function ExpensesScreen() {
             onDeleteExpense={handleDeleteExpense}
             onSettleSplit={handleSettleSplit}
             onUnsettleSplit={handleUnsettleSplit}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
           />
         )}
         {activeTab === "guest_fees" && (
@@ -499,6 +550,8 @@ export default function ExpensesScreen() {
             currentUserId={user?.id || ""}
             onSettleGuestFee={handleSettleGuestFee}
             onUnsettleGuestFee={handleUnsettleGuestFee}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
           />
         )}
       </View>

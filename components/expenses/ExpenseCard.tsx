@@ -42,15 +42,13 @@ export function ExpenseCard({
     (s) => s.user_id === currentUserId
   );
 
-  // Count unsettled splits (for payer)
-  const unsettledCount =
-    expense.expense_splits?.filter((s) => !s.settled).length || 0;
+  // Count splits for progress indicator
+  const totalSplits = expense.expense_splits?.length || 0;
+  const settledCount = expense.expense_splits?.filter((s) => s.settled).length || 0;
+  const unsettledCount = totalSplits - settledCount;
 
   // Check if expense is fully settled (all splits paid)
-  const isFullySettled =
-    expense.expense_splits &&
-    expense.expense_splits.length > 0 &&
-    expense.expense_splits.every((s) => s.settled);
+  const isFullySettled = totalSplits > 0 && settledCount === totalSplits;
 
   const getPayerName = () => {
     const profile = expense.paid_by_profile;
@@ -195,12 +193,34 @@ export function ExpenseCard({
         </View>
       )}
 
-      {/* Outstanding count for payer */}
-      {isPayer && unsettledCount > 0 && (
-        <View style={[styles.outstandingRow, { backgroundColor: "#fef3c7" }]}>
-          <FontAwesome name="clock-o" size={12} color="#92400e" />
-          <Text style={styles.outstandingText}>
-            {unsettledCount} unpaid split{unsettledCount > 1 ? "s" : ""}
+      {/* Settlement progress indicator */}
+      {totalSplits > 0 && (
+        <View
+          style={[
+            styles.progressRow,
+            {
+              backgroundColor: isFullySettled
+                ? "#dcfce7"
+                : unsettledCount > 0
+                ? "#fef3c7"
+                : colors.muted,
+            },
+          ]}
+        >
+          <FontAwesome
+            name={isFullySettled ? "check-circle" : "clock-o"}
+            size={12}
+            color={isFullySettled ? "#166534" : "#92400e"}
+          />
+          <Text
+            style={[
+              styles.progressText,
+              { color: isFullySettled ? "#166534" : "#92400e" },
+            ]}
+          >
+            {isFullySettled
+              ? "All paid"
+              : `${settledCount}/${totalSplits} paid`}
           </Text>
         </View>
       )}
@@ -399,7 +419,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: typography.fontFamily.chillaxSemibold,
   },
-  outstandingRow: {
+  progressRow: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 12,
@@ -407,10 +427,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 8,
   },
-  outstandingText: {
+  progressText: {
     fontSize: 13,
     fontFamily: typography.fontFamily.chillax,
-    color: "#92400e",
   },
   splitsToggle: {
     flexDirection: "row",

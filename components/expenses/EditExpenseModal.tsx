@@ -418,7 +418,7 @@ export function EditExpenseModal({
                   <Text
                     style={[
                       styles.splitModeText,
-                      { color: splitMode === "even" ? "#fff" : colors.mutedForeground },
+                      { color: splitMode === "even" ? colors.primaryForeground : colors.mutedForeground },
                     ]}
                   >
                     Even
@@ -434,7 +434,7 @@ export function EditExpenseModal({
                   <Text
                     style={[
                       styles.splitModeText,
-                      { color: splitMode === "custom" ? "#fff" : colors.mutedForeground },
+                      { color: splitMode === "custom" ? colors.primaryForeground : colors.mutedForeground },
                     ]}
                   >
                     Custom

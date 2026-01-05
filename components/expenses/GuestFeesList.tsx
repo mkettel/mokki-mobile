@@ -5,6 +5,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import {
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +19,8 @@ interface GuestFeesListProps {
   currentUserId: string;
   onSettleGuestFee?: (splitId: string) => void;
   onUnsettleGuestFee?: (splitId: string) => void;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 type StayStatus = "current" | "upcoming" | "past";
@@ -63,6 +66,8 @@ export function GuestFeesList({
   currentUserId,
   onSettleGuestFee,
   onUnsettleGuestFee,
+  refreshing,
+  onRefresh,
 }: GuestFeesListProps) {
   const colors = useColors();
 
@@ -252,7 +257,15 @@ export function GuestFeesList({
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl refreshing={refreshing ?? false} onRefresh={onRefresh} />
+        ) : undefined
+      }
+    >
       {renderSection("Current", categorizedStays.current)}
       {renderSection("Upcoming", categorizedStays.upcoming)}
       {renderSection("Past", categorizedStays.past)}

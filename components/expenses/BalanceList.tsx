@@ -9,6 +9,7 @@ import {
   Image,
   Linking,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,9 +21,11 @@ interface BalanceListProps {
   balances: UserBalance[];
   onSettleAll: (userId: string) => Promise<void>;
   onSelectBalance?: (balance: UserBalance) => void;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
-export function BalanceList({ balances, onSettleAll, onSelectBalance }: BalanceListProps) {
+export function BalanceList({ balances, onSettleAll, onSelectBalance, refreshing, onRefresh }: BalanceListProps) {
   const colors = useColors();
 
   const handlePayViaVenmo = (balance: UserBalance) => {
@@ -105,7 +108,15 @@ export function BalanceList({ balances, onSettleAll, onSelectBalance }: BalanceL
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl refreshing={refreshing ?? false} onRefresh={onRefresh} />
+        ) : undefined
+      }
+    >
       {balances.map((balance) => {
         const theyOweYou = balance.netBalance > 0;
         const youOweThem = balance.netBalance < 0;

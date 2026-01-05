@@ -3,7 +3,7 @@ import { useColors } from "@/lib/context/theme";
 import type { ExpenseWithDetails } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ExpenseCard } from "./ExpenseCard";
 
 interface ExpenseListProps {
@@ -13,6 +13,8 @@ interface ExpenseListProps {
   onDeleteExpense?: (expense: ExpenseWithDetails) => void;
   onSettleSplit?: (splitId: string) => void;
   onUnsettleSplit?: (splitId: string) => void;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 export function ExpenseList({
@@ -22,6 +24,8 @@ export function ExpenseList({
   onDeleteExpense,
   onSettleSplit,
   onUnsettleSplit,
+  refreshing,
+  onRefresh,
 }: ExpenseListProps) {
   const colors = useColors();
 
@@ -40,7 +44,15 @@ export function ExpenseList({
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl refreshing={refreshing ?? false} onRefresh={onRefresh} />
+        ) : undefined
+      }
+    >
       {expenses.map((expense) => (
         <ExpenseCard
           key={expense.id}
