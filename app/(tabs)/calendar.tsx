@@ -1,6 +1,7 @@
 import {
   AddEventModal,
   AddStayModal,
+  DayDetailModal,
   EditEventModal,
   EditStayModal,
   EventDetailModal,
@@ -90,6 +91,10 @@ export default function CalendarScreen() {
   const [viewingEvent, setViewingEvent] = useState<EventWithDetails | null>(
     null
   );
+
+  // Day detail modal
+  const [showDayDetailModal, setShowDayDetailModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -331,6 +336,18 @@ export default function CalendarScreen() {
     handleDeleteEvent(event);
   };
 
+  // Day detail modal handlers
+  const handleDayPress = (date: Date) => {
+    setSelectedDate(date);
+    setShowDayDetailModal(true);
+  };
+
+  const handleDayDetailStayPress = (stay: StayWithExpense) => {
+    setShowDayDetailModal(false);
+    setSelectedDate(null);
+    openStayDetailModal(stay);
+  };
+
   // Handle add button based on active tab
   const handleAddPress = () => {
     if (activeTab === "events") {
@@ -480,6 +497,7 @@ export default function CalendarScreen() {
           <StaysCalendar
             stays={stays}
             events={events}
+            onDayPress={handleDayPress}
             onStayPress={openStayDetailModal}
             onEventPress={(event) => openEventDetailModal(event.id)}
           />
@@ -569,6 +587,19 @@ export default function CalendarScreen() {
         }}
         onEdit={handleEventDetailEdit}
         onDelete={handleEventDetailDelete}
+      />
+
+      {/* Day Detail Modal */}
+      <DayDetailModal
+        visible={showDayDetailModal}
+        date={selectedDate}
+        stays={stays}
+        onClose={() => {
+          setShowDayDetailModal(false);
+          setSelectedDate(null);
+        }}
+        onStayPress={handleDayDetailStayPress}
+        houseId={activeHouse?.id}
       />
     </PageContainer>
   );

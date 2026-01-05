@@ -93,14 +93,7 @@ export function MessageList({
 
       return (
         <View>
-          <MessageBubble
-            message={item}
-            isOwnMessage={isOwnMessage}
-            showAvatar={showAvatar}
-            showName={showAvatar && !isOwnMessage}
-            onAttachmentPress={onAttachmentPress}
-          />
-          {/* Date separator appears after the message in an inverted list (so visually above) */}
+          {/* Date separator appears before the message so it's visually above in the inverted list */}
           {showDateSeparator && (
             <View style={styles.dateSeparator}>
               <View
@@ -119,6 +112,13 @@ export function MessageList({
               />
             </View>
           )}
+          <MessageBubble
+            message={item}
+            isOwnMessage={isOwnMessage}
+            showAvatar={showAvatar}
+            showName={showAvatar && !isOwnMessage}
+            onAttachmentPress={onAttachmentPress}
+          />
         </View>
       );
     },

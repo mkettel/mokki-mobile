@@ -132,8 +132,8 @@ export function StaysCalendar({
 
     // Add stays
     stays.forEach((stay) => {
-      const checkIn = new Date(stay.check_in);
-      const checkOut = new Date(stay.check_out);
+      const checkIn = parseLocalDate(stay.check_in);
+      const checkOut = parseLocalDate(stay.check_out);
 
       // Add stay to each day in range
       let current = new Date(checkIn);
