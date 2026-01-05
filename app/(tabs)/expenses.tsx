@@ -34,6 +34,7 @@ import {
   unsettleGuestFee,
   type StayWithExpense,
 } from "@/lib/api/stays";
+import { getCurrentProfile, updateProfile } from "@/lib/api/profile";
 import { useAuth } from "@/lib/context/auth";
 import { supabase } from "@/lib/supabase/client";
 import { useHouse } from "@/lib/context/house";
@@ -51,10 +52,16 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 
@@ -88,6 +95,13 @@ export default function ExpensesScreen() {
   const [showBalanceDetail, setShowBalanceDetail] = useState(false);
   const [selectedBalance, setSelectedBalance] = useState<UserBalance | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Venmo setup banner state
+  const [userVenmoHandle, setUserVenmoHandle] = useState<string | null>(null);
+  const [venmoInput, setVenmoInput] = useState("");
+  const [isSavingVenmo, setIsSavingVenmo] = useState(false);
+  const [showVenmoBanner, setShowVenmoBanner] = useState(true);
+  const [showVenmoModal, setShowVenmoModal] = useState(false);
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -184,6 +198,36 @@ export default function ExpensesScreen() {
     setRefreshing(true);
     await fetchData();
     setRefreshing(false);
+  };
+
+  // Fetch user's Venmo handle on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { profile } = await getCurrentProfile();
+      if (profile) {
+        setUserVenmoHandle(profile.venmo_handle);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  // Save Venmo handle
+  const handleSaveVenmo = async () => {
+    if (!venmoInput.trim()) return;
+
+    setIsSavingVenmo(true);
+    const { profile, error } = await updateProfile({
+      venmo_handle: venmoInput.trim(),
+    });
+
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else if (profile) {
+      setUserVenmoHandle(profile.venmo_handle);
+      setVenmoInput("");
+      setShowVenmoBanner(false);
+    }
+    setIsSavingVenmo(false);
   };
 
   // Expense actions
@@ -520,6 +564,117 @@ export default function ExpensesScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Venmo Setup Banner */}
+      {userVenmoHandle === null && showVenmoBanner && (
+        <View style={[styles.venmoBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.venmoBannerHeader}>
+            <View style={styles.venmoBannerTitleRow}>
+              <FontAwesome name="dollar" size={16} color={colors.primary} />
+              <Text style={[styles.venmoBannerTitle, { color: colors.foreground }]}>
+                Add your Venmo
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.venmoBannerClose}
+              onPress={() => setShowVenmoBanner(false)}
+            >
+              <FontAwesome name="times" size={16} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.venmoBannerText, { color: colors.mutedForeground }]}>
+            Make it easier for housemates to pay you back
+          </Text>
+          <TouchableOpacity
+            style={[styles.venmoAddButton, { backgroundColor: colors.primary }]}
+            onPress={() => setShowVenmoModal(true)}
+          >
+            <Text style={[styles.venmoAddButtonText, { color: colors.primaryForeground }]}>
+              Add Venmo Handle
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Venmo Input Modal */}
+      <Modal
+        visible={showVenmoModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowVenmoModal(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => {
+          Keyboard.dismiss();
+          setShowVenmoModal(false);
+        }}>
+          <View style={styles.venmoModalOverlay}>
+            <TouchableWithoutFeedback onPress={() => {}}>
+              <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+              >
+                <View style={[styles.venmoModalContent, { backgroundColor: colors.card }]}>
+                  <Text style={[styles.venmoModalTitle, { color: colors.foreground }]}>
+                    Add your Venmo handle
+                  </Text>
+                  <Text style={[styles.venmoModalSubtitle, { color: colors.mutedForeground }]}>
+                    This lets housemates easily pay you back
+                  </Text>
+                  <View style={[styles.venmoModalInputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                    <Text style={[styles.venmoAtSign, { color: colors.mutedForeground }]}>@</Text>
+                    <TextInput
+                      style={[styles.venmoModalInput, { color: colors.foreground }]}
+                      value={venmoInput}
+                      onChangeText={setVenmoInput}
+                      placeholder="username"
+                      placeholderTextColor={colors.mutedForeground}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoFocus
+                      returnKeyType="done"
+                      onSubmitEditing={handleSaveVenmo}
+                    />
+                  </View>
+                  <View style={styles.venmoModalButtons}>
+                    <TouchableOpacity
+                      style={[styles.venmoModalCancelButton, { borderColor: colors.border }]}
+                      onPress={() => {
+                        setVenmoInput("");
+                        setShowVenmoModal(false);
+                      }}
+                    >
+                      <Text style={[styles.venmoModalCancelText, { color: colors.foreground }]}>
+                        Cancel
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.venmoModalSaveButton,
+                        { backgroundColor: colors.primary },
+                        (!venmoInput.trim() || isSavingVenmo) && { opacity: 0.5 },
+                      ]}
+                      onPress={async () => {
+                        await handleSaveVenmo();
+                        if (venmoInput.trim()) {
+                          setShowVenmoModal(false);
+                        }
+                      }}
+                      disabled={!venmoInput.trim() || isSavingVenmo}
+                    >
+                      {isSavingVenmo ? (
+                        <ActivityIndicator size="small" color={colors.primaryForeground} />
+                      ) : (
+                        <Text style={[styles.venmoModalSaveText, { color: colors.primaryForeground }]}>
+                          Save
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </KeyboardAvoidingView>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
       {/* Content */}
       <View style={styles.content}>
         {activeTab === "balances" && (
@@ -659,5 +814,113 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 16,
+  },
+  venmoBanner: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  venmoBannerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  venmoBannerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  venmoBannerTitle: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxSemibold,
+  },
+  venmoBannerClose: {
+    padding: 4,
+  },
+  venmoBannerText: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.chillax,
+    marginBottom: 12,
+  },
+  venmoAddButton: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  venmoAddButtonText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  venmoModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  venmoModalContent: {
+    width: "100%",
+    maxWidth: 340,
+    borderRadius: 16,
+    padding: 24,
+  },
+  venmoModalTitle: {
+    fontSize: 18,
+    fontFamily: typography.fontFamily.chillaxSemibold,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  venmoModalSubtitle: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillax,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  venmoModalInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    marginBottom: 20,
+  },
+  venmoAtSign: {
+    fontSize: 16,
+    fontFamily: typography.fontFamily.chillax,
+    marginRight: 4,
+  },
+  venmoModalInput: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: typography.fontFamily.chillax,
+    paddingVertical: 14,
+  },
+  venmoModalButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  venmoModalCancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  venmoModalCancelText: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  venmoModalSaveButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  venmoModalSaveText: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxMedium,
   },
 });
