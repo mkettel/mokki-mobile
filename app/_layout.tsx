@@ -112,7 +112,7 @@ function RootLayoutNav() {
     >
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="create-house" options={{ headerShown: false }} />
         <Stack.Screen name="house-settings" options={{ headerShown: false }} />
         <Stack.Screen name="invite/[code]" options={{ headerShown: false }} />

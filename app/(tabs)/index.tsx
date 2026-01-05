@@ -239,7 +239,10 @@ export default function HomeScreen() {
                   </Text>
                   {showUnreadDot && (
                     <View
-                      style={[styles.unreadDot, { backgroundColor: colors.red }]}
+                      style={[
+                        styles.unreadDot,
+                        { backgroundColor: colors.red },
+                      ]}
                     />
                   )}
                 </View>
@@ -303,7 +306,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     // Position links in the mountain area (lower half of screen)
-    marginTop: SCREEN_HEIGHT * 0.21,
+    marginTop: SCREEN_HEIGHT * 0.14,
   },
   linkButton: {
     paddingVertical: 4,
