@@ -1,6 +1,7 @@
 import { typography } from "@/constants/theme";
 import type { StayWithExpense } from "@/lib/api/stays";
 import { useColors } from "@/lib/context/theme";
+import { formatLocalDate, parseLocalDate } from "@/lib/utils/dates";
 import { FontAwesome } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import {
@@ -27,25 +28,8 @@ const STAY_COLORS = [
   "#fda4af", // rose-300
 ];
 
-// Format date as YYYY-MM-DD using local time (avoids timezone issues)
-function formatDateKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-// Parse a date string as local time (not UTC)
-// YYYY-MM-DD strings are interpreted as UTC by default, which causes timezone issues
-function parseLocalDate(dateString: string): Date {
-  // If it's a date-only string (YYYY-MM-DD), parse as local time
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    const [year, month, day] = dateString.split("-").map(Number);
-    return new Date(year, month - 1, day);
-  }
-  // Otherwise, let Date parse it normally (for full timestamps)
-  return new Date(dateString);
-}
+// Alias for backwards compatibility
+const formatDateKey = formatLocalDate;
 
 // Simple hash function for user ID to color
 function getUserColor(userId: string): string {

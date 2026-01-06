@@ -11,6 +11,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
 import type { StayWithExpense } from "@/lib/api/stays";
+import { parseLocalDate } from "@/lib/utils/dates";
 
 interface StayDetailModalProps {
   visible: boolean;
@@ -27,11 +28,8 @@ function getStayStatus(stay: StayWithExpense): StayStatus {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const checkIn = new Date(stay.check_in);
-  checkIn.setHours(0, 0, 0, 0);
-
-  const checkOut = new Date(stay.check_out);
-  checkOut.setHours(0, 0, 0, 0);
+  const checkIn = parseLocalDate(stay.check_in);
+  const checkOut = parseLocalDate(stay.check_out);
 
   if (checkIn.getTime() === today.getTime()) {
     return "today";
@@ -46,7 +44,7 @@ function getStayStatus(stay: StayWithExpense): StayStatus {
 }
 
 function formatDate(dateString: string): string {
-  const date = new Date(dateString);
+  const date = parseLocalDate(dateString);
   const options: Intl.DateTimeFormatOptions = {
     weekday: "long",
     month: "long",
@@ -57,8 +55,8 @@ function formatDate(dateString: string): string {
 }
 
 function calculateNights(checkIn: string, checkOut: string): number {
-  const inDate = new Date(checkIn);
-  const outDate = new Date(checkOut);
+  const inDate = parseLocalDate(checkIn);
+  const outDate = parseLocalDate(checkOut);
   const diffTime = outDate.getTime() - inDate.getTime();
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }

@@ -2,6 +2,7 @@ import { typography } from "@/constants/theme";
 import type { StayWithExpense } from "@/lib/api/stays";
 import { useAuth } from "@/lib/context/auth";
 import { useColors } from "@/lib/context/theme";
+import { parseLocalDate } from "@/lib/utils/dates";
 import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
 import {
@@ -28,11 +29,8 @@ function getStayStatus(stay: StayWithExpense): StayStatus {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const checkIn = new Date(stay.check_in);
-  checkIn.setHours(0, 0, 0, 0);
-
-  const checkOut = new Date(stay.check_out);
-  checkOut.setHours(0, 0, 0, 0);
+  const checkIn = parseLocalDate(stay.check_in);
+  const checkOut = parseLocalDate(stay.check_out);
 
   if (checkIn.getTime() === today.getTime()) {
     return "today";
@@ -47,8 +45,8 @@ function getStayStatus(stay: StayWithExpense): StayStatus {
 }
 
 function formatDateRange(checkIn: string, checkOut: string): string {
-  const inDate = new Date(checkIn);
-  const outDate = new Date(checkOut);
+  const inDate = parseLocalDate(checkIn);
+  const outDate = parseLocalDate(checkOut);
 
   const inMonth = inDate.toLocaleDateString("en-US", { month: "short" });
   const inDay = inDate.getDate();
@@ -93,14 +91,14 @@ export function StaysList({
 
     // Sort each category
     current.sort(
-      (a, b) => new Date(a.check_in).getTime() - new Date(b.check_in).getTime()
+      (a, b) => parseLocalDate(a.check_in).getTime() - parseLocalDate(b.check_in).getTime()
     );
     upcoming.sort(
-      (a, b) => new Date(a.check_in).getTime() - new Date(b.check_in).getTime()
+      (a, b) => parseLocalDate(a.check_in).getTime() - parseLocalDate(b.check_in).getTime()
     );
     past.sort(
       (a, b) =>
-        new Date(b.check_out).getTime() - new Date(a.check_out).getTime()
+        parseLocalDate(b.check_out).getTime() - parseLocalDate(a.check_out).getTime()
     );
 
     return { current, upcoming, past };

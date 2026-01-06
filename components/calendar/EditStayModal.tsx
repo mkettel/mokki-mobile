@@ -19,6 +19,7 @@ import { typography } from "@/constants/theme";
 import { StayWithExpense } from "@/lib/api/stays";
 import { BedSelectionModal } from "@/components/beds";
 import { isWindowOpenForDates, getUserBedClaim } from "@/lib/api/bedSignups";
+import { formatLocalDate, parseLocalDate } from "@/lib/utils/dates";
 
 interface EditStayModalProps {
   visible: boolean;
@@ -70,8 +71,8 @@ export function EditStayModal({
   // Reset form when stay changes
   useEffect(() => {
     if (stay) {
-      setCheckIn(new Date(stay.check_in));
-      setCheckOut(new Date(stay.check_out));
+      setCheckIn(parseLocalDate(stay.check_in));
+      setCheckOut(parseLocalDate(stay.check_out));
       setNotes(stay.notes || "");
       setGuestCount(stay.guest_count || 0);
       // Set existing bed info
@@ -93,8 +94,8 @@ export function EditStayModal({
         return;
       }
 
-      const checkInStr = checkIn.toISOString().split("T")[0];
-      const checkOutStr = checkOut.toISOString().split("T")[0];
+      const checkInStr = formatLocalDate(checkIn);
+      const checkOutStr = formatLocalDate(checkOut);
 
       setCheckingBedWindow(true);
       try {
@@ -137,8 +138,8 @@ export function EditStayModal({
     setIsLoading(true);
     try {
       await onSubmit({
-        checkIn: checkIn.toISOString().split("T")[0],
-        checkOut: checkOut.toISOString().split("T")[0],
+        checkIn: formatLocalDate(checkIn),
+        checkOut: formatLocalDate(checkOut),
         notes: notes.trim() || undefined,
         guestCount,
         bedSignupId: bedSignupId || undefined,
@@ -471,8 +472,8 @@ export function EditStayModal({
             visible={showBedSelection}
             houseId={houseId}
             userId={userId}
-            checkIn={checkIn.toISOString().split("T")[0]}
-            checkOut={checkOut.toISOString().split("T")[0]}
+            checkIn={formatLocalDate(checkIn)}
+            checkOut={formatLocalDate(checkOut)}
             onClose={() => setShowBedSelection(false)}
             onBedSelected={handleBedSelected}
             onSkip={handleBedSkipped}

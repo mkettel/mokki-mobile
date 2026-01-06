@@ -19,6 +19,7 @@ import { typography } from "@/constants/theme";
 import { isWindowOpenForDates, getUserBedClaim } from "@/lib/api/bedSignups";
 import { BedSelectionModal } from "@/components/beds";
 import type { BedSignup, Bed, Room } from "@/types/database";
+import { formatLocalDate } from "@/lib/utils/dates";
 
 type UserClaimInfo = BedSignup & { beds: Bed & { rooms: Room } };
 
@@ -77,8 +78,8 @@ export function AddStayModal({
 
     setCheckingBedWindow(true);
     try {
-      const checkInStr = checkIn.toISOString().split("T")[0];
-      const checkOutStr = checkOut.toISOString().split("T")[0];
+      const checkInStr = formatLocalDate(checkIn);
+      const checkOutStr = formatLocalDate(checkOut);
       const { isOpen, window } = await isWindowOpenForDates(houseId, checkInStr, checkOutStr);
 
       setBedWindowOpen(isOpen);
@@ -133,8 +134,8 @@ export function AddStayModal({
     setIsLoading(true);
     try {
       await onSubmit({
-        checkIn: checkIn.toISOString().split("T")[0],
-        checkOut: checkOut.toISOString().split("T")[0],
+        checkIn: formatLocalDate(checkIn),
+        checkOut: formatLocalDate(checkOut),
         notes: notes.trim() || undefined,
         guestCount,
         bedSignupId: bedSignupId || undefined,
@@ -489,8 +490,8 @@ export function AddStayModal({
             visible={showBedSelection}
             houseId={houseId}
             userId={userId}
-            checkIn={checkIn.toISOString().split("T")[0]}
-            checkOut={checkOut.toISOString().split("T")[0]}
+            checkIn={formatLocalDate(checkIn)}
+            checkOut={formatLocalDate(checkOut)}
             onClose={() => setShowBedSelection(false)}
             onBedSelected={handleBedSelected}
             onSkip={handleBedSkipped}
