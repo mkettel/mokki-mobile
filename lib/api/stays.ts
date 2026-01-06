@@ -322,7 +322,7 @@ export async function createStay(
           .insert({
             house_id: houseId,
             paid_by: recipientId,
-            created_by: recipientId,
+            created_by: userId,
             title: "Guest Fee",
             amount,
             description: `Guest fees: ${guestCount} guest(s) × ${nights} night(s)`,
@@ -462,7 +462,7 @@ export async function updateStay(
           .insert({
             house_id: existingStay.house_id,
             paid_by: recipientId,
-            created_by: recipientId,
+            created_by: userId,
             title: "Guest Fee",
             amount: newAmount,
             description: `Guest fees: ${guestCount} guest(s) × ${nights} night(s)`,
