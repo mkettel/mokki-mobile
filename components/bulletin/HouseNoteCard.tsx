@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,20 @@ import {
   View,
 } from "react-native";
 import Autolink from "react-native-autolink";
+
+// Regex to match common US address patterns
+const ADDRESS_REGEX = /\d+\s+[\w\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct|Circle|Cir|Place|Pl|Highway|Hwy|Parkway|Pkwy)\.?(?:,?\s+[\w\s]+,?\s+[A-Z]{2}\s+\d{5}(?:-\d{4})?)?/gi;
+
+// Open address in maps app
+const openInMaps = (address: string) => {
+  const encodedAddress = encodeURIComponent(address);
+  const url = Platform.select({
+    ios: `maps:0,0?q=${encodedAddress}`,
+    android: `geo:0,0?q=${encodedAddress}`,
+    default: `https://maps.google.com/?q=${encodedAddress}`,
+  });
+  Linking.openURL(url);
+};
 
 interface HouseNoteCardProps {
   note: HouseNoteWithEditor | null;
@@ -158,6 +173,17 @@ export function HouseNoteCard({ note, onSave }: HouseNoteCardProps) {
                   url
                   email
                   phone
+                  matchers={[
+                    {
+                      pattern: ADDRESS_REGEX,
+                      style: { textDecorationLine: "underline" as const },
+                      getLinkText: (replacerArgs) => replacerArgs[0],
+                      onPress: (match) => {
+                        const address = match.getReplacerArgs()[0];
+                        openInMaps(address);
+                      },
+                    },
+                  ]}
                   style={[styles.contentText, { color: colors.foreground }]}
                   linkStyle={{ color: colors.primary, textDecorationLine: "underline" }}
                 />

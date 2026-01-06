@@ -5,12 +5,29 @@ import type { BulletinItemWithProfile, BulletinStyle } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
 import {
+  Linking,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import Autolink from "react-native-autolink";
+
+// Regex to match common US address patterns
+// Matches: "123 Main St", "123 Main Street, City, ST 12345", etc.
+const ADDRESS_REGEX = /\d+\s+[\w\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct|Circle|Cir|Place|Pl|Highway|Hwy|Parkway|Pkwy)\.?(?:,?\s+[\w\s]+,?\s+[A-Z]{2}\s+\d{5}(?:-\d{4})?)?/gi;
+
+// Open address in maps app
+const openInMaps = (address: string) => {
+  const encodedAddress = encodeURIComponent(address);
+  const url = Platform.select({
+    ios: `maps:0,0?q=${encodedAddress}`,
+    android: `geo:0,0?q=${encodedAddress}`,
+    default: `https://maps.google.com/?q=${encodedAddress}`,
+  });
+  Linking.openURL(url);
+};
 
 interface StickyNoteProps {
   item: BulletinItemWithProfile;
@@ -163,6 +180,17 @@ export function StickyNote({ item, onEdit, onDelete, onToggleChecklistItem }: St
           url
           email
           phone
+          matchers={[
+            {
+              pattern: ADDRESS_REGEX,
+              style: { textDecorationLine: "underline" as const },
+              getLinkText: (replacerArgs) => replacerArgs[0],
+              onPress: (match) => {
+                const address = match.getReplacerArgs()[0];
+                openInMaps(address);
+              },
+            },
+          ]}
           style={[styles.content, { color: colorInfo.text }]}
           linkStyle={{ textDecorationLine: "underline" }}
         />

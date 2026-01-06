@@ -14,6 +14,7 @@ import { useColorScheme } from "@/components/useColorScheme";
 import { AuthProvider } from "@/lib/context/auth";
 import { ThemeProvider } from "@/lib/context/theme";
 import { HouseProvider } from "@/lib/context/house";
+import { PresenceProvider } from "@/lib/context/presence";
 import { ChatProvider } from "@/lib/context/chat";
 import { NotificationsProvider } from "@/lib/context/notifications";
 import { lightColors, darkColors } from "@/constants/theme";
@@ -92,11 +93,13 @@ export default function RootLayout() {
     <ThemeProvider>
       <AuthProvider>
         <HouseProvider>
-          <ChatProvider>
-            <NotificationsProvider>
-              <RootLayoutNav />
-            </NotificationsProvider>
-          </ChatProvider>
+          <PresenceProvider>
+            <ChatProvider>
+              <NotificationsProvider>
+                <RootLayoutNav />
+              </NotificationsProvider>
+            </ChatProvider>
+          </PresenceProvider>
         </HouseProvider>
       </AuthProvider>
     </ThemeProvider>

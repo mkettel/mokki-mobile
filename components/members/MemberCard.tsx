@@ -9,6 +9,7 @@ interface MemberCardProps {
   member: HouseMemberWithProfile;
   isCurrentUser: boolean;
   isAdmin: boolean;
+  isOnline?: boolean;
   onRoleToggle?: () => void;
   onRemove?: () => void;
 }
@@ -23,6 +24,7 @@ export function MemberCard({
   member,
   isCurrentUser,
   isAdmin,
+  isOnline,
   onRoleToggle,
   onRemove,
 }: MemberCardProps) {
@@ -72,6 +74,9 @@ export function MemberCard({
           <View style={[styles.adminBadge, { backgroundColor: colors.primary }]}>
             <FontAwesome name="shield" size={10} color={colors.primaryForeground} />
           </View>
+        )}
+        {isOnline && !isPending && (
+          <View style={[styles.onlineBadge, { borderColor: colors.card }]} />
         )}
       </View>
 
@@ -178,6 +183,16 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
+  },
+  onlineBadge: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#22c55e",
+    borderWidth: 2,
   },
   info: {
     flex: 1,

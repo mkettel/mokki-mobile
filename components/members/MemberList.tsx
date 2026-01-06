@@ -1,5 +1,6 @@
 import { typography } from "@/constants/theme";
 import { cancelInvite, removeMember, updateMemberRole } from "@/lib/api/members";
+import { usePresence } from "@/lib/context/presence";
 import { useColors } from "@/lib/context/theme";
 import type { HouseMemberWithProfile } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
@@ -21,6 +22,7 @@ export function MemberList({
   onMembersChange,
 }: MemberListProps) {
   const colors = useColors();
+  const { isUserOnline } = usePresence();
 
   const acceptedMembers = members.filter((m) => m.invite_status === "accepted");
   const pendingMembers = members.filter((m) => m.invite_status === "pending");
@@ -130,6 +132,7 @@ export function MemberList({
               member={member}
               isCurrentUser={member.user_id === currentUserId}
               isAdmin={isAdmin}
+              isOnline={member.user_id ? isUserOnline(member.user_id) : false}
               onRoleToggle={() => handleRoleToggle(member)}
               onRemove={() => handleRemoveMember(member)}
             />
