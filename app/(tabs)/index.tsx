@@ -132,17 +132,19 @@ export default function HomeScreen() {
 
   // Fetch weather for the linked resort
   useEffect(() => {
+    let mounted = true;
+
     const fetchWeather = async () => {
       if (!activeHouse?.resort_id) {
-        setCurrentWeather(null);
+        if (mounted) setCurrentWeather(null);
         return;
       }
 
       try {
         const { resort } = await getResort(activeHouse.resort_id);
-        if (resort) {
+        if (resort && mounted) {
           const { weather } = await getResortWeather(resort);
-          if (weather) {
+          if (weather && mounted) {
             setCurrentWeather(weather.current);
           }
         }
@@ -152,6 +154,10 @@ export default function HomeScreen() {
     };
 
     fetchWeather();
+
+    return () => {
+      mounted = false;
+    };
   }, [activeHouse?.resort_id]);
 
   // Get house name from context, or use fallback
@@ -228,7 +234,7 @@ export default function HomeScreen() {
 
             return (
               <TouchableOpacity
-                key={link.label}
+                key={link.href}
                 onPress={() => router.push(link.href as any)}
                 style={styles.linkButton}
                 activeOpacity={0.7}

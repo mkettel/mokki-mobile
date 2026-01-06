@@ -1,6 +1,6 @@
 import { borderRadius, typography } from "@/constants/theme";
 import { useColors, useTheme } from "@/lib/context/theme";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import Fontisto from "@expo/vector-icons/Fontisto";
 import React, { useState } from "react";
 import {
   Modal,
@@ -14,8 +14,8 @@ import {
 type ThemeOption = "light" | "dark" | "system";
 
 const themeOptions: { value: ThemeOption; label: string; icon: string }[] = [
-  { value: "light", label: "Light", icon: "sun-o" },
-  { value: "dark", label: "Dark", icon: "moon-o" },
+  { value: "light", label: "Light", icon: "day-sunny" },
+  { value: "dark", label: "Dark", icon: "night-clear" },
   { value: "system", label: "System", icon: "laptop" },
 ];
 
@@ -25,7 +25,11 @@ export function ThemeSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
 
   const currentIcon =
-    theme === "dark" ? "moon-o" : theme === "light" ? "sun-o" : "laptop";
+    theme === "dark"
+      ? "night-clear"
+      : theme === "light"
+      ? "day-sunny"
+      : "laptop";
 
   const handleSelect = (value: ThemeOption) => {
     setTheme(value);
@@ -39,7 +43,7 @@ export function ThemeSwitcher() {
         style={styles.button}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <FontAwesome
+        <Fontisto
           name={currentIcon as any}
           size={18}
           color={colors.foreground}
@@ -83,7 +87,7 @@ export function ThemeSwitcher() {
                 ]}
                 onPress={() => handleSelect(option.value)}
               >
-                <FontAwesome
+                <Fontisto
                   name={option.icon as any}
                   size={16}
                   color={colors.foreground}
@@ -93,7 +97,7 @@ export function ThemeSwitcher() {
                   {option.label}
                 </Text>
                 {theme === option.value && (
-                  <FontAwesome
+                  <Fontisto
                     name="check"
                     size={14}
                     color={colors.foreground}
