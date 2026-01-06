@@ -78,8 +78,8 @@ export default function MembersScreen() {
               color={colors.foreground}
             />
           </TouchableOpacity>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            Who's who
+          <Text style={[styles.title, { color: colors.foreground }]}>
+            Members
           </Text>
           <View style={styles.headerSpacer} />
         </View>
@@ -109,8 +109,8 @@ export default function MembersScreen() {
             color={colors.foreground}
           />
         </TouchableOpacity>
-        <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-          Who's who
+        <Text style={[styles.title, { color: colors.foreground }]}>
+          Members
         </Text>
         {isAdmin ? (
           <TouchableOpacity
@@ -217,16 +217,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 15,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   backButton: {
     padding: 8,
     width: 40,
   },
-  subtitle: {
-    fontSize: 16,
-    fontFamily: typography.fontFamily.chillax,
+  title: {
+    fontSize: 18,
+    fontFamily: typography.fontFamily.chillaxMedium,
   },
   headerSpacer: {
     width: 40,

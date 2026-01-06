@@ -118,6 +118,9 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="create-house" options={{ headerShown: false }} />
         <Stack.Screen name="house-settings" options={{ headerShown: false }} />
+        <Stack.Screen name="members" options={{ headerShown: false }} />
+        <Stack.Screen name="bed-history" options={{ headerShown: false }} />
+        <Stack.Screen name="room-configuration" options={{ headerShown: false }} />
         <Stack.Screen name="invite/[code]" options={{ headerShown: false }} />
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         <Stack.Screen name="chat/[conversationId]" options={{ headerShown: false }} />

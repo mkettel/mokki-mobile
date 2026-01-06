@@ -161,9 +161,37 @@ export default function AccountScreen() {
           <Text style={[styles.title, { color: colors.foreground }]}>
             Account
           </Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            Manage your profile and settings
-          </Text>
+        </View>
+
+        {/* House Navigation Links */}
+        <View style={styles.hubLinks}>
+          <TouchableOpacity
+            style={[
+              styles.hubButton,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+            onPress={() => router.push("/members")}
+          >
+            <FontAwesome name="users" size={20} color={colors.primary} />
+            <Text style={[styles.hubButtonText, { color: colors.foreground }]}>
+              Members
+            </Text>
+          </TouchableOpacity>
+
+          {isAdmin && (
+            <TouchableOpacity
+              style={[
+                styles.hubButton,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+              onPress={() => router.push("/house-settings")}
+            >
+              <FontAwesome name="cog" size={20} color={colors.primary} />
+              <Text style={[styles.hubButtonText, { color: colors.foreground }]}>
+                Settings
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Profile Card */}
@@ -191,50 +219,6 @@ export default function AccountScreen() {
             onProfileUpdate={handleProfileUpdate}
           />
         </View>
-
-        {/* House Members Link */}
-        <TouchableOpacity
-          style={[
-            styles.linkButton,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-          onPress={() => router.push("/members")}
-        >
-          <View style={styles.linkButtonContent}>
-            <FontAwesome name="users" size={18} color={colors.foreground} />
-            <Text style={[styles.linkButtonText, { color: colors.foreground }]}>
-              House Members
-            </Text>
-          </View>
-          <FontAwesome
-            name="chevron-right"
-            size={14}
-            color={colors.mutedForeground}
-          />
-        </TouchableOpacity>
-
-        {/* House Settings Link (Admin Only) */}
-        {isAdmin && (
-          <TouchableOpacity
-            style={[
-              styles.linkButton,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-            onPress={() => router.push("/house-settings")}
-          >
-            <View style={styles.linkButtonContent}>
-              <FontAwesome name="cog" size={18} color={colors.foreground} />
-              <Text style={[styles.linkButtonText, { color: colors.foreground }]}>
-                House Settings
-              </Text>
-            </View>
-            <FontAwesome
-              name="chevron-right"
-              size={14}
-              color={colors.mutedForeground}
-            />
-          </TouchableOpacity>
-        )}
 
         {/* Security Settings */}
         {biometricSupported && Platform.OS !== "web" && (
@@ -349,16 +333,30 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.chillaxMedium,
   },
   header: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   title: {
     fontSize: 28,
     fontFamily: typography.fontFamily.chillaxBold,
   },
-  subtitle: {
-    fontSize: 16,
-    fontFamily: typography.fontFamily.chillax,
-    marginTop: 4,
+  hubLinks: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 20,
+  },
+  hubButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  hubButtonText: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxMedium,
   },
   card: {
     borderRadius: 16,
@@ -371,24 +369,6 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     marginVertical: 20,
-  },
-  linkButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: 16,
-  },
-  linkButtonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  linkButtonText: {
-    fontSize: 15,
-    fontFamily: typography.fontFamily.chillaxMedium,
   },
   settingsCard: {
     borderRadius: 12,
