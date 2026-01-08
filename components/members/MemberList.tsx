@@ -12,6 +12,7 @@ interface MemberListProps {
   members: HouseMemberWithProfile[];
   currentUserId: string;
   isAdmin: boolean;
+  showRiderType?: boolean;
   onMembersChange: () => void;
 }
 
@@ -19,6 +20,7 @@ export function MemberList({
   members,
   currentUserId,
   isAdmin,
+  showRiderType = false,
   onMembersChange,
 }: MemberListProps) {
   const colors = useColors();
@@ -133,6 +135,7 @@ export function MemberList({
               isCurrentUser={member.user_id === currentUserId}
               isAdmin={isAdmin}
               isOnline={member.user_id ? isUserOnline(member.user_id) : false}
+              showRiderType={showRiderType}
               onRoleToggle={() => handleRoleToggle(member)}
               onRemove={() => handleRemoveMember(member)}
             />

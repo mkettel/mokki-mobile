@@ -5,7 +5,7 @@ import { getHouseMembers, isUserAdmin } from "@/lib/api/members";
 import { useAuth } from "@/lib/context/auth";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
-import type { HouseMemberWithProfile } from "@/types/database";
+import type { HouseMemberWithProfile, HouseSettings } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -30,6 +30,10 @@ export default function MembersScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+
+  // Get house settings
+  const houseSettings = activeHouse?.settings as HouseSettings | undefined;
+  const showRiderType = houseSettings?.showRiderType ?? false;
 
   const loadMembers = useCallback(async () => {
     if (!activeHouse?.id) return;
@@ -167,6 +171,7 @@ export default function MembersScreen() {
             members={members}
             currentUserId={user?.id || ""}
             isAdmin={isAdmin}
+            showRiderType={showRiderType}
             onMembersChange={loadMembers}
           />
 

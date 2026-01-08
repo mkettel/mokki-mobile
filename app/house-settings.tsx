@@ -180,6 +180,9 @@ export default function HouseSettingsScreen() {
   >(null);
   const [members, setMembers] = useState<Profile[]>([]);
 
+  // Member profile settings
+  const [showRiderType, setShowRiderType] = useState(false);
+
   // Bed sign-up state
   const [bedSignupEnabled, setBedSignupEnabled] = useState(false);
   const [autoScheduleWindows, setAutoScheduleWindows] = useState(true);
@@ -231,6 +234,9 @@ export default function HouseSettingsScreen() {
       // Initialize bed sign-up
       setBedSignupEnabled(houseSettings?.bedSignupEnabled ?? false);
       setAutoScheduleWindows(houseSettings?.autoScheduleWindows ?? true);
+
+      // Initialize member profile settings
+      setShowRiderType(houseSettings?.showRiderType ?? false);
     }
   }, [activeHouse]);
 
@@ -573,6 +579,32 @@ export default function HouseSettingsScreen() {
     if (error) {
       setLocalGuestFeeRecipient(previousRecipient);
       const message = "Failed to update guest fee recipient";
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Error", message);
+      }
+    } else {
+      await refreshHouses();
+    }
+
+    setIsSaving(false);
+  };
+
+  const handleShowRiderTypeToggle = async (enabled: boolean) => {
+    if (!activeHouse?.id) return;
+
+    const previousValue = showRiderType;
+    setShowRiderType(enabled);
+    setIsSaving(true);
+
+    const { error } = await updateHouseSettings(activeHouse.id, {
+      showRiderType: enabled,
+    });
+
+    if (error) {
+      setShowRiderType(previousValue);
+      const message = "Failed to update rider type setting";
       if (Platform.OS === "web") {
         window.alert(message);
       } else {
@@ -1247,6 +1279,52 @@ export default function HouseSettingsScreen() {
                 </TouchableOpacity>
               );
             })}
+          </View>
+        </View>
+
+        {/* Member Profiles Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Member Profiles
+          </Text>
+          <Text
+            style={[styles.sectionDescription, { color: colors.foreground }]}
+          >
+            Configure which fields appear in member profiles.
+          </Text>
+
+          <View
+            style={[
+              styles.themeCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <View style={styles.tripTimerToggleRow}>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    styles.themeLabel,
+                    { color: colors.foreground, marginBottom: 4 },
+                  ]}
+                >
+                  Rider Type
+                </Text>
+                <Text
+                  style={[
+                    styles.sectionDescription,
+                    { color: colors.mutedForeground, marginBottom: 0 },
+                  ]}
+                >
+                  Show skier/snowboarder option
+                </Text>
+              </View>
+              <Switch
+                value={showRiderType}
+                onValueChange={handleShowRiderTypeToggle}
+                trackColor={{ false: colors.muted, true: colors.primary }}
+                thumbColor={colors.background}
+              />
+            </View>
           </View>
         </View>
 

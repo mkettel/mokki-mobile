@@ -31,6 +31,7 @@ export const HOUSE_TEMPLATES: Record<HouseTemplateId, HouseTemplate> = {
     defaults: {
       guestNightlyRate: 50,
       bedSignupEnabled: true,
+      showRiderType: true,
     },
   },
   retreat: {

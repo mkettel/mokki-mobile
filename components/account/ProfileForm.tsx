@@ -24,9 +24,10 @@ import { RiderTypeSelector } from "./RiderTypeSelector";
 interface ProfileFormProps {
   profile: Profile;
   onProfileUpdate: (profile: Profile) => void;
+  showRiderType?: boolean;
 }
 
-export function ProfileForm({ profile, onProfileUpdate }: ProfileFormProps) {
+export function ProfileForm({ profile, onProfileUpdate, showRiderType = false }: ProfileFormProps) {
   const colors = useColors();
   const [displayName, setDisplayName] = useState(profile.display_name || "");
   const [tagline, setTagline] = useState(profile.tagline || "");
@@ -41,9 +42,9 @@ export function ProfileForm({ profile, onProfileUpdate }: ProfileFormProps) {
       displayName !== (profile.display_name || "") ||
       tagline !== (profile.tagline || "") ||
       venmoHandle !== (profile.venmo_handle || "") ||
-      riderType !== profile.rider_type;
+      (showRiderType && riderType !== profile.rider_type);
     setHasChanges(changed);
-  }, [displayName, tagline, venmoHandle, riderType, profile]);
+  }, [displayName, tagline, venmoHandle, riderType, profile, showRiderType]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -52,7 +53,7 @@ export function ProfileForm({ profile, onProfileUpdate }: ProfileFormProps) {
         display_name: displayName || null,
         tagline: tagline || null,
         venmo_handle: venmoHandle || null,
-        rider_type: riderType,
+        ...(showRiderType && { rider_type: riderType }),
       });
 
       if (error) {
@@ -184,16 +185,18 @@ export function ProfileForm({ profile, onProfileUpdate }: ProfileFormProps) {
       </View>
 
       {/* Rider Type */}
-      <View style={styles.field}>
-        <Text style={[styles.label, { color: colors.foreground }]}>
-          Rider Type
-        </Text>
-        <RiderTypeSelector
-          value={riderType}
-          onChange={setRiderType}
-          disabled={isSaving}
-        />
-      </View>
+      {showRiderType && (
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: colors.foreground }]}>
+            Rider Type
+          </Text>
+          <RiderTypeSelector
+            value={riderType}
+            onChange={setRiderType}
+            disabled={isSaving}
+          />
+        </View>
+      )}
 
       {/* Save Button */}
       <TouchableOpacity

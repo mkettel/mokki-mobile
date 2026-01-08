@@ -64,6 +64,8 @@ export type HouseSettings = {
   bedSignupEnabled?: boolean;
   // Auto-schedule bed sign-up windows (Mon/Tue random time for following weekend)
   autoScheduleWindows?: boolean;
+  // Show rider type field in profile (skier/snowboarder) - default false, auto-enabled for ski leases
+  showRiderType?: boolean;
 };
 
 export type MemberRole = "admin" | "member";

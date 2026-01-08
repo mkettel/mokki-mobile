@@ -10,6 +10,7 @@ interface MemberCardProps {
   isCurrentUser: boolean;
   isAdmin: boolean;
   isOnline?: boolean;
+  showRiderType?: boolean;
   onRoleToggle?: () => void;
   onRemove?: () => void;
 }
@@ -25,6 +26,7 @@ export function MemberCard({
   isCurrentUser,
   isAdmin,
   isOnline,
+  showRiderType = false,
   onRoleToggle,
   onRemove,
 }: MemberCardProps) {
@@ -105,7 +107,7 @@ export function MemberCard({
           </View>
         ) : (
           <View style={styles.detailsRow}>
-            {profile?.rider_type && (
+            {showRiderType && profile?.rider_type && (
               <Text style={styles.riderEmoji}>
                 {RIDER_EMOJI[profile.rider_type]}
               </Text>

@@ -7,7 +7,7 @@ import { getCurrentProfile } from "@/lib/api/profile";
 import { useAuth } from "@/lib/context/auth";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
-import type { Profile } from "@/types/database";
+import type { HouseSettings, Profile } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
@@ -43,6 +43,10 @@ export default function AccountScreen() {
 
   // Check if user is admin of active house
   const isAdmin = activeHouse?.role === "admin";
+
+  // Get house settings
+  const houseSettings = activeHouse?.settings as HouseSettings | undefined;
+  const showRiderType = houseSettings?.showRiderType ?? false;
 
   const loadProfile = useCallback(async () => {
     setIsLoading(true);
@@ -217,6 +221,7 @@ export default function AccountScreen() {
           <ProfileForm
             profile={profile}
             onProfileUpdate={handleProfileUpdate}
+            showRiderType={showRiderType}
           />
         </View>
 
