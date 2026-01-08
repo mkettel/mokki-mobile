@@ -4,7 +4,6 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HouseSwitcher } from "./HouseSwitcher";
-import { SnowToggle } from "./SnowToggle";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 
 export function TopBar() {
@@ -25,7 +24,6 @@ export function TopBar() {
       <View style={styles.topRow}>
         <View style={styles.spacer} />
         <View style={styles.topRowRight}>
-          <SnowToggle />
           <ThemeSwitcher />
         </View>
       </View>
