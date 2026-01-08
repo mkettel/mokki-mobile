@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/bedSignups";
 import { getHouseMembersForExpenses } from "@/lib/api/expenses";
 import { updateHouseSettings } from "@/lib/api/house";
+import { formatLocalDate, parseLocalDate } from "@/lib/utils/dates";
 import { hasRoomsConfigured } from "@/lib/api/rooms";
 import { GUEST_FEE_PER_NIGHT } from "@/lib/api/stays";
 import { useHouse } from "@/lib/context/house";
@@ -215,9 +216,9 @@ export default function HouseSettingsScreen() {
       const tripTimer = houseSettings?.tripTimer;
       setTripTimerEnabled(tripTimer?.enabled ?? false);
       setTripStartDate(
-        tripTimer?.startDate ? new Date(tripTimer.startDate) : null
+        tripTimer?.startDate ? parseLocalDate(tripTimer.startDate) : null
       );
-      setTripEndDate(tripTimer?.endDate ? new Date(tripTimer.endDate) : null);
+      setTripEndDate(tripTimer?.endDate ? parseLocalDate(tripTimer.endDate) : null);
 
       // Initialize guest nightly rate
       const rate = houseSettings?.guestNightlyRate ?? GUEST_FEE_PER_NIGHT;
@@ -399,8 +400,8 @@ export default function HouseSettingsScreen() {
     const { error } = await updateHouseSettings(activeHouse.id, {
       tripTimer: {
         enabled,
-        startDate: tripStartDate?.toISOString().split("T")[0],
-        endDate: tripEndDate?.toISOString().split("T")[0],
+        startDate: tripStartDate ? formatLocalDate(tripStartDate) : undefined,
+        endDate: tripEndDate ? formatLocalDate(tripEndDate) : undefined,
       },
     });
 
@@ -429,8 +430,8 @@ export default function HouseSettingsScreen() {
     const { error } = await updateHouseSettings(activeHouse.id, {
       tripTimer: {
         enabled: tripTimerEnabled,
-        startDate: date?.toISOString().split("T")[0],
-        endDate: tripEndDate?.toISOString().split("T")[0],
+        startDate: date ? formatLocalDate(date) : undefined,
+        endDate: tripEndDate ? formatLocalDate(tripEndDate) : undefined,
       },
     });
 
@@ -459,8 +460,8 @@ export default function HouseSettingsScreen() {
     const { error } = await updateHouseSettings(activeHouse.id, {
       tripTimer: {
         enabled: tripTimerEnabled,
-        startDate: tripStartDate?.toISOString().split("T")[0],
-        endDate: date?.toISOString().split("T")[0],
+        startDate: tripStartDate ? formatLocalDate(tripStartDate) : undefined,
+        endDate: date ? formatLocalDate(date) : undefined,
       },
     });
 
@@ -717,8 +718,8 @@ export default function HouseSettingsScreen() {
 
     setIsSaving(true);
     const { window: newWindow, error } = await createSignupWindow(activeHouse.id, {
-      targetWeekendStart: customWeekendStart.toISOString().split("T")[0],
-      targetWeekendEnd: weekendEnd.toISOString().split("T")[0],
+      targetWeekendStart: formatLocalDate(customWeekendStart),
+      targetWeekendEnd: formatLocalDate(weekendEnd),
       opensAt: new Date().toISOString(),
       status: "open",
     });

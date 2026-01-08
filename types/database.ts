@@ -9,6 +9,7 @@ export type Json =
 // Feature identifiers for house customization
 export type FeatureId =
   | "calendar"
+  | "itinerary"
   | "weather"
   | "broll"
   | "bulletin"
@@ -81,6 +82,24 @@ export type RiderType = "skier" | "snowboarder" | "both";
 export type BulletinCategory = "wifi" | "house_rules" | "emergency" | "local_tips";
 export type BulletinStyle = "sticky" | "paper" | "sticker" | "keychain" | "todo";
 export type MediaType = "image" | "video";
+export type ItineraryEventCategory =
+  | "meal"
+  | "workshop"
+  | "activity"
+  | "free_time"
+  | "travel"
+  | "other";
+
+// Itinerary event link structure
+export type ItineraryLink = {
+  label: string;
+  url: string;
+};
+
+// Itinerary checklist item structure
+export type ItineraryChecklistItem = {
+  text: string;
+};
 
 // Checklist item for to-do list style bulletin notes
 export type ChecklistItem = {
@@ -1058,6 +1077,108 @@ export interface Database {
           }
         ];
       };
+      itinerary_events: {
+        Row: {
+          id: string;
+          house_id: string;
+          created_by: string | null;
+          title: string;
+          description: string | null;
+          event_date: string;
+          start_time: string | null;
+          end_time: string | null;
+          location: string | null;
+          category: ItineraryEventCategory | null;
+          is_optional: boolean;
+          capacity: number | null;
+          links: ItineraryLink[];
+          checklist: ItineraryChecklistItem[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          house_id: string;
+          created_by: string;
+          title: string;
+          description?: string | null;
+          event_date: string;
+          start_time?: string | null;
+          end_time?: string | null;
+          location?: string | null;
+          category?: ItineraryEventCategory | null;
+          is_optional?: boolean;
+          capacity?: number | null;
+          links?: ItineraryLink[];
+          checklist?: ItineraryChecklistItem[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          title?: string;
+          description?: string | null;
+          event_date?: string;
+          start_time?: string | null;
+          end_time?: string | null;
+          location?: string | null;
+          category?: ItineraryEventCategory | null;
+          is_optional?: boolean;
+          capacity?: number | null;
+          links?: ItineraryLink[];
+          checklist?: ItineraryChecklistItem[];
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "itinerary_events_house_id_fkey";
+            columns: ["house_id"];
+            isOneToOne: false;
+            referencedRelation: "houses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "itinerary_events_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      itinerary_event_signups: {
+        Row: {
+          id: string;
+          event_id: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          event_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "itinerary_event_signups_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "itinerary_events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "itinerary_event_signups_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {};
     Functions: {};
@@ -1445,4 +1566,28 @@ export type BedSignupHistoryEntry = {
       rooms: Room;
     };
   })[];
+};
+
+// ============================================
+// Itinerary Types
+// ============================================
+
+// Base types from database
+export type ItineraryEvent = Database["public"]["Tables"]["itinerary_events"]["Row"];
+export type ItineraryEventSignup = Database["public"]["Tables"]["itinerary_event_signups"]["Row"];
+
+// Itinerary event with creator profile
+export type ItineraryEventWithCreator = ItineraryEvent & {
+  profiles: Profile | null;
+};
+
+// Itinerary event signup with profile
+export type ItineraryEventSignupWithProfile = ItineraryEventSignup & {
+  profiles: Profile;
+};
+
+// Itinerary event with all details including signups
+export type ItineraryEventWithDetails = ItineraryEvent & {
+  profiles: Profile | null;
+  itinerary_event_signups: ItineraryEventSignupWithProfile[];
 };

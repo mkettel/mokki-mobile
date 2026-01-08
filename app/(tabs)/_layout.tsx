@@ -109,6 +109,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="itinerary"
+        options={{
+          href: showTab("itinerary"),
+          title: "Itinerary",
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="list-alt" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="expenses"
         options={{
           href: showTab("expenses"),

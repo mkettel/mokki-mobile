@@ -4,6 +4,7 @@ import {
   type HouseTemplateId,
 } from "@/constants/templates";
 import { useColors } from "@/lib/context/theme";
+import { formatLocalDate } from "@/lib/utils/dates";
 import type { FeatureId, HouseSettings } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import React, { useState } from "react";
@@ -56,6 +57,7 @@ export function CreateHouseWizard({ onComplete, isLoading }: CreateHouseWizardPr
     broll: true,
     members: true,
     account: true,
+    itinerary: false,
   });
   const [guestNightlyRate, setGuestNightlyRate] = useState(50);
   const [accentColor, setAccentColor] = useState<string | undefined>(DEFAULT_ACCENT_COLOR);
@@ -147,8 +149,8 @@ export function CreateHouseWizard({ onComplete, isLoading }: CreateHouseWizardPr
       ...(showTripTimer && {
         tripTimer: {
           enabled: true,
-          startDate: tripStartDate?.toISOString().split("T")[0],
-          endDate: tripEndDate?.toISOString().split("T")[0],
+          startDate: tripStartDate ? formatLocalDate(tripStartDate) : undefined,
+          endDate: tripEndDate ? formatLocalDate(tripEndDate) : undefined,
         },
       }),
     };

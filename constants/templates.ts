@@ -19,6 +19,7 @@ export const HOUSE_TEMPLATES: Record<HouseTemplateId, HouseTemplate> = {
     icon: "snowflake-8",
     features: {
       calendar: true,
+      itinerary: false,
       weather: true,
       expenses: true,
       bulletin: true,
@@ -38,7 +39,8 @@ export const HOUSE_TEMPLATES: Record<HouseTemplateId, HouseTemplate> = {
     description: "Great for group trips and getaways",
     icon: "island",
     features: {
-      calendar: true,
+      calendar: false,
+      itinerary: true,
       weather: false,
       expenses: true,
       bulletin: true,
@@ -60,6 +62,7 @@ export const HOUSE_TEMPLATES: Record<HouseTemplateId, HouseTemplate> = {
     icon: "player-settings",
     features: {
       calendar: true,
+      itinerary: false,
       weather: true,
       expenses: true,
       bulletin: true,
@@ -93,6 +96,12 @@ export const FEATURE_INFO: FeatureInfo[] = [
     name: "Calendar",
     description: "Schedule stays and see who's at the house",
     icon: "calendar",
+  },
+  {
+    id: "itinerary",
+    name: "Itinerary",
+    description: "Plan and share the schedule for your retreat",
+    icon: "list-alt",
   },
   {
     id: "weather",
