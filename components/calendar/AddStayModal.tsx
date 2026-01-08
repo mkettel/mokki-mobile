@@ -11,6 +11,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { FontAwesome } from "@expo/vector-icons";
@@ -18,7 +19,8 @@ import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
 import { isWindowOpenForDates, getUserBedClaim } from "@/lib/api/bedSignups";
 import { BedSelectionModal } from "@/components/beds";
-import type { BedSignup, Bed, Room } from "@/types/database";
+import { CoBookerPicker } from "./CoBookerPicker";
+import type { BedSignup, Bed, Room, Profile, SignupWindow } from "@/types/database";
 import { formatLocalDate } from "@/lib/utils/dates";
 
 type UserClaimInfo = BedSignup & { beds: Bed & { rooms: Room } };
@@ -32,6 +34,7 @@ interface AddStayModalProps {
     notes?: string;
     guestCount: number;
     bedSignupId?: string;
+    coBookerId?: string;
   }) => Promise<void>;
   guestNightlyRate: number;
   houseId?: string;
@@ -64,6 +67,11 @@ export function AddStayModal({
   const [checkingBedWindow, setCheckingBedWindow] = useState(false);
   const [bedWindowOpen, setBedWindowOpen] = useState(false);
   const [existingClaim, setExistingClaim] = useState<UserClaimInfo | null>(null);
+  const [signupWindow, setSignupWindow] = useState<SignupWindow | null>(null);
+
+  // Co-booker state
+  const [coBooker, setCoBooker] = useState<Profile | null>(null);
+  const [showCoBookerPicker, setShowCoBookerPicker] = useState(false);
 
   // Date picker visibility (for Android)
   const [showCheckInPicker, setShowCheckInPicker] = useState(false);
@@ -73,6 +81,7 @@ export function AddStayModal({
   const checkBedWindow = useCallback(async () => {
     if (!bedSignupEnabled || !houseId || !userId) {
       setBedWindowOpen(false);
+      setSignupWindow(null);
       return;
     }
 
@@ -83,6 +92,7 @@ export function AddStayModal({
       const { isOpen, window } = await isWindowOpenForDates(houseId, checkInStr, checkOutStr);
 
       setBedWindowOpen(isOpen);
+      setSignupWindow(window);
 
       if (isOpen && window) {
         // Check if user already has a claim for this window
@@ -97,6 +107,7 @@ export function AddStayModal({
     } catch (error) {
       console.error("Error checking bed window:", error);
       setBedWindowOpen(false);
+      setSignupWindow(null);
     } finally {
       setCheckingBedWindow(false);
     }
@@ -117,6 +128,8 @@ export function AddStayModal({
     setSelectedBedName(null);
     setBedWindowOpen(false);
     setExistingClaim(null);
+    setSignupWindow(null);
+    setCoBooker(null);
   };
 
   const handleClose = () => {
@@ -139,6 +152,7 @@ export function AddStayModal({
         notes: notes.trim() || undefined,
         guestCount,
         bedSignupId: bedSignupId || undefined,
+        coBookerId: coBooker?.id,
       });
       handleClose();
     } catch (error) {
@@ -397,6 +411,66 @@ export function AddStayModal({
             </View>
           )}
 
+          {/* Co-Booker Selection */}
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: colors.foreground }]}>
+              Booking with Partner?
+            </Text>
+            <Text style={[styles.sublabel, { color: colors.mutedForeground }]}>
+              Add a co-booker to share this stay (and bed if selected)
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.coBookerButton,
+                {
+                  backgroundColor: coBooker ? colors.primary + "15" : colors.muted,
+                  borderColor: coBooker ? colors.primary : colors.border,
+                },
+              ]}
+              onPress={() => setShowCoBookerPicker(true)}
+            >
+              {coBooker ? (
+                <>
+                  <View style={styles.coBookerInfo}>
+                    {coBooker.avatar_url ? (
+                      <Image
+                        source={{ uri: coBooker.avatar_url }}
+                        style={styles.coBookerAvatar}
+                      />
+                    ) : (
+                      <View style={[styles.coBookerAvatarPlaceholder, { backgroundColor: colors.primary }]}>
+                        <Text style={styles.coBookerAvatarText}>
+                          {(coBooker.display_name || coBooker.email || "?").charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                    <Text style={[styles.coBookerName, { color: colors.foreground }]}>
+                      {coBooker.display_name || coBooker.email}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setCoBooker(null);
+                    }}
+                    style={styles.clearCoBookerButton}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <FontAwesome name="times-circle" size={18} color={colors.mutedForeground} />
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <FontAwesome name="user-plus" size={16} color={colors.mutedForeground} />
+                  <Text style={[styles.coBookerPlaceholder, { color: colors.mutedForeground }]}>
+                    Add co-booker (optional)
+                  </Text>
+                  <FontAwesome name="chevron-right" size={12} color={colors.mutedForeground} />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+
           {/* Bed Selection - Only show if bed signup is enabled and window is open */}
           {bedSignupEnabled && (
             <View style={styles.field}>
@@ -495,6 +569,26 @@ export function AddStayModal({
             onClose={() => setShowBedSelection(false)}
             onBedSelected={handleBedSelected}
             onSkip={handleBedSkipped}
+          />
+        )}
+
+        {/* Co-Booker Picker Modal */}
+        {houseId && userId && (
+          <CoBookerPicker
+            visible={showCoBookerPicker}
+            onClose={() => setShowCoBookerPicker(false)}
+            onSelectMember={(member) => {
+              setCoBooker(member);
+              setShowCoBookerPicker(false);
+            }}
+            onClear={() => {
+              setCoBooker(null);
+              setShowCoBookerPicker(false);
+            }}
+            selectedMember={coBooker}
+            houseId={houseId}
+            excludeUserId={userId}
+            signupWindowId={bedWindowOpen && signupWindow ? signupWindow.id : undefined}
           />
         )}
 
@@ -712,5 +806,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: typography.fontFamily.chillax,
     paddingVertical: 8,
+  },
+  coBookerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 12,
+  },
+  coBookerInfo: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  coBookerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  coBookerAvatarPlaceholder: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  coBookerAvatarText: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  coBookerName: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxMedium,
+    flex: 1,
+  },
+  clearCoBookerButton: {
+    padding: 6,
+  },
+  coBookerPlaceholder: {
+    flex: 1,
   },
 });

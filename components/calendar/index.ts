@@ -8,3 +8,4 @@ export { AddEventModal } from "./AddEventModal";
 export { EditEventModal } from "./EditEventModal";
 export { EventDetailModal } from "./EventDetailModal";
 export { DayDetailModal } from "./DayDetailModal";
+export { CoBookerPicker } from "./CoBookerPicker";

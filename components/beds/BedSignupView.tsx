@@ -408,13 +408,29 @@ export function BedSignupView({ houseId, userId, onBedClaimed }: BedSignupViewPr
                     <ActivityIndicator size="small" color={colors.primary} />
                   ) : isClaimed && claim ? (
                     <View style={styles.claimedBy}>
-                      <View style={[styles.claimedAvatar, { backgroundColor: isUserBed ? colors.primary : colors.mutedForeground }]}>
-                        <Text style={[styles.claimedInitial, { color: "#fff" }]}>
-                          {(claim.profiles?.display_name || claim.profiles?.email || "?").charAt(0).toUpperCase()}
-                        </Text>
+                      {/* Overlapping avatars for couple */}
+                      <View style={styles.avatarStack}>
+                        <View style={[styles.claimedAvatar, { backgroundColor: isUserBed ? colors.primary : colors.mutedForeground }]}>
+                          <Text style={[styles.claimedInitial, { color: "#fff" }]}>
+                            {(claim.profiles?.display_name || claim.profiles?.email || "?").charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                        {claim.co_claimer && (
+                          <View style={[styles.claimedAvatar, styles.coClaimerAvatar, { backgroundColor: isUserBed || claim.co_claimer.id === userId ? colors.primary : colors.mutedForeground }]}>
+                            <Text style={[styles.claimedInitial, { color: "#fff" }]}>
+                              {(claim.co_claimer.display_name || claim.co_claimer.email || "?").charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                        )}
                       </View>
-                      <Text style={[styles.claimedName, { color: isUserBed ? colors.primary : colors.mutedForeground }]}>
-                        {isUserBed ? "You" : claim.profiles?.display_name || claim.profiles?.email?.split("@")[0] || "Unknown"}
+                      <Text style={[styles.claimedName, { color: isUserBed || claim.co_claimer?.id === userId ? colors.primary : colors.mutedForeground }]}>
+                        {(() => {
+                          const primaryName = isUserBed ? "You" : claim.profiles?.display_name || claim.profiles?.email?.split("@")[0] || "Unknown";
+                          if (!claim.co_claimer) return primaryName;
+                          const coClaimerIsYou = claim.co_claimer.id === userId;
+                          const coClaimerName = coClaimerIsYou ? "You" : claim.co_claimer.display_name || claim.co_claimer.email?.split("@")[0] || "Unknown";
+                          return `${primaryName} & ${coClaimerName}`;
+                        })()}
                       </Text>
                     </View>
                   ) : userClaim ? (
@@ -629,12 +645,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  avatarStack: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   claimedAvatar: {
     width: 24,
     height: 24,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+  },
+  coClaimerAvatar: {
+    marginLeft: -8,
+    borderWidth: 2,
+    borderColor: "#fff",
   },
   claimedInitial: {
     fontSize: 12,

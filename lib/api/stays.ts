@@ -16,6 +16,7 @@ export const GUEST_FEE_PER_NIGHT = 50;
 // Extended type for stays with expense info
 export type StayWithExpense = Stay & {
   profiles: Profile;
+  coBooker?: Profile | null;
   linkedExpense?: {
     id: string;
     amount: number;
@@ -31,6 +32,7 @@ export type StayWithExpense = Stay & {
     bedType: string;
     roomName: string;
     isPremium: boolean;
+    coClaimer?: Profile | null;
   } | null;
 };
 
@@ -42,12 +44,13 @@ export async function getHouseStays(houseId: string): Promise<{
   error: Error | null;
 }> {
   try {
-    // Fetch stays with profiles
+    // Fetch stays with profiles and co-booker
     const { data: stays, error: staysError } = await supabase
       .from("stays")
       .select(`
         *,
-        profiles (*)
+        profiles (*),
+        co_booker:profiles!stays_co_booker_id_fkey (*)
       `)
       .eq("house_id", houseId)
       .order("check_in", { ascending: true });
@@ -98,13 +101,14 @@ export async function getHouseStays(houseId: string): Promise<{
       .map(s => s.bed_signup_id)
       .filter((id): id is string => !!id);
 
-    let bedSignupMap: Record<string, { id: string; bedName: string; bedType: string; roomName: string; isPremium: boolean }> = {};
+    let bedSignupMap: Record<string, { id: string; bedName: string; bedType: string; roomName: string; isPremium: boolean; coClaimer?: Profile | null }> = {};
 
     if (bedSignupIds.length > 0) {
       const { data: bedSignups } = await supabase
         .from("bed_signups")
         .select(`
           id,
+          co_claimer:profiles!bed_signups_co_claimer_id_fkey (*),
           beds (
             id,
             name,
@@ -129,6 +133,7 @@ export async function getHouseStays(houseId: string): Promise<{
               bedType: bed.bed_type,
               roomName: room.name,
               isPremium: bed.is_premium,
+              coClaimer: signup.co_claimer as Profile | null,
             };
           }
         }
@@ -139,6 +144,7 @@ export async function getHouseStays(houseId: string): Promise<{
     const transformedStays: StayWithExpense[] = (stays || []).map(stay => ({
       ...stay,
       profiles: stay.profiles as Profile,
+      coBooker: (stay as any).co_booker as Profile | null,
       linkedExpense: stay.linked_expense_id ? expenseMap[stay.linked_expense_id] : null,
       bedSignup: stay.bed_signup_id ? bedSignupMap[stay.bed_signup_id] : null,
     }));
@@ -162,7 +168,8 @@ export async function getStay(stayId: string): Promise<{
       .from("stays")
       .select(`
         *,
-        profiles (*)
+        profiles (*),
+        co_booker:profiles!stays_co_booker_id_fkey (*)
       `)
       .eq("id", stayId)
       .single();
@@ -206,6 +213,7 @@ export async function getStay(stayId: string): Promise<{
       stay: {
         ...stay,
         profiles: stay.profiles as Profile,
+        coBooker: (stay as any).co_booker as Profile | null,
         linkedExpense,
       },
       error: null,
@@ -270,13 +278,14 @@ export async function createStay(
     guestCount?: number;
     guestNightlyRate?: number;
     bedSignupId?: string;
+    coBookerId?: string;
   }
 ): Promise<{
   stay: Stay | null;
   error: Error | null;
 }> {
   try {
-    const { checkIn, checkOut, notes, guestCount = 0, guestNightlyRate = GUEST_FEE_PER_NIGHT, bedSignupId } = data;
+    const { checkIn, checkOut, notes, guestCount = 0, guestNightlyRate = GUEST_FEE_PER_NIGHT, bedSignupId, coBookerId } = data;
 
     // Validate dates
     if (new Date(checkOut) < new Date(checkIn)) {
@@ -365,6 +374,7 @@ export async function createStay(
         guest_count: guestCount,
         linked_expense_id: linkedExpenseId,
         bed_signup_id: bedSignupId || null,
+        co_booker_id: coBookerId || null,
       })
       .select()
       .single();
@@ -375,6 +385,18 @@ export async function createStay(
         await supabase.from("expenses").delete().eq("id", linkedExpenseId);
       }
       return { stay: null, error };
+    }
+
+    // If stay has a bed signup and a co-booker, update the bed signup with co-claimer
+    if (stay && bedSignupId && coBookerId) {
+      const { error: updateError } = await supabase
+        .from("bed_signups")
+        .update({ co_claimer_id: coBookerId })
+        .eq("id", bedSignupId);
+
+      if (updateError) {
+        console.error("Error setting co-claimer on bed signup:", updateError);
+      }
     }
 
     return { stay, error: null };
@@ -397,13 +419,14 @@ export async function updateStay(
     guestCount?: number;
     guestNightlyRate?: number;
     bedSignupId?: string;
+    coBookerId?: string | null;
   }
 ): Promise<{
   stay: Stay | null;
   error: Error | null;
 }> {
   try {
-    const { checkIn, checkOut, notes, guestCount = 0, guestNightlyRate = GUEST_FEE_PER_NIGHT, bedSignupId } = data;
+    const { checkIn, checkOut, notes, guestCount = 0, guestNightlyRate = GUEST_FEE_PER_NIGHT, bedSignupId, coBookerId } = data;
 
     // Validate dates
     if (new Date(checkOut) < new Date(checkIn)) {
@@ -506,23 +529,46 @@ export async function updateStay(
         .eq("expense_id", linkedExpenseId);
     }
 
+    // Build update object
+    const updateData: Record<string, any> = {
+      check_in: checkIn,
+      check_out: checkOut,
+      notes: notes || null,
+      guest_count: guestCount,
+      linked_expense_id: linkedExpenseId,
+    };
+
+    if (bedSignupId !== undefined) {
+      updateData.bed_signup_id = bedSignupId || null;
+    }
+
+    if (coBookerId !== undefined) {
+      updateData.co_booker_id = coBookerId;
+    }
+
     // Update the stay
     const { data: stay, error } = await supabase
       .from("stays")
-      .update({
-        check_in: checkIn,
-        check_out: checkOut,
-        notes: notes || null,
-        guest_count: guestCount,
-        linked_expense_id: linkedExpenseId,
-        bed_signup_id: bedSignupId !== undefined ? (bedSignupId || null) : undefined,
-      })
+      .update(updateData)
       .eq("id", stayId)
       .select()
       .single();
 
     if (error) {
       return { stay: null, error };
+    }
+
+    // Sync co-claimer on bed signup if stay has one
+    const finalBedSignupId = bedSignupId !== undefined ? bedSignupId : existingStay.bed_signup_id;
+    if (finalBedSignupId && coBookerId !== undefined) {
+      const { error: updateError } = await supabase
+        .from("bed_signups")
+        .update({ co_claimer_id: coBookerId })
+        .eq("id", finalBedSignupId);
+
+      if (updateError) {
+        console.error("Error syncing co-claimer on bed signup:", updateError);
+      }
     }
 
     return { stay, error: null };

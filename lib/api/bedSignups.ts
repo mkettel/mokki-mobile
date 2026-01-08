@@ -180,12 +180,13 @@ async function getRoomsWithClaimsForWindow(
       return { rooms: [], error: roomsError };
     }
 
-    // Get claims for this window
+    // Get claims for this window (including co-claimer profile)
     const { data: claims, error: claimsError } = await supabase
       .from("bed_signups")
       .select(`
         *,
-        profiles (*)
+        profiles (*),
+        co_claimer:profiles!bed_signups_co_claimer_id_fkey (*)
       `)
       .eq("signup_window_id", windowId);
 
@@ -199,6 +200,7 @@ async function getRoomsWithClaimsForWindow(
       claimsMap.set(claim.bed_id, {
         ...claim,
         profiles: claim.profiles as Profile,
+        co_claimer: claim.co_claimer as Profile | null,
       });
     }
 
@@ -235,12 +237,14 @@ async function getRoomsWithClaimsForWindow(
 
 /**
  * Claim a bed for a signup window
+ * @param coClaimerId - Optional co-claimer (e.g., partner sharing the bed)
  */
 export async function claimBed(
   windowId: string,
   bedId: string,
   userId: string,
-  stayId?: string
+  stayId?: string,
+  coClaimerId?: string
 ): Promise<{
   signup: BedSignup | null;
   error: Error | null;
@@ -285,6 +289,39 @@ export async function claimBed(
       return { signup: null, error: new Error("This bed has already been claimed") };
     }
 
+    // Validate co-claimer if provided
+    if (coClaimerId) {
+      // Check if co-claimer already has their own claim
+      const { data: coClaimerExistingClaim } = await supabase
+        .from("bed_signups")
+        .select("id")
+        .eq("signup_window_id", windowId)
+        .eq("user_id", coClaimerId)
+        .maybeSingle();
+
+      if (coClaimerExistingClaim) {
+        return {
+          signup: null,
+          error: new Error("Selected co-booker already has their own bed claimed for this weekend"),
+        };
+      }
+
+      // Check if co-claimer is already co-claimer on another bed
+      const { data: existingCoClaim } = await supabase
+        .from("bed_signups")
+        .select("id")
+        .eq("signup_window_id", windowId)
+        .eq("co_claimer_id", coClaimerId)
+        .maybeSingle();
+
+      if (existingCoClaim) {
+        return {
+          signup: null,
+          error: new Error("Selected co-booker is already sharing a bed with someone else"),
+        };
+      }
+    }
+
     // Create the claim
     const { data: signup, error } = await supabase
       .from("bed_signups")
@@ -293,6 +330,7 @@ export async function claimBed(
         bed_id: bedId,
         user_id: userId,
         stay_id: stayId || null,
+        co_claimer_id: coClaimerId || null,
       })
       .select()
       .single();
@@ -777,5 +815,138 @@ export async function closeSignupWindow(windowId: string): Promise<{
   } catch (error) {
     console.error("Error closing signup window:", error);
     return { success: false, error: error as Error };
+  }
+}
+
+// ============================================
+// Co-Claimer Management
+// ============================================
+
+/**
+ * Update co-claimer on an existing bed signup
+ */
+export async function updateBedCoClaimer(
+  signupId: string,
+  userId: string,
+  coClaimerId: string | null
+): Promise<{
+  success: boolean;
+  error: Error | null;
+}> {
+  try {
+    // Verify the signup belongs to this user
+    const { data: signup, error: signupError } = await supabase
+      .from("bed_signups")
+      .select("user_id, signup_window_id")
+      .eq("id", signupId)
+      .single();
+
+    if (signupError || !signup) {
+      return { success: false, error: signupError || new Error("Bed signup not found") };
+    }
+
+    if (signup.user_id !== userId) {
+      return { success: false, error: new Error("You can only modify your own bed claim") };
+    }
+
+    // Validate new co-claimer if provided
+    if (coClaimerId) {
+      // Check if co-claimer already has their own claim
+      const { data: coClaimerExistingClaim } = await supabase
+        .from("bed_signups")
+        .select("id")
+        .eq("signup_window_id", signup.signup_window_id)
+        .eq("user_id", coClaimerId)
+        .maybeSingle();
+
+      if (coClaimerExistingClaim) {
+        return {
+          success: false,
+          error: new Error("Selected co-booker already has their own bed claimed"),
+        };
+      }
+
+      // Check if co-claimer is already co-claimer on another bed (not this one)
+      const { data: existingCoClaim } = await supabase
+        .from("bed_signups")
+        .select("id")
+        .eq("signup_window_id", signup.signup_window_id)
+        .eq("co_claimer_id", coClaimerId)
+        .neq("id", signupId)
+        .maybeSingle();
+
+      if (existingCoClaim) {
+        return {
+          success: false,
+          error: new Error("Selected co-booker is already sharing a bed with someone else"),
+        };
+      }
+    }
+
+    // Update the co-claimer
+    const { error: updateError } = await supabase
+      .from("bed_signups")
+      .update({ co_claimer_id: coClaimerId })
+      .eq("id", signupId);
+
+    if (updateError) {
+      return { success: false, error: updateError };
+    }
+
+    return { success: true, error: null };
+  } catch (error) {
+    console.error("Error updating bed co-claimer:", error);
+    return { success: false, error: error as Error };
+  }
+}
+
+/**
+ * Get house members who are eligible to be co-claimers for a signup window
+ * (excludes those with their own claims or already co-claiming)
+ */
+export async function getEligibleCoClaimers(
+  houseId: string,
+  windowId: string,
+  excludeUserId: string
+): Promise<{
+  members: Profile[];
+  error: Error | null;
+}> {
+  try {
+    // Get all house members (accepted only)
+    const { data: members, error: membersError } = await supabase
+      .from("house_members")
+      .select("user_id, profiles (*)")
+      .eq("house_id", houseId)
+      .eq("invite_status", "accepted")
+      .neq("user_id", excludeUserId);
+
+    if (membersError) {
+      return { members: [], error: membersError };
+    }
+
+    // Get users who already have claims or are co-claimers in this window
+    const { data: existingClaims } = await supabase
+      .from("bed_signups")
+      .select("user_id, co_claimer_id")
+      .eq("signup_window_id", windowId);
+
+    const ineligibleUserIds = new Set<string>();
+    (existingClaims || []).forEach((claim) => {
+      ineligibleUserIds.add(claim.user_id);
+      if (claim.co_claimer_id) {
+        ineligibleUserIds.add(claim.co_claimer_id);
+      }
+    });
+
+    // Filter to eligible members
+    const eligibleMembers = (members || [])
+      .filter((m) => m.user_id && m.profiles && !ineligibleUserIds.has(m.user_id))
+      .map((m) => m.profiles as Profile);
+
+    return { members: eligibleMembers, error: null };
+  } catch (error) {
+    console.error("Error fetching eligible co-claimers:", error);
+    return { members: [], error: error as Error };
   }
 }

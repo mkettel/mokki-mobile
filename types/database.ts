@@ -277,6 +277,7 @@ export interface Database {
           guest_count: number;
           linked_expense_id: string | null;
           bed_signup_id: string | null;
+          co_booker_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -289,6 +290,7 @@ export interface Database {
           guest_count?: number;
           linked_expense_id?: string | null;
           bed_signup_id?: string | null;
+          co_booker_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -298,6 +300,7 @@ export interface Database {
           guest_count?: number;
           linked_expense_id?: string | null;
           bed_signup_id?: string | null;
+          co_booker_id?: string | null;
         };
         Relationships: [
           {
@@ -319,6 +322,13 @@ export interface Database {
             columns: ["bed_signup_id"];
             isOneToOne: false;
             referencedRelation: "bed_signups";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "stays_co_booker_id_fkey";
+            columns: ["co_booker_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           }
         ];
@@ -1011,6 +1021,7 @@ export interface Database {
           signup_window_id: string;
           bed_id: string;
           user_id: string;
+          co_claimer_id: string | null;
           stay_id: string | null;
           claimed_at: string;
           created_at: string;
@@ -1020,12 +1031,14 @@ export interface Database {
           signup_window_id: string;
           bed_id: string;
           user_id: string;
+          co_claimer_id?: string | null;
           stay_id?: string | null;
           claimed_at?: string;
           created_at?: string;
         };
         Update: {
           stay_id?: string | null;
+          co_claimer_id?: string | null;
         };
         Relationships: [
           {
@@ -1045,6 +1058,13 @@ export interface Database {
           {
             foreignKeyName: "bed_signups_user_id_fkey";
             columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bed_signups_co_claimer_id_fkey";
+            columns: ["co_claimer_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -1400,9 +1420,10 @@ export type SignupWindowWithHouse = SignupWindow & {
   houses: House;
 };
 
-// Bed signup with profile (who claimed)
+// Bed signup with profile (who claimed) and optional co-claimer
 export type BedSignupWithProfile = BedSignup & {
   profiles: Profile;
+  co_claimer?: Profile | null;
 };
 
 // Bed signup with all related info
