@@ -120,17 +120,29 @@ export function HouseDetailsStep({
                 </TouchableOpacity>
               )}
             </TouchableOpacity>
-            {(showStartPicker || Platform.OS === "ios") && Platform.OS !== "web" && (
+            {showStartPicker && Platform.OS !== "web" && (
               <DateTimePicker
                 value={tripStartDate || new Date()}
                 mode="date"
                 display={Platform.OS === "ios" ? "spinner" : "default"}
                 onChange={(event, date) => {
-                  setShowStartPicker(false);
+                  if (Platform.OS === "android") {
+                    setShowStartPicker(false);
+                  }
                   if (date) onTripStartDateChange(date);
                 }}
                 style={Platform.OS === "ios" ? styles.iosPicker : undefined}
               />
+            )}
+            {showStartPicker && Platform.OS === "ios" && (
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={() => setShowStartPicker(false)}
+              >
+                <Text style={[styles.doneButtonText, { color: colors.primary }]}>
+                  Done
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -166,18 +178,30 @@ export function HouseDetailsStep({
                 </TouchableOpacity>
               )}
             </TouchableOpacity>
-            {(showEndPicker || Platform.OS === "ios") && Platform.OS !== "web" && (
+            {showEndPicker && Platform.OS !== "web" && (
               <DateTimePicker
                 value={tripEndDate || tripStartDate || new Date()}
                 mode="date"
                 display={Platform.OS === "ios" ? "spinner" : "default"}
                 onChange={(event, date) => {
-                  setShowEndPicker(false);
+                  if (Platform.OS === "android") {
+                    setShowEndPicker(false);
+                  }
                   if (date) onTripEndDateChange(date);
                 }}
                 minimumDate={tripStartDate || undefined}
                 style={Platform.OS === "ios" ? styles.iosPicker : undefined}
               />
+            )}
+            {showEndPicker && Platform.OS === "ios" && (
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={() => setShowEndPicker(false)}
+              >
+                <Text style={[styles.doneButtonText, { color: colors.primary }]}>
+                  Done
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
         </>
@@ -249,5 +273,15 @@ const styles = StyleSheet.create({
   iosPicker: {
     height: 150,
     marginTop: 8,
+  },
+  doneButton: {
+    alignSelf: "flex-end",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 4,
+  },
+  doneButtonText: {
+    fontSize: 16,
+    fontFamily: typography.fontFamily.chillaxMedium,
   },
 });
