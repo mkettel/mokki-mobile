@@ -6,6 +6,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import {
   Dimensions,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -54,6 +55,8 @@ interface StaysCalendarProps {
   onDayPress?: (date: Date) => void;
   onStayPress?: (stay: StayWithExpense) => void;
   onEventPress?: (event: CalendarEvent) => void;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
 export function StaysCalendar({
@@ -62,6 +65,8 @@ export function StaysCalendar({
   onDayPress,
   onStayPress,
   onEventPress,
+  onRefresh,
+  refreshing = false,
 }: StaysCalendarProps) {
   const colors = useColors();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -238,6 +243,11 @@ export function StaysCalendar({
       <ScrollView
         style={styles.calendarGrid}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          ) : undefined
+        }
       >
         <View style={styles.daysContainer}>
           {calendarDays.map((dayInfo, index) => {

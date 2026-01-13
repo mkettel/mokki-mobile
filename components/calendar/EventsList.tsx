@@ -5,6 +5,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
 import {
   Linking,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +19,8 @@ interface EventsListProps {
   onEditEvent?: (event: EventWithDetails) => void;
   onDeleteEvent?: (event: EventWithDetails) => void;
   showAll?: boolean;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
 type EventStatus = "today" | "upcoming" | "past";
@@ -108,6 +111,8 @@ export function EventsList({
   onEditEvent,
   onDeleteEvent,
   showAll = false,
+  onRefresh,
+  refreshing = false,
 }: EventsListProps) {
   const colors = useColors();
 
@@ -192,7 +197,15 @@ export function EventsList({
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        ) : undefined
+      }
+    >
       {displayEvents.map((event) => {
         const status = getEventStatus(event);
         const statusConfig = getStatusBadge(status);

@@ -542,6 +542,8 @@ export default function CalendarScreen() {
             onDayPress={handleDayPress}
             onStayPress={openStayDetailModal}
             onEventPress={(event) => openEventDetailModal(event.id)}
+            onRefresh={handleRefresh}
+            refreshing={isRefreshing}
           />
         ) : activeTab === "stays" ? (
           <StaysList
@@ -552,6 +554,8 @@ export default function CalendarScreen() {
             onSettleGuestFee={handleSettleGuestFee}
             onUnsettleGuestFee={handleUnsettleGuestFee}
             showAll={true}
+            onRefresh={handleRefresh}
+            refreshing={isRefreshing}
           />
         ) : (
           <EventsList
@@ -559,6 +563,8 @@ export default function CalendarScreen() {
             currentUserId={user?.id || ""}
             onEditEvent={openEditEventModal}
             onDeleteEvent={handleDeleteEvent}
+            onRefresh={handleRefresh}
+            refreshing={isRefreshing}
           />
         )}
       </View>

@@ -6,6 +6,7 @@ import { parseLocalDate } from "@/lib/utils/dates";
 import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,6 +22,8 @@ interface StaysListProps {
   onSettleGuestFee?: (splitId: string) => void;
   onUnsettleGuestFee?: (splitId: string) => void;
   showAll?: boolean;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
 type StayStatus = "current" | "today" | "upcoming" | "past";
@@ -68,6 +71,8 @@ export function StaysList({
   onSettleGuestFee,
   onUnsettleGuestFee,
   showAll = false,
+  onRefresh,
+  refreshing = false,
 }: StaysListProps) {
   const colors = useColors();
   const { user } = useAuth();
@@ -161,7 +166,15 @@ export function StaysList({
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        ) : undefined
+      }
+    >
       {displayStays.map((stay) => {
         const status = getStayStatus(stay);
         const statusConfig = getStatusBadge(status);
