@@ -35,6 +35,7 @@ import {
 import { useAuth } from "@/lib/context/auth";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
+import { supabase } from "@/lib/supabase/client";
 import type { HouseSettings, Profile } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
@@ -135,6 +136,47 @@ export default function CalendarScreen() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Realtime subscription for stays and bed signups
+  useEffect(() => {
+    if (!activeHouse?.id) return;
+
+    const staysChannel = supabase
+      .channel(`calendar_stays:${activeHouse.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "stays",
+          filter: `house_id=eq.${activeHouse.id}`,
+        },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    const bedSignupsChannel = supabase
+      .channel(`calendar_bed_signups:${activeHouse.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "bed_signups",
+        },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(staysChannel);
+      supabase.removeChannel(bedSignupsChannel);
+    };
+  }, [activeHouse?.id, fetchData]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);

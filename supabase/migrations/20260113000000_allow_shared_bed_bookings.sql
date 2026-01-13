@@ -18,3 +18,31 @@ DROP CONSTRAINT IF EXISTS bed_signups_signup_window_id_bed_id_key;
 -- ============================================
 CREATE INDEX IF NOT EXISTS idx_bed_signups_window_bed
 ON public.bed_signups(signup_window_id, bed_id);
+
+-- ============================================
+-- 3. Enable realtime for bed booking tables (if not already enabled)
+-- ============================================
+-- This allows users to see live updates when others claim beds or modify stays
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'bed_signups'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE bed_signups;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'signup_windows'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE signup_windows;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'stays'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE stays;
+  END IF;
+END $$;
