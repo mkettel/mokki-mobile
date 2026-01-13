@@ -21,6 +21,7 @@ import {
   type SignupWindowWithRoomsAndClaims,
   type RoomWithBedsAndClaims,
   type BedWithClaimStatus,
+  type BedClaimInfo,
 } from "@/lib/api/bedSignups";
 import type { SignupWindow, BedSignup, Bed, Room } from "@/types/database";
 
@@ -367,11 +368,13 @@ export function BedSignupView({ houseId, userId, onBedClaimed }: BedSignupViewPr
 
           <View style={styles.bedGrid}>
             {room.beds.map((bed) => {
-              const claim = bed.claim;
-              const isUserBed = claim?.user_id === userId;
-              const isClaimed = !!claim;
+              const claims = bed.claims || [];
+              const userClaimInBed = claims.find(c => c.user_id === userId);
+              const isUserBed = !!userClaimInBed;
+              const hasClaims = claims.length > 0;
               const isLoading = claimingBedId === bed.id;
-              const canClaim = !userClaim && !isClaimed;
+              // User can claim if they don't already have a bed for this window
+              const canClaim = !userClaim;
 
               return (
                 <TouchableOpacity
@@ -381,13 +384,11 @@ export function BedSignupView({ houseId, userId, onBedClaimed }: BedSignupViewPr
                     {
                       backgroundColor: isUserBed
                         ? colors.primary + "20"
-                        : isClaimed
+                        : hasClaims
                         ? colors.muted
                         : colors.background,
                       borderColor: isUserBed
                         ? colors.primary
-                        : isClaimed
-                        ? colors.border
                         : colors.border,
                     },
                   ]}
@@ -406,16 +407,35 @@ export function BedSignupView({ houseId, userId, onBedClaimed }: BedSignupViewPr
 
                   {isLoading ? (
                     <ActivityIndicator size="small" color={colors.primary} />
-                  ) : isClaimed && claim ? (
-                    <View style={styles.claimedBy}>
-                      <View style={[styles.claimedAvatar, { backgroundColor: isUserBed ? colors.primary : colors.mutedForeground }]}>
-                        <Text style={[styles.claimedInitial, { color: "#fff" }]}>
-                          {(claim.profiles?.display_name || claim.profiles?.email || "?").charAt(0).toUpperCase()}
+                  ) : hasClaims ? (
+                    <View style={styles.claimedByMultiple}>
+                      {claims.slice(0, 3).map((claim, index) => {
+                        const isCurrentUser = claim.user_id === userId;
+                        return (
+                          <View
+                            key={claim.id}
+                            style={[
+                              styles.claimedAvatarStacked,
+                              {
+                                backgroundColor: isCurrentUser
+                                  ? colors.primary
+                                  : colors.mutedForeground,
+                                marginLeft: index > 0 ? -8 : 0,
+                                zIndex: claims.length - index,
+                              },
+                            ]}
+                          >
+                            <Text style={[styles.claimedInitial, { color: "#fff" }]}>
+                              {(claim.profiles?.display_name || claim.profiles?.email || "?").charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                      {claims.length > 3 && (
+                        <Text style={[styles.moreClaimants, { color: colors.mutedForeground }]}>
+                          +{claims.length - 3}
                         </Text>
-                      </View>
-                      <Text style={[styles.claimedName, { color: isUserBed ? colors.primary : colors.mutedForeground }]}>
-                        {isUserBed ? "You" : claim.profiles?.display_name || claim.profiles?.email?.split("@")[0] || "Unknown"}
-                      </Text>
+                      )}
                     </View>
                   ) : userClaim ? (
                     <Text style={[styles.availableText, { color: colors.mutedForeground }]}>
@@ -629,12 +649,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  claimedByMultiple: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   claimedAvatar: {
     width: 24,
     height: 24,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+  },
+  claimedAvatarStacked: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
   },
   claimedInitial: {
     fontSize: 12,
@@ -643,6 +676,11 @@ const styles = StyleSheet.create({
   claimedName: {
     fontSize: 13,
     fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  moreClaimants: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily.chillaxMedium,
+    marginLeft: 4,
   },
   availableText: {
     fontSize: 13,

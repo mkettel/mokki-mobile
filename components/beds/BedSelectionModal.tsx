@@ -20,6 +20,7 @@ import {
   type SignupWindowWithRoomsAndClaims,
   type RoomWithBedsAndClaims,
   type BedWithClaimStatus,
+  type BedClaimInfo,
 } from "@/lib/api/bedSignups";
 import type { BedSignup, Bed, Room } from "@/types/database";
 
@@ -29,6 +30,7 @@ interface BedSelectionModalProps {
   userId: string;
   checkIn: string; // ISO date string
   checkOut: string; // ISO date string
+  stayId?: string; // If editing an existing stay, pass the stay ID to auto-link
   onClose: () => void;
   onBedSelected: (bedId: string, signupId: string) => void;
   onSkip: () => void;
@@ -42,6 +44,7 @@ export function BedSelectionModal({
   userId,
   checkIn,
   checkOut,
+  stayId,
   onClose,
   onBedSelected,
   onSkip,
@@ -126,7 +129,8 @@ export function BedSelectionModal({
       const { signup, error: claimError } = await claimBed(
         signupWindow.id,
         bed.id,
-        userId
+        userId,
+        stayId // Pass stayId to link the bed signup to the stay
       );
 
       if (claimError) {
@@ -136,6 +140,14 @@ export function BedSelectionModal({
       }
 
       if (signup) {
+        // If we have a stayId, also update the stay's bed_signup_id immediately
+        // This ensures the stay shows the bed even if user doesn't click "Save Changes"
+        if (stayId) {
+          await supabase
+            .from("stays")
+            .update({ bed_signup_id: signup.id })
+            .eq("id", stayId);
+        }
         onBedSelected(bed.id, signup.id);
       }
     } catch (err) {
@@ -237,7 +249,8 @@ export function BedSelectionModal({
 
                 <View style={styles.bedList}>
                   {room.beds.map((bed) => {
-                    const isClaimed = !!bed.claim;
+                    const claims = bed.claims || [];
+                    const hasClaims = claims.length > 0;
                     const isLoading = claimingBedId === bed.id;
 
                     return (
@@ -246,35 +259,44 @@ export function BedSelectionModal({
                         style={[
                           styles.bedRow,
                           {
-                            backgroundColor: isClaimed ? colors.muted : colors.background,
+                            backgroundColor: hasClaims ? colors.muted : colors.background,
                             borderColor: colors.border,
                           },
                         ]}
-                        onPress={() => !isClaimed && handleClaimBed(bed)}
-                        disabled={isClaimed || isLoading}
+                        onPress={() => handleClaimBed(bed)}
+                        disabled={isLoading}
                       >
                         <View style={styles.bedInfo}>
-                          <Text style={[styles.bedName, { color: isClaimed ? colors.mutedForeground : colors.foreground }]}>
+                          <Text style={[styles.bedName, { color: colors.foreground }]}>
                             {bed.name}
                           </Text>
-                          <Text style={[styles.bedType, { color: colors.mutedForeground }]}>
-                            {bed.bed_type.charAt(0).toUpperCase() + bed.bed_type.slice(1)}
-                            {bed.is_premium && " (Premium)"}
-                          </Text>
+                          <View style={styles.bedMeta}>
+                            <Text style={[styles.bedType, { color: colors.mutedForeground }]}>
+                              {bed.bed_type.charAt(0).toUpperCase() + bed.bed_type.slice(1)}
+                              {bed.is_premium && " (Premium)"}
+                            </Text>
+                            {hasClaims && (
+                              <View style={styles.claimantsList}>
+                                {claims.map((claim, idx) => (
+                                  <Text
+                                    key={claim.id}
+                                    style={[styles.claimantName, { color: colors.mutedForeground }]}
+                                  >
+                                    {idx > 0 && ", "}
+                                    {claim.profiles?.display_name || claim.profiles?.email?.split("@")[0] || "Unknown"}
+                                  </Text>
+                                ))}
+                              </View>
+                            )}
+                          </View>
                         </View>
 
                         {isLoading ? (
                           <ActivityIndicator size="small" color={colors.primary} />
-                        ) : isClaimed ? (
-                          <View style={styles.claimedBadge}>
-                            <Text style={[styles.claimedText, { color: colors.mutedForeground }]}>
-                              Taken
-                            </Text>
-                          </View>
                         ) : (
                           <View style={[styles.selectButton, { backgroundColor: colors.primary }]}>
                             <Text style={[styles.selectButtonText, { color: colors.primaryForeground }]}>
-                              Select
+                              {hasClaims ? "Share" : "Select"}
                             </Text>
                           </View>
                         )}
@@ -445,6 +467,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: typography.fontFamily.chillax,
     marginTop: 2,
+  },
+  bedMeta: {
+    gap: 2,
+  },
+  claimantsList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  claimantName: {
+    fontSize: 11,
+    fontFamily: typography.fontFamily.chillax,
   },
   claimedBadge: {
     paddingHorizontal: 12,

@@ -39,14 +39,14 @@ export const FEATURE_ICONS: Record<FeatureId, string> = {
   account: "user",
 };
 
-// Order for display in settings and navigation
+// Order for display in settings and navigation (matches tab bar order)
 export const FEATURE_ORDER: FeatureId[] = [
   "calendar",
   "itinerary",
+  "expenses",
+  "bulletin",
   "weather",
   "broll",
-  "bulletin",
-  "expenses",
   "chat",
   "members",
   "account",

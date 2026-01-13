@@ -1,19 +1,19 @@
-import React, { useCallback, useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-} from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
-import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
-import type { StayWithExpense } from "@/lib/api/stays";
 import { getRoomsAndBeds } from "@/lib/api/bedSignups";
+import type { StayWithExpense } from "@/lib/api/stays";
+import { useColors } from "@/lib/context/theme";
 import type { RoomWithBeds } from "@/types/database";
+import { FontAwesome } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 // Colors for different users (same as StaysCalendar)
 const STAY_COLORS = [
@@ -139,7 +139,20 @@ export function DayDetailModal({
     const outDate = new Date(outYear, outMonth - 1, outDay);
 
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
 
     const inDayName = dayNames[inDate.getDay()];
     const outDayName = dayNames[outDate.getDay()];
@@ -154,18 +167,22 @@ export function DayDetailModal({
     return `${inDayName} ${inMonthName} ${inDay} - ${outDayName} ${outMonthName} ${outDay}`;
   };
 
-  // Create a map of bed_id -> stay for room view
-  const bedToStayMap = React.useMemo(() => {
-    const map = new Map<string, StayWithExpense>();
+  // Create a map of bed_id -> array of stays for room view (multiple people can share a bed)
+  const bedToStaysMap = React.useMemo(() => {
+    const map = new Map<string, StayWithExpense[]>();
     for (const stay of staysForDate) {
       if (stay.bedSignup?.id) {
         // Find the bed_id from the stay's bedSignup
         // The bedSignup has bedName and roomName but we need to match by name
         for (const room of rooms) {
           if (room.name === stay.bedSignup.roomName) {
-            const bed = room.beds.find((b) => b.name === stay.bedSignup?.bedName);
+            const bed = room.beds.find(
+              (b) => b.name === stay.bedSignup?.bedName
+            );
             if (bed) {
-              map.set(bed.id, stay);
+              const existing = map.get(bed.id) || [];
+              existing.push(stay);
+              map.set(bed.id, existing);
             }
           }
         }
@@ -201,7 +218,8 @@ export function DayDetailModal({
               {formatDateHeader(date)}
             </Text>
             <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-              {staysForDate.length} {staysForDate.length === 1 ? "person" : "people"} staying
+              {staysForDate.length}{" "}
+              {staysForDate.length === 1 ? "person" : "people"} staying
             </Text>
           </View>
           <View style={styles.closeButton} />
@@ -209,7 +227,9 @@ export function DayDetailModal({
 
         {/* View Mode Toggle */}
         {hasRooms && (
-          <View style={[styles.toggleContainer, { backgroundColor: colors.muted }]}>
+          <View
+            style={[styles.toggleContainer, { backgroundColor: colors.muted }]}
+          >
             <TouchableOpacity
               style={[
                 styles.toggleButton,
@@ -220,13 +240,20 @@ export function DayDetailModal({
               <FontAwesome
                 name="user"
                 size={14}
-                color={viewMode === "people" ? colors.foreground : colors.mutedForeground}
+                color={
+                  viewMode === "people"
+                    ? colors.foreground
+                    : colors.mutedForeground
+                }
               />
               <Text
                 style={[
                   styles.toggleText,
                   {
-                    color: viewMode === "people" ? colors.foreground : colors.mutedForeground,
+                    color:
+                      viewMode === "people"
+                        ? colors.foreground
+                        : colors.mutedForeground,
                   },
                 ]}
               >
@@ -243,13 +270,20 @@ export function DayDetailModal({
               <FontAwesome
                 name="th-large"
                 size={14}
-                color={viewMode === "rooms" ? colors.foreground : colors.mutedForeground}
+                color={
+                  viewMode === "rooms"
+                    ? colors.foreground
+                    : colors.mutedForeground
+                }
               />
               <Text
                 style={[
                   styles.toggleText,
                   {
-                    color: viewMode === "rooms" ? colors.foreground : colors.mutedForeground,
+                    color:
+                      viewMode === "rooms"
+                        ? colors.foreground
+                        : colors.mutedForeground,
                   },
                 ]}
               >
@@ -262,11 +296,20 @@ export function DayDetailModal({
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {staysForDate.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <FontAwesome name="calendar-o" size={48} color={colors.mutedForeground} />
+              <FontAwesome
+                name="calendar-o"
+                size={48}
+                color={colors.mutedForeground}
+              />
               <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
                 No one staying
               </Text>
-              <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>
+              <Text
+                style={[
+                  styles.emptySubtitle,
+                  { color: colors.mutedForeground },
+                ]}
+              >
                 No stays scheduled for this day
               </Text>
             </View>
@@ -276,7 +319,10 @@ export function DayDetailModal({
               {staysForDate.map((stay) => (
                 <TouchableOpacity
                   key={stay.id}
-                  style={[styles.personRow, { borderBottomColor: colors.border }]}
+                  style={[
+                    styles.personRow,
+                    { borderBottomColor: colors.border },
+                  ]}
                   onPress={() => onStayPress(stay)}
                 >
                   <View
@@ -289,7 +335,12 @@ export function DayDetailModal({
                   </View>
                   <View style={styles.personInfo}>
                     <View style={styles.personNameRow}>
-                      <Text style={[styles.personName, { color: colors.foreground }]}>
+                      <Text
+                        style={[
+                          styles.personName,
+                          { color: colors.foreground },
+                        ]}
+                      >
                         {getDisplayName(stay)}
                       </Text>
                       {stay.guest_count > 0 && (
@@ -300,25 +351,38 @@ export function DayDetailModal({
                             color={colors.mutedForeground}
                           />
                           <Text
-                            style={[styles.guestCount, { color: colors.mutedForeground }]}
+                            style={[
+                              styles.guestCount,
+                              { color: colors.mutedForeground },
+                            ]}
                           >
                             +{stay.guest_count}
                           </Text>
                         </View>
                       )}
                     </View>
-                    <Text style={[styles.stayDuration, { color: colors.primary }]}>
+                    <Text
+                      style={[styles.stayDuration, { color: colors.primary }]}
+                    >
                       {formatStayDuration(stay)}
                     </Text>
                     {stay.bedSignup ? (
-                      <Text style={[styles.bedInfo, { color: colors.mutedForeground }]}>
+                      <Text
+                        style={[
+                          styles.bedInfo,
+                          { color: colors.mutedForeground },
+                        ]}
+                      >
                         {stay.bedSignup.roomName} - {stay.bedSignup.bedName}
                       </Text>
                     ) : (
                       <Text
                         style={[
                           styles.bedInfo,
-                          { color: colors.mutedForeground, fontStyle: "italic" },
+                          {
+                            color: colors.mutedForeground,
+                            fontStyle: "italic",
+                          },
                         ]}
                       >
                         No bed assigned
@@ -336,7 +400,9 @@ export function DayDetailModal({
           ) : isLoadingRooms ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
+              <Text
+                style={[styles.loadingText, { color: colors.mutedForeground }]}
+              >
                 Loading rooms...
               </Text>
             </View>
@@ -346,7 +412,7 @@ export function DayDetailModal({
               {rooms.map((room) => {
                 const bedsWithOccupants = room.beds.map((bed) => ({
                   bed,
-                  occupant: bedToStayMap.get(bed.id),
+                  occupants: bedToStaysMap.get(bed.id) || [],
                 }));
 
                 return (
@@ -354,93 +420,148 @@ export function DayDetailModal({
                     key={room.id}
                     style={[
                       styles.roomCard,
-                      { backgroundColor: colors.card, borderColor: colors.border },
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                      },
                     ]}
                   >
                     <View style={styles.roomHeader}>
                       <FontAwesome
-                        name={room.room_type === "bunk_room" ? "th-large" : "bed"}
+                        name={
+                          room.room_type === "bunk_room" ? "th-large" : "bed"
+                        }
                         size={16}
                         color={colors.mutedForeground}
                       />
-                      <Text style={[styles.roomName, { color: colors.foreground }]}>
+                      <Text
+                        style={[styles.roomName, { color: colors.foreground }]}
+                      >
                         {room.name}
                       </Text>
                     </View>
 
                     <View style={styles.bedList}>
-                      {bedsWithOccupants.map(({ bed, occupant }) => (
-                        <TouchableOpacity
-                          key={bed.id}
-                          style={[
-                            styles.bedRow,
-                            {
-                              backgroundColor: occupant
-                                ? getUserColor(occupant.user_id) + "20"
-                                : colors.background,
-                              borderColor: occupant
-                                ? getUserColor(occupant.user_id)
-                                : colors.border,
-                            },
-                          ]}
-                          onPress={() => occupant && onStayPress(occupant)}
-                          disabled={!occupant}
-                        >
-                          <View style={styles.bedInfo}>
-                            <Text style={[styles.bedName, { color: colors.foreground }]}>
-                              {bed.name}
-                            </Text>
-                            <Text style={[styles.bedType, { color: colors.mutedForeground }]}>
-                              {bed.bed_type.charAt(0).toUpperCase() + bed.bed_type.slice(1)}
-                              {bed.is_premium && " (Premium)"}
-                            </Text>
-                          </View>
+                      {bedsWithOccupants.map(({ bed, occupants }) => {
+                        const hasOccupants = occupants.length > 0;
+                        const firstOccupant = occupants[0];
 
-                          {occupant ? (
-                            <View style={styles.occupantInfo}>
-                              <View
+                        return (
+                          <TouchableOpacity
+                            key={bed.id}
+                            style={[
+                              styles.bedRow,
+                              {
+                                backgroundColor: hasOccupants
+                                  ? getUserColor(firstOccupant.user_id) + "20"
+                                  : colors.background,
+                                borderColor: hasOccupants
+                                  ? getUserColor(firstOccupant.user_id)
+                                  : colors.border,
+                              },
+                            ]}
+                            onPress={() =>
+                              hasOccupants && onStayPress(firstOccupant)
+                            }
+                            disabled={!hasOccupants}
+                          >
+                            <View style={styles.bedInfo}>
+                              <Text
                                 style={[
-                                  styles.smallAvatar,
-                                  { backgroundColor: getUserColor(occupant.user_id) },
+                                  styles.bedName,
+                                  { color: colors.foreground },
                                 ]}
                               >
-                                <Text style={styles.smallAvatarText}>
-                                  {getInitial(occupant)}
-                                </Text>
-                              </View>
-                              <View style={styles.occupantDetails}>
-                                <Text
-                                  style={[
-                                    styles.occupantName,
-                                    { color: colors.foreground },
-                                  ]}
-                                >
-                                  {getDisplayName(occupant)}
-                                  {occupant.guest_count > 0 && (
-                                    <Text style={{ color: colors.mutedForeground }}>
-                                      {" "}+{occupant.guest_count}
+                                {bed.name}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.bedType,
+                                  { color: colors.mutedForeground },
+                                ]}
+                              >
+                                {bed.bed_type.charAt(0).toUpperCase() +
+                                  bed.bed_type.slice(1)}
+                                {bed.is_premium && " (Premium)"}
+                              </Text>
+                            </View>
+
+                            {hasOccupants ? (
+                              <View style={styles.occupantInfo}>
+                                {/* Stacked avatars for multiple occupants */}
+                                <View style={styles.stackedAvatars}>
+                                  {occupants
+                                    .slice(0, 3)
+                                    .map((occupant, index) => (
+                                      <View
+                                        key={occupant.id}
+                                        style={[
+                                          styles.stackedAvatar,
+                                          {
+                                            backgroundColor: getUserColor(
+                                              occupant.user_id
+                                            ),
+                                            marginLeft: index > 0 ? -8 : 0,
+                                            zIndex: occupants.length - index,
+                                          },
+                                        ]}
+                                      >
+                                        <Text style={styles.smallAvatarText}>
+                                          {getInitial(occupant)}
+                                        </Text>
+                                      </View>
+                                    ))}
+                                  {occupants.length > 3 && (
+                                    <Text
+                                      style={[
+                                        styles.moreOccupants,
+                                        { color: colors.mutedForeground },
+                                      ]}
+                                    >
+                                      +{occupants.length - 3}
                                     </Text>
                                   )}
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.occupantDuration,
-                                    { color: colors.primary },
-                                  ]}
-                                >
-                                  {formatStayDuration(occupant)}
-                                </Text>
+                                </View>
+                                <View style={styles.occupantDetails}>
+                                  <Text
+                                    style={[
+                                      styles.occupantName,
+                                      { color: colors.foreground },
+                                    ]}
+                                    numberOfLines={1}
+                                  >
+                                    {occupants.map((o, i) => (
+                                      <Text key={o.id}>
+                                        {i > 0 && ", "}
+                                        {getDisplayName(o)}
+                                      </Text>
+                                    ))}
+                                  </Text>
+                                  {occupants.length === 1 && (
+                                    <Text
+                                      style={[
+                                        styles.occupantDuration,
+                                        { color: colors.primary },
+                                      ]}
+                                    >
+                                      {formatStayDuration(firstOccupant)}
+                                    </Text>
+                                  )}
+                                </View>
                               </View>
-                            </View>
-                          ) : (
-                            <Text
-                              style={[styles.availableText, { color: colors.mutedForeground }]}
-                            >
-                              Available
-                            </Text>
-                          )}
-                        </TouchableOpacity>
-                      ))}
+                            ) : (
+                              <Text
+                                style={[
+                                  styles.availableText,
+                                  { color: colors.mutedForeground },
+                                ]}
+                              >
+                                Available
+                              </Text>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   </View>
                 );
@@ -451,12 +572,21 @@ export function DayDetailModal({
                 <View
                   style={[
                     styles.roomCard,
-                    { backgroundColor: colors.card, borderColor: colors.border },
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
                   ]}
                 >
                   <View style={styles.roomHeader}>
-                    <FontAwesome name="question-circle" size={16} color={colors.mutedForeground} />
-                    <Text style={[styles.roomName, { color: colors.foreground }]}>
+                    <FontAwesome
+                      name="question-circle"
+                      size={16}
+                      color={colors.mutedForeground}
+                    />
+                    <Text
+                      style={[styles.roomName, { color: colors.foreground }]}
+                    >
                       Unassigned ({unassignedStays.length})
                     </Text>
                   </View>
@@ -487,12 +617,16 @@ export function DayDetailModal({
                           </View>
                           <View style={styles.occupantDetails}>
                             <Text
-                              style={[styles.occupantName, { color: colors.foreground }]}
+                              style={[
+                                styles.occupantName,
+                                { color: colors.foreground },
+                              ]}
                             >
                               {getDisplayName(stay)}
                               {stay.guest_count > 0 && (
                                 <Text style={{ color: colors.mutedForeground }}>
-                                  {" "}+{stay.guest_count}
+                                  {" "}
+                                  +{stay.guest_count}
                                 </Text>
                               )}
                             </Text>
@@ -687,6 +821,7 @@ const styles = StyleSheet.create({
   bedRow: {
     flexDirection: "row",
     alignItems: "center",
+    width: "100%",
     justifyContent: "space-between",
     padding: 14,
     borderRadius: 10,
@@ -705,10 +840,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    flex: 1,
   },
   occupantDetails: {
-    flex: 1,
+    alignItems: "flex-end",
   },
   occupantDuration: {
     fontSize: 11,
@@ -725,6 +859,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: typography.fontFamily.chillaxBold,
     color: "#1f2937",
+  },
+  stackedAvatars: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  stackedAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  moreOccupants: {
+    fontSize: 11,
+    fontFamily: typography.fontFamily.chillaxMedium,
+    marginLeft: 4,
   },
   occupantName: {
     fontSize: 13,

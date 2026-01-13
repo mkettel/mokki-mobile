@@ -538,6 +538,8 @@ export default function CalendarScreen() {
         onClose={() => {
           setShowEditStayModal(false);
           setEditingStay(null);
+          // Refresh data in case a bed was selected (bed is linked immediately now)
+          fetchData();
         }}
         onSubmit={handleEditStay}
         guestNightlyRate={guestNightlyRate}

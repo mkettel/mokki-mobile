@@ -18,7 +18,8 @@ import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
 import { StayWithExpense } from "@/lib/api/stays";
 import { BedSelectionModal } from "@/components/beds";
-import { isWindowOpenForDates, getUserBedClaim } from "@/lib/api/bedSignups";
+import { isWindowOpenForDates, getUserBedClaim, releaseBed } from "@/lib/api/bedSignups";
+import { supabase } from "@/lib/supabase/client";
 import { formatLocalDate, parseLocalDate } from "@/lib/utils/dates";
 
 interface EditStayModalProps {
@@ -162,6 +163,42 @@ export function EditStayModal({
     setBedSignupId(null);
     setSelectedBedName(null);
     setShowBedSelection(false);
+  };
+
+  const handleRemoveBed = () => {
+    if (!bedSignupId || !userId) return;
+
+    Alert.alert(
+      "Remove Bed",
+      "Are you sure you want to remove your bed assignment? The bed will become available for others to claim.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const { error } = await releaseBed(bedSignupId, userId);
+              if (error) {
+                Alert.alert("Error", error.message);
+                return;
+              }
+              // Also clear the stay's bed_signup_id immediately
+              if (stay?.id) {
+                await supabase
+                  .from("stays")
+                  .update({ bed_signup_id: null })
+                  .eq("id", stay.id);
+              }
+              setBedSignupId(null);
+              setSelectedBedName(null);
+            } catch (err) {
+              Alert.alert("Error", "Failed to remove bed assignment");
+            }
+          },
+        },
+      ]
+    );
   };
 
   const formatDate = (date: Date) => {
@@ -414,52 +451,61 @@ export function EditStayModal({
                     Checking availability...
                   </Text>
                 </View>
+              ) : selectedBedName ? (
+                // Show current bed assignment with option to remove
+                <View style={styles.bedAssignmentContainer}>
+                  <View
+                    style={[
+                      styles.bedAssignmentCard,
+                      { backgroundColor: colors.primary + "15", borderColor: colors.primary },
+                    ]}
+                  >
+                    <FontAwesome name="bed" size={18} color={colors.primary} />
+                    <View style={styles.bedAssignmentInfo}>
+                      <Text style={[styles.bedAssignmentLabel, { color: colors.mutedForeground }]}>
+                        Your bed
+                      </Text>
+                      <Text style={[styles.bedAssignmentName, { color: colors.foreground }]}>
+                        {selectedBedName}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.removeBedButton, { borderColor: colors.destructive }]}
+                      onPress={handleRemoveBed}
+                    >
+                      <Text style={[styles.removeBedButtonText, { color: colors.destructive }]}>
+                        Remove
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  {bedWindowOpen && (
+                    <TouchableOpacity
+                      style={styles.changeBedLink}
+                      onPress={() => setShowBedSelection(true)}
+                    >
+                      <Text style={[styles.changeBedLinkText, { color: colors.primary }]}>
+                        Change bed selection
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               ) : bedWindowOpen ? (
                 <TouchableOpacity
                   style={[
                     styles.bedButton,
-                    {
-                      backgroundColor: bedSignupId ? colors.primary + "15" : colors.muted,
-                      borderColor: bedSignupId ? colors.primary : colors.border,
-                    },
+                    { backgroundColor: colors.muted, borderColor: colors.border },
                   ]}
                   onPress={() => setShowBedSelection(true)}
                 >
-                  <FontAwesome
-                    name="bed"
-                    size={16}
-                    color={bedSignupId ? colors.primary : colors.mutedForeground}
-                  />
-                  <Text
-                    style={[
-                      styles.bedButtonText,
-                      { color: bedSignupId ? colors.primary : colors.foreground },
-                    ]}
-                  >
-                    {selectedBedName || "Select a bed..."}
-                  </Text>
-                  <FontAwesome
-                    name="chevron-right"
-                    size={12}
-                    color={colors.mutedForeground}
-                  />
-                </TouchableOpacity>
-              ) : selectedBedName ? (
-                // Show existing bed but can't change (window closed)
-                <View
-                  style={[
-                    styles.bedButton,
-                    { backgroundColor: colors.muted, borderColor: colors.border },
-                  ]}
-                >
                   <FontAwesome name="bed" size={16} color={colors.mutedForeground} />
                   <Text style={[styles.bedButtonText, { color: colors.foreground }]}>
-                    {selectedBedName}
+                    Select a bed...
                   </Text>
-                </View>
+                  <FontAwesome name="chevron-right" size={12} color={colors.mutedForeground} />
+                </TouchableOpacity>
               ) : (
                 <Text style={[styles.sublabel, { color: colors.mutedForeground }]}>
-                  No bed sign-up window is currently open for these dates
+                  No bed assigned
                 </Text>
               )}
             </View>
@@ -474,6 +520,7 @@ export function EditStayModal({
             userId={userId}
             checkIn={formatLocalDate(checkIn)}
             checkOut={formatLocalDate(checkOut)}
+            stayId={stay?.id}
             onClose={() => setShowBedSelection(false)}
             onBedSelected={handleBedSelected}
             onSkip={handleBedSkipped}
@@ -652,5 +699,46 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontFamily: typography.fontFamily.chillax,
+  },
+  bedAssignmentContainer: {
+    gap: 8,
+  },
+  bedAssignmentCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 12,
+  },
+  bedAssignmentInfo: {
+    flex: 1,
+  },
+  bedAssignmentLabel: {
+    fontSize: 11,
+    fontFamily: typography.fontFamily.chillax,
+  },
+  bedAssignmentName: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxSemibold,
+    marginTop: 2,
+  },
+  removeBedButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  removeBedButtonText: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  changeBedLink: {
+    alignSelf: "flex-start",
+    paddingVertical: 4,
+  },
+  changeBedLinkText: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.chillaxMedium,
   },
 });

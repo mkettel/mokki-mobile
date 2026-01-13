@@ -15,9 +15,14 @@ import type {
 // Types for this module
 // ============================================
 
+// Claim can be from current window or from an ongoing stay
+export type BedClaimInfo = BedSignupWithProfile & {
+  claimType: "window" | "ongoing_stay"; // 'window' = claimed in this window, 'ongoing_stay' = from overlapping stay
+};
+
 export type BedWithClaimStatus = Bed & {
   room: Room;
-  claim?: BedSignupWithProfile | null;
+  claims: BedClaimInfo[]; // Multiple people can share a bed
 };
 
 export type RoomWithBedsAndClaims = Room & {
@@ -62,7 +67,12 @@ export async function getActiveSignupWindow(houseId: string): Promise<{
     }
 
     // Get rooms and beds with claims for this window
-    const roomsWithClaims = await getRoomsWithClaimsForWindow(houseId, window.id);
+    const roomsWithClaims = await getRoomsWithClaimsForWindow(
+      houseId,
+      window.id,
+      window.target_weekend_start,
+      window.target_weekend_end
+    );
 
     if (roomsWithClaims.error) {
       return { window: null, error: roomsWithClaims.error };
@@ -70,7 +80,7 @@ export async function getActiveSignupWindow(houseId: string): Promise<{
 
     const totalBeds = roomsWithClaims.rooms.reduce((sum, room) => sum + room.beds.length, 0);
     const claimedBeds = roomsWithClaims.rooms.reduce(
-      (sum, room) => sum + room.beds.filter(bed => bed.claim).length,
+      (sum, room) => sum + room.beds.filter(bed => bed.claims.length > 0).length,
       0
     );
 
@@ -157,10 +167,13 @@ export async function getRoomsAndBeds(houseId: string): Promise<{
 
 /**
  * Get rooms with beds and their claim status for a specific window
+ * Includes both claims from the current window AND ongoing stays that overlap
  */
 async function getRoomsWithClaimsForWindow(
   houseId: string,
-  windowId: string
+  windowId: string,
+  targetWeekendStart: string,
+  targetWeekendEnd: string
 ): Promise<{
   rooms: RoomWithBedsAndClaims[];
   error: Error | null;
@@ -180,8 +193,8 @@ async function getRoomsWithClaimsForWindow(
       return { rooms: [], error: roomsError };
     }
 
-    // Get claims for this window
-    const { data: claims, error: claimsError } = await supabase
+    // Get claims for this specific window
+    const { data: windowClaims, error: claimsError } = await supabase
       .from("bed_signups")
       .select(`
         *,
@@ -193,13 +206,74 @@ async function getRoomsWithClaimsForWindow(
       return { rooms: [], error: claimsError };
     }
 
-    // Create a map of bed_id -> claim
-    const claimsMap = new Map<string, BedSignupWithProfile>();
-    for (const claim of claims || []) {
-      claimsMap.set(claim.bed_id, {
+    // Get ongoing stays that overlap with target weekend and have bed claims
+    // These are stays where someone claimed a bed in a PREVIOUS window but their stay extends into this weekend
+    // Use explicit relationship hint since stays and bed_signups have two FK relationships
+    const { data: ongoingStays, error: staysError } = await supabase
+      .from("stays")
+      .select(`
+        id,
+        user_id,
+        check_in,
+        check_out,
+        bed_signup_id,
+        profiles (*),
+        bed_signups!stays_bed_signup_id_fkey (
+          id,
+          bed_id,
+          signup_window_id
+        )
+      `)
+      .eq("house_id", houseId)
+      .not("bed_signup_id", "is", null)
+      .lte("check_in", targetWeekendEnd)
+      .gte("check_out", targetWeekendStart);
+
+    if (staysError) {
+      return { rooms: [], error: staysError };
+    }
+
+    // Create a map of bed_id -> array of claims
+    const claimsMap = new Map<string, BedClaimInfo[]>();
+
+    // Add claims from current window
+    for (const claim of windowClaims || []) {
+      const existing = claimsMap.get(claim.bed_id) || [];
+      existing.push({
         ...claim,
         profiles: claim.profiles as Profile,
+        claimType: "window",
       });
+      claimsMap.set(claim.bed_id, existing);
+    }
+
+    // Add claims from ongoing stays (but not if they're already in this window's claims)
+    for (const stay of ongoingStays || []) {
+      const bedSignup = stay.bed_signups as any;
+      if (!bedSignup) continue;
+
+      // Skip if this bed signup is already for the current window (already added above)
+      if (bedSignup.signup_window_id === windowId) continue;
+
+      const bedId = bedSignup.bed_id;
+      const existing = claimsMap.get(bedId) || [];
+
+      // Check if this user is already in the claims for this bed (avoid duplicates)
+      const alreadyListed = existing.some(c => c.user_id === stay.user_id);
+      if (alreadyListed) continue;
+
+      existing.push({
+        id: bedSignup.id,
+        signup_window_id: bedSignup.signup_window_id,
+        bed_id: bedId,
+        user_id: stay.user_id,
+        stay_id: stay.id,
+        claimed_at: stay.check_in,
+        created_at: stay.check_in,
+        profiles: stay.profiles as Profile,
+        claimType: "ongoing_stay",
+      });
+      claimsMap.set(bedId, existing);
     }
 
     // Transform rooms with claim status
@@ -218,7 +292,7 @@ async function getRoomsWithClaimsForWindow(
             created_at: room.created_at,
             updated_at: room.updated_at,
           },
-          claim: claimsMap.get(bed.id) || null,
+          claims: claimsMap.get(bed.id) || [],
         })),
     }));
 
@@ -261,7 +335,7 @@ export async function claimBed(
       return { signup: null, error: new Error("Sign-up window is not open") };
     }
 
-    // Check if user already has a claim for this window
+    // Check if user already has a claim for this window (one bed per user per window)
     const { data: existingClaim } = await supabase
       .from("bed_signups")
       .select("id")
@@ -273,17 +347,8 @@ export async function claimBed(
       return { signup: null, error: new Error("You already have a bed claimed for this weekend") };
     }
 
-    // Check if bed is already claimed
-    const { data: bedClaim } = await supabase
-      .from("bed_signups")
-      .select("id")
-      .eq("signup_window_id", windowId)
-      .eq("bed_id", bedId)
-      .maybeSingle();
-
-    if (bedClaim) {
-      return { signup: null, error: new Error("This bed has already been claimed") };
-    }
+    // Note: We no longer block claiming a bed that others have claimed
+    // Multiple people can share a bed (couples, etc.)
 
     // Create the claim
     const { data: signup, error } = await supabase
@@ -300,9 +365,7 @@ export async function claimBed(
     if (error) {
       // Handle unique constraint violations with friendlier messages
       if (error.code === "23505") {
-        if (error.message.includes("bed_id")) {
-          return { signup: null, error: new Error("This bed was just claimed by someone else") };
-        }
+        // Only user_id constraint remains (one bed per user per window)
         if (error.message.includes("user_id")) {
           return { signup: null, error: new Error("You already have a bed claimed for this weekend") };
         }
