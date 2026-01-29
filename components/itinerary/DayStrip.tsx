@@ -14,6 +14,8 @@ interface DayStripProps {
   tripEndDate?: string;
   selectedDate: string;
   onSelectDate: (date: string) => void;
+  isAdmin?: boolean;
+  onChangeDates?: () => void;
 }
 
 // Parse a YYYY-MM-DD string as local date
@@ -59,6 +61,27 @@ function formatDayDisplay(dateString: string): { dayName: string; dayNum: string
   return { dayName, dayNum };
 }
 
+// Format date range for header display (e.g., "Jan 15 - 22" or "Jan 28 - Feb 2")
+function formatDateRange(startDate: string, endDate?: string): string {
+  const start = parseLocalDate(startDate);
+  const end = endDate ? parseLocalDate(endDate) : start;
+
+  const startMonth = start.toLocaleDateString("en-US", { month: "short" });
+  const endMonth = end.toLocaleDateString("en-US", { month: "short" });
+  const startDay = start.getDate();
+  const endDay = end.getDate();
+
+  if (!endDate || startDate === endDate) {
+    return `${startMonth} ${startDay}`;
+  }
+
+  if (startMonth === endMonth) {
+    return `${startMonth} ${startDay} - ${endDay}`;
+  }
+
+  return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+}
+
 const DAY_BUTTON_WIDTH = 56;
 const DAY_BUTTON_MARGIN = 4;
 
@@ -67,10 +90,13 @@ export function DayStrip({
   tripEndDate,
   selectedDate,
   onSelectDate,
+  isAdmin,
+  onChangeDates,
 }: DayStripProps) {
   const colors = useColors();
   const scrollViewRef = useRef<ScrollView>(null);
   const dates = getDateRange(tripStartDate, tripEndDate);
+  const dateRangeText = formatDateRange(tripStartDate, tripEndDate);
 
   // Scroll to selected date on mount and when it changes
   useEffect(() => {
@@ -84,6 +110,23 @@ export function DayStrip({
 
   return (
     <View style={[styles.container, { borderBottomColor: colors.border }]}>
+      {/* Date Range Header */}
+      <View style={styles.headerRow}>
+        <Text style={[styles.dateRangeText, { color: colors.foreground }]}>
+          {dateRangeText}
+        </Text>
+        {isAdmin && onChangeDates && (
+          <TouchableOpacity
+            style={[styles.changeDatesButton, { backgroundColor: colors.muted }]}
+            onPress={onChangeDates}
+          >
+            <Text style={[styles.changeDatesText, { color: colors.mutedForeground }]}>
+              Change dates
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       <ScrollView
         ref={scrollViewRef}
         horizontal
@@ -155,6 +198,26 @@ const styles = StyleSheet.create({
   container: {
     borderBottomWidth: 1,
     paddingVertical: 12,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  dateRangeText: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxSemibold,
+  },
+  changeDatesButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  changeDatesText: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily.chillaxMedium,
   },
   scrollContent: {
     paddingHorizontal: 12,

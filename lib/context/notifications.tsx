@@ -54,6 +54,24 @@ export function NotificationsProvider({
       } else if (data?.type === "expense_added" && data?.expenseId) {
         // Navigate to expenses tab
         router.push("/(tabs)/expenses");
+      } else if (data?.deepLinkTab) {
+        // Handle admin ping notifications with deep link tab
+        const tab = data.deepLinkTab as string;
+        switch (tab) {
+          case "calendar":
+            router.push("/(tabs)/calendar");
+            break;
+          case "expenses":
+            router.push("/(tabs)/expenses");
+            break;
+          case "itinerary":
+            router.push("/(tabs)/itinerary");
+            break;
+          case "home":
+          default:
+            router.push("/(tabs)");
+            break;
+        }
       }
     },
     [router]

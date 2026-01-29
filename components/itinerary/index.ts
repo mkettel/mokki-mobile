@@ -6,3 +6,4 @@ export { NowIndicator } from "./NowIndicator";
 export { EventDetailModal } from "./EventDetailModal";
 export { AddEventModal } from "./AddEventModal";
 export { EditEventModal } from "./EditEventModal";
+export { ChangeTripDatesModal } from "./ChangeTripDatesModal";

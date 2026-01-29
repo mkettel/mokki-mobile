@@ -6,6 +6,7 @@ import { TimelineView } from "./TimelineView";
 import { EventDetailModal } from "./EventDetailModal";
 import { AddEventModal } from "./AddEventModal";
 import { EditEventModal } from "./EditEventModal";
+import { ChangeTripDatesModal } from "./ChangeTripDatesModal";
 import type {
   ItineraryEventWithDetails,
   ItineraryEventCategory,
@@ -51,6 +52,7 @@ interface ItineraryViewProps {
   onDeleteEvent: (eventId: string) => Promise<void>;
   onSignUp: (eventId: string) => Promise<void>;
   onWithdraw: (eventId: string) => Promise<void>;
+  onChangeTripDates?: (startDate: string, endDate: string) => Promise<void>;
 }
 
 // Get today's date in YYYY-MM-DD format
@@ -89,6 +91,7 @@ export function ItineraryView({
   onDeleteEvent,
   onSignUp,
   onWithdraw,
+  onChangeTripDates,
 }: ItineraryViewProps) {
   const colors = useColors();
 
@@ -101,6 +104,7 @@ export function ItineraryView({
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showChangeDatesModal, setShowChangeDatesModal] = useState(false);
   const [selectedEvent, setSelectedEvent] =
     useState<ItineraryEventWithDetails | null>(null);
   const [addEventHour, setAddEventHour] = useState<number | undefined>();
@@ -206,6 +210,8 @@ export function ItineraryView({
         tripEndDate={tripEndDate}
         selectedDate={selectedDate}
         onSelectDate={setSelectedDate}
+        isAdmin={isAdmin}
+        onChangeDates={onChangeTripDates ? () => setShowChangeDatesModal(true) : undefined}
       />
 
       {/* Timeline View */}
@@ -257,6 +263,17 @@ export function ItineraryView({
         onSubmit={handleUpdateEvent}
         onDelete={handleDeleteEvent}
       />
+
+      {/* Change Trip Dates Modal (Admin only) */}
+      {onChangeTripDates && (
+        <ChangeTripDatesModal
+          visible={showChangeDatesModal}
+          currentStartDate={tripStartDate}
+          currentEndDate={tripEndDate}
+          onClose={() => setShowChangeDatesModal(false)}
+          onSave={onChangeTripDates}
+        />
+      )}
     </View>
   );
 }

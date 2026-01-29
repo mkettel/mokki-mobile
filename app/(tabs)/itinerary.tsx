@@ -23,6 +23,7 @@ import {
   signUpForEvent,
   withdrawFromEvent,
 } from "@/lib/api/itinerary";
+import { updateHouseSettings } from "@/lib/api/house";
 import { useAuth } from "@/lib/context/auth";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
@@ -36,7 +37,7 @@ import type {
 
 export default function ItineraryScreen() {
   const colors = useColors();
-  const { activeHouse } = useHouse();
+  const { activeHouse, refreshHouses } = useHouse();
   const { user } = useAuth();
 
   // Get trip dates from house settings
@@ -177,6 +178,25 @@ export default function ItineraryScreen() {
     }
   };
 
+  const handleChangeTripDates = async (startDate: string, endDate: string) => {
+    if (!activeHouse?.id) return;
+
+    const { error } = await updateHouseSettings(activeHouse.id, {
+      tripTimer: {
+        enabled: true,
+        startDate,
+        endDate,
+      },
+    });
+
+    if (error) {
+      Alert.alert("Error", "Failed to update trip dates. Please try again.");
+    } else {
+      // Refresh houses to get updated settings
+      await refreshHouses();
+    }
+  };
+
   // Empty state when trip dates aren't set
   if (!hasTripDates) {
     return (
@@ -261,6 +281,7 @@ export default function ItineraryScreen() {
         onDeleteEvent={handleDeleteEvent}
         onSignUp={handleSignUp}
         onWithdraw={handleWithdraw}
+        onChangeTripDates={isAdmin ? handleChangeTripDates : undefined}
       />
     </PageContainer>
   );

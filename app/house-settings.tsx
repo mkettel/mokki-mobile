@@ -1,3 +1,4 @@
+import { AdminPingModal } from "@/components/admin";
 import { GeometricBackground } from "@/components/GeometricBackground";
 import { ColorPicker } from "@/components/settings";
 import { TopBar } from "@/components/TopBar";
@@ -193,6 +194,9 @@ export default function HouseSettingsScreen() {
   const [showCustomWindowModal, setShowCustomWindowModal] = useState(false);
   const [customWeekendStart, setCustomWeekendStart] = useState<Date | null>(null);
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+
+  // Admin ping modal state
+  const [showAdminPingModal, setShowAdminPingModal] = useState(false);
 
   // Check if user is admin
   const isAdmin = activeHouse?.role === "admin";
@@ -1328,6 +1332,61 @@ export default function HouseSettingsScreen() {
           </View>
         </View>
 
+        {/* Send Notification Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Notifications
+          </Text>
+          <Text
+            style={[styles.sectionDescription, { color: colors.foreground }]}
+          >
+            Send push notifications to all house members.
+          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.notificationButton,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+            onPress={() => setShowAdminPingModal(true)}
+          >
+            <View
+              style={[
+                styles.notificationButtonIcon,
+                { backgroundColor: colors.primary + "20" },
+              ]}
+            >
+              <FontAwesome name="bell" size={18} color={colors.primary} />
+            </View>
+            <View style={styles.notificationButtonContent}>
+              <Text
+                style={[
+                  styles.notificationButtonTitle,
+                  { color: colors.foreground },
+                ]}
+              >
+                Send Notification
+              </Text>
+              <Text
+                style={[
+                  styles.notificationButtonSubtitle,
+                  { color: colors.mutedForeground },
+                ]}
+              >
+                Ping all members with a message
+              </Text>
+            </View>
+            <FontAwesome
+              name="chevron-right"
+              size={14}
+              color={colors.mutedForeground}
+            />
+          </TouchableOpacity>
+        </View>
+
         {/* Bed Sign-Up Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
@@ -1707,6 +1766,14 @@ export default function HouseSettingsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Admin Ping Modal */}
+      <AdminPingModal
+        visible={showAdminPingModal}
+        houseId={activeHouse.id}
+        houseName={activeHouse.name}
+        onClose={() => setShowAdminPingModal(false)}
+      />
     </View>
   );
 }
@@ -2147,5 +2214,33 @@ const styles = StyleSheet.create({
   modalCreateText: {
     fontSize: 14,
     fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  // Notification button styles
+  notificationButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  notificationButtonIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  notificationButtonContent: {
+    flex: 1,
+  },
+  notificationButtonTitle: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillaxMedium,
+    marginBottom: 2,
+  },
+  notificationButtonSubtitle: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.chillax,
   },
 });

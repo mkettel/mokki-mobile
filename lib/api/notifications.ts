@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
+import type { AdminPingType } from "@/constants/adminPingTemplates";
 
 interface SendEventNotificationParams {
   eventId: string;
@@ -177,6 +178,43 @@ export async function sendDMNotification(
     }
 
     return { success: true };
+  } catch (error) {
+    return { success: false, error: error as Error };
+  }
+}
+
+interface SendAdminPingParams {
+  houseId: string;
+  adminId: string;
+  pingType: AdminPingType;
+  title: string;
+  body: string;
+  deepLinkTab: string;
+}
+
+/**
+ * Send admin ping notification to all house members
+ */
+export async function sendAdminPingNotification(
+  params: SendAdminPingParams
+): Promise<{
+  success: boolean;
+  notificationsSent?: number;
+  error?: Error;
+}> {
+  try {
+    const { data, error } = await supabase.functions.invoke("send-notification", {
+      body: params,
+    });
+
+    if (error) {
+      return { success: false, error };
+    }
+
+    return {
+      success: true,
+      notificationsSent: data?.notificationsSent,
+    };
   } catch (error) {
     return { success: false, error: error as Error };
   }
