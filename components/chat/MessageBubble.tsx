@@ -206,27 +206,32 @@ export function MessageBubble({
         isOwnMessage ? styles.containerOwn : styles.containerOther,
       ]}
     >
-      {/* Avatar for other users */}
-      {!isOwnMessage && showAvatar && (
+      {/* Avatar for other users - always reserve space for consistent alignment */}
+      {!isOwnMessage && (
         <View style={styles.avatarContainer}>
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-          ) : (
-            <View
-              style={[
-                styles.avatarPlaceholder,
-                { backgroundColor: colors.muted },
-              ]}
-            >
-              <Text
+          {showAvatar ? (
+            avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            ) : (
+              <View
                 style={[
-                  styles.avatarInitials,
-                  { color: colors.mutedForeground },
+                  styles.avatarPlaceholder,
+                  { backgroundColor: colors.muted },
                 ]}
               >
-                {getInitials(displayName)}
-              </Text>
-            </View>
+                <Text
+                  style={[
+                    styles.avatarInitials,
+                    { color: colors.mutedForeground },
+                  ]}
+                >
+                  {getInitials(displayName)}
+                </Text>
+              </View>
+            )
+          ) : (
+            // Empty spacer to maintain consistent indentation
+            <View style={styles.avatarSpacer} />
           )}
         </View>
       )}
@@ -327,6 +332,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+  },
+  avatarSpacer: {
+    width: 32,
+    height: 32,
   },
   avatarInitials: {
     fontSize: 12,

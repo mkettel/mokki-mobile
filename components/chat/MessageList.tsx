@@ -49,13 +49,25 @@ export function MessageList({
   };
 
   // Check if we should show avatar (collapse consecutive messages from same user)
+  // Avatar appears on the LAST (most recent) message of a consecutive group
   const shouldShowAvatar = (
+    currentMessage: ChatMessageWithProfile,
+    previousMessage: ChatMessageWithProfile | undefined
+  ) => {
+    if (!previousMessage) return true;
+    // Show avatar if previous message (in inverted list = next in time) is from different user
+    // This puts the avatar on the most recent message of a group
+    return currentMessage.user_id !== previousMessage.user_id;
+  };
+
+  // Check if we should show name (on FIRST/oldest message of a consecutive group)
+  const shouldShowName = (
     currentMessage: ChatMessageWithProfile,
     nextMessage: ChatMessageWithProfile | undefined
   ) => {
     if (!nextMessage) return true;
-    // Show avatar if next message is from different user
-    // Note: list is inverted, so "next" in the array is actually the previous message in time
+    // Show name if next message (in inverted list = earlier in time) is from different user
+    // This puts the name on the first message of a group
     return currentMessage.user_id !== nextMessage.user_id;
   };
 
@@ -89,7 +101,10 @@ export function MessageList({
 
       // Show date separator above this message if it's a different day than the next message (which is earlier in time)
       const showDateSeparator = shouldShowDateSeparator(item, nextMessage);
-      const showAvatar = shouldShowAvatar(item, nextMessage);
+      // Avatar shows on the most recent message (bottom of group)
+      const showAvatar = shouldShowAvatar(item, previousMessage);
+      // Name shows on the first message (top of group)
+      const showName = shouldShowName(item, nextMessage);
 
       return (
         <View>
@@ -116,7 +131,7 @@ export function MessageList({
             message={item}
             isOwnMessage={isOwnMessage}
             showAvatar={showAvatar}
-            showName={showAvatar && !isOwnMessage}
+            showName={showName && !isOwnMessage}
             onAttachmentPress={onAttachmentPress}
           />
         </View>
