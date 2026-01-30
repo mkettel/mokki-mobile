@@ -183,6 +183,24 @@ export async function sendDMNotification(
   }
 }
 
+interface SendSessionRequestNotificationParams {
+  houseId: string;
+  adminId: string;
+  requesterName: string;
+  requestedDate: string;
+  requestedTime: string;
+  houseName: string;
+}
+
+interface SendSessionResponseNotificationParams {
+  requesterId: string;
+  adminName: string;
+  status: "accepted" | "declined";
+  requestedDate: string;
+  requestedTime: string;
+  houseName: string;
+}
+
 interface SendAdminPingParams {
   houseId: string;
   adminId: string;
@@ -215,6 +233,69 @@ export async function sendAdminPingNotification(
       success: true,
       notificationsSent: data?.notificationsSent,
     };
+  } catch (error) {
+    return { success: false, error: error as Error };
+  }
+}
+
+/**
+ * Send notification to admin when a member requests a session
+ */
+export async function sendSessionRequestNotification(
+  params: SendSessionRequestNotificationParams
+): Promise<{
+  success: boolean;
+  error?: Error;
+}> {
+  try {
+    const { error } = await supabase.functions.invoke("send-notification", {
+      body: {
+        houseId: params.houseId,
+        targetUserId: params.adminId,
+        title: `Session Request - ${params.houseName}`,
+        body: `${params.requesterName} requested a session on ${params.requestedDate} at ${params.requestedTime}`,
+        deepLinkTab: "itinerary",
+      },
+    });
+
+    if (error) {
+      return { success: false, error };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error as Error };
+  }
+}
+
+/**
+ * Send notification to requester when admin responds to session request
+ */
+export async function sendSessionResponseNotification(
+  params: SendSessionResponseNotificationParams
+): Promise<{
+  success: boolean;
+  error?: Error;
+}> {
+  try {
+    const statusText = params.status === "accepted" ? "accepted" : "declined";
+    const { error } = await supabase.functions.invoke("send-notification", {
+      body: {
+        targetUserId: params.requesterId,
+        title: `Session ${statusText.charAt(0).toUpperCase() + statusText.slice(1)} - ${params.houseName}`,
+        body:
+          params.status === "accepted"
+            ? `${params.adminName} accepted your session for ${params.requestedDate} at ${params.requestedTime}`
+            : `${params.adminName} declined your session request for ${params.requestedDate}`,
+        deepLinkTab: "itinerary",
+      },
+    });
+
+    if (error) {
+      return { success: false, error };
+    }
+
+    return { success: true };
   } catch (error) {
     return { success: false, error: error as Error };
   }

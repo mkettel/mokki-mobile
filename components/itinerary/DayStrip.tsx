@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { FontAwesome } from "@expo/vector-icons";
 import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
 
@@ -16,6 +17,10 @@ interface DayStripProps {
   onSelectDate: (date: string) => void;
   isAdmin?: boolean;
   onChangeDates?: () => void;
+  // Session booking props
+  sessionBookingEnabled?: boolean;
+  sessionBookingLabel?: string;
+  onBookSession?: () => void;
 }
 
 // Parse a YYYY-MM-DD string as local date
@@ -92,6 +97,9 @@ export function DayStrip({
   onSelectDate,
   isAdmin,
   onChangeDates,
+  sessionBookingEnabled,
+  sessionBookingLabel,
+  onBookSession,
 }: DayStripProps) {
   const colors = useColors();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -115,16 +123,31 @@ export function DayStrip({
         <Text style={[styles.dateRangeText, { color: colors.foreground }]}>
           {dateRangeText}
         </Text>
-        {isAdmin && onChangeDates && (
-          <TouchableOpacity
-            style={[styles.changeDatesButton, { backgroundColor: colors.muted }]}
-            onPress={onChangeDates}
-          >
-            <Text style={[styles.changeDatesText, { color: colors.mutedForeground }]}>
-              Change dates
-            </Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.headerButtons}>
+          {/* Book Session Button - visible to all when enabled */}
+          {sessionBookingEnabled && onBookSession && (
+            <TouchableOpacity
+              style={[styles.bookSessionButton, { backgroundColor: colors.primary }]}
+              onPress={onBookSession}
+            >
+              <FontAwesome name="calendar-plus-o" size={12} color={colors.primaryForeground} />
+              <Text style={[styles.bookSessionText, { color: colors.primaryForeground }]}>
+                {sessionBookingLabel || "Book Session"}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {/* Change Dates Button - admin only */}
+          {isAdmin && onChangeDates && (
+            <TouchableOpacity
+              style={[styles.changeDatesButton, { backgroundColor: colors.muted }]}
+              onPress={onChangeDates}
+            >
+              <Text style={[styles.changeDatesText, { color: colors.mutedForeground }]}>
+                Change dates
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <ScrollView
@@ -209,6 +232,23 @@ const styles = StyleSheet.create({
   dateRangeText: {
     fontSize: 15,
     fontFamily: typography.fontFamily.chillaxSemibold,
+  },
+  headerButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  bookSessionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    gap: 5,
+  },
+  bookSessionText: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily.chillaxMedium,
   },
   changeDatesButton: {
     paddingHorizontal: 10,

@@ -38,3 +38,6 @@ export const SUPPORTED_VIDEO_TYPES = [
 
 // Storage key for active house
 export const ACTIVE_HOUSE_STORAGE_KEY = "mokki_active_house";
+
+// Re-export session booking constants
+export * from "./sessionBooking";

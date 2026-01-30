@@ -66,6 +66,10 @@ export type HouseSettings = {
   autoScheduleWindows?: boolean;
   // Show rider type field in profile (skier/snowboarder) - default false, auto-enabled for ski leases
   showRiderType?: boolean;
+  // Session booking feature - enables one-on-one session requests with admins
+  sessionBookingEnabled?: boolean;
+  // Session booking configuration
+  sessionBookingConfig?: SessionBookingConfig;
 };
 
 export type MemberRole = "admin" | "member";
@@ -91,6 +95,16 @@ export type ItineraryEventCategory =
   | "free_time"
   | "travel"
   | "other";
+
+// Session request status for one-on-one bookings
+export type SessionRequestStatus = "pending" | "accepted" | "declined" | "cancelled";
+
+// Session booking configuration for house settings
+export type SessionBookingConfig = {
+  label?: string; // Default: "Book a Session"
+  defaultDuration?: number; // Default: 45 (minutes)
+  description?: string; // Optional helper text shown in booking modal
+};
 
 // Itinerary event link structure
 export type ItineraryLink = {
@@ -1181,6 +1195,61 @@ export interface Database {
           }
         ];
       };
+      session_requests: {
+        Row: {
+          id: string;
+          house_id: string;
+          requester_id: string;
+          admin_id: string;
+          requested_date: string;
+          requested_time: string;
+          duration_minutes: number;
+          status: SessionRequestStatus;
+          message: string | null;
+          created_at: string;
+          responded_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          house_id: string;
+          requester_id: string;
+          admin_id: string;
+          requested_date: string;
+          requested_time: string;
+          duration_minutes?: number;
+          status?: SessionRequestStatus;
+          message?: string | null;
+          created_at?: string;
+          responded_at?: string | null;
+        };
+        Update: {
+          status?: SessionRequestStatus;
+          responded_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "session_requests_house_id_fkey";
+            columns: ["house_id"];
+            isOneToOne: false;
+            referencedRelation: "houses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "session_requests_requester_id_fkey";
+            columns: ["requester_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "session_requests_admin_id_fkey";
+            columns: ["admin_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {};
     Functions: {};
@@ -1195,6 +1264,7 @@ export interface Database {
       room_type: RoomType;
       bed_type: BedType;
       signup_window_status: SignupWindowStatus;
+      session_request_status: SessionRequestStatus;
     };
     CompositeTypes: {};
   };
@@ -1592,4 +1662,27 @@ export type ItineraryEventSignupWithProfile = ItineraryEventSignup & {
 export type ItineraryEventWithDetails = ItineraryEvent & {
   profiles: Profile | null;
   itinerary_event_signups: ItineraryEventSignupWithProfile[];
+};
+
+// ============================================
+// Session Booking Types
+// ============================================
+
+// Base type from database
+export type SessionRequest = Database["public"]["Tables"]["session_requests"]["Row"];
+
+// Session request with requester profile
+export type SessionRequestWithRequester = SessionRequest & {
+  requester: Profile;
+};
+
+// Session request with admin profile
+export type SessionRequestWithAdmin = SessionRequest & {
+  admin: Profile;
+};
+
+// Session request with both profiles (full details)
+export type SessionRequestWithProfiles = SessionRequest & {
+  requester: Profile;
+  admin: Profile;
 };

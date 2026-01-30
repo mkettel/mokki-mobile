@@ -11,11 +11,18 @@ import { FontAwesome } from "@expo/vector-icons";
 import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
 import { EventBlock } from "./EventBlock";
+import { SessionBlock } from "./SessionBlock";
 import { NowIndicator } from "./NowIndicator";
-import type { ItineraryEventWithDetails } from "@/types/database";
+import type {
+  ItineraryEventWithDetails,
+  SessionRequestWithProfiles,
+} from "@/types/database";
 
 interface TimelineViewProps {
   events: ItineraryEventWithDetails[];
+  sessions?: SessionRequestWithProfiles[];
+  pendingSessions?: SessionRequestWithProfiles[];
+  currentUserId?: string;
   selectedDate: string;
   isToday: boolean;
   isAdmin: boolean;
@@ -104,8 +111,59 @@ function calculateEventColumns(
   return columns;
 }
 
+// Calculate session columns for overlapping
+function calculateSessionColumns(
+  sessions: SessionRequestWithProfiles[]
+): Map<string, { columnIndex: number; totalColumns: number }> {
+  const columns = new Map<string, { columnIndex: number; totalColumns: number }>();
+
+  // Sort sessions by start time
+  const sortedSessions = [...sessions].sort((a, b) => {
+    const aMinutes = parseTimeToMinutes(a.requested_time);
+    const bMinutes = parseTimeToMinutes(b.requested_time);
+    return aMinutes - bMinutes;
+  });
+
+  // Find overlapping groups
+  const groups: SessionRequestWithProfiles[][] = [];
+  let currentGroup: SessionRequestWithProfiles[] = [];
+
+  for (const session of sortedSessions) {
+    const sessionStart = parseTimeToMinutes(session.requested_time);
+    const sessionEnd = sessionStart + session.duration_minutes;
+
+    // Check if session overlaps with current group
+    const overlapsWithGroup = currentGroup.some((groupSession) => {
+      const groupStart = parseTimeToMinutes(groupSession.requested_time);
+      const groupEnd = groupStart + groupSession.duration_minutes;
+      return sessionStart < groupEnd && sessionEnd > groupStart;
+    });
+
+    if (overlapsWithGroup || currentGroup.length === 0) {
+      currentGroup.push(session);
+    } else {
+      if (currentGroup.length > 0) groups.push(currentGroup);
+      currentGroup = [session];
+    }
+  }
+  if (currentGroup.length > 0) groups.push(currentGroup);
+
+  // Assign columns within each group
+  for (const group of groups) {
+    const totalColumns = group.length;
+    group.forEach((session, index) => {
+      columns.set(session.id, { columnIndex: index, totalColumns });
+    });
+  }
+
+  return columns;
+}
+
 export function TimelineView({
   events,
+  sessions = [],
+  pendingSessions = [],
+  currentUserId,
   selectedDate,
   isToday,
   isAdmin,
@@ -117,6 +175,15 @@ export function TimelineView({
 
   // Calculate event columns for overlapping
   const eventColumns = useMemo(() => calculateEventColumns(events), [events]);
+
+  // Calculate session columns for overlapping
+  const sessionColumns = useMemo(() => calculateSessionColumns(sessions), [sessions]);
+
+  // Calculate pending session columns for overlapping
+  const pendingSessionColumns = useMemo(
+    () => calculateSessionColumns(pendingSessions),
+    [pendingSessions]
+  );
 
   // Auto-scroll to current time on mount (for today)
   useEffect(() => {
@@ -193,6 +260,39 @@ export function TimelineView({
               />
             );
           })}
+
+          {/* Session blocks (accepted) */}
+          {currentUserId && sessions.map((session) => {
+            const columnInfo = sessionColumns.get(session.id);
+            return (
+              <SessionBlock
+                key={`session-${session.id}`}
+                session={session}
+                currentUserId={currentUserId}
+                hourHeight={HOUR_HEIGHT}
+                startHour={START_HOUR}
+                columnIndex={columnInfo?.columnIndex}
+                totalColumns={columnInfo?.totalColumns}
+              />
+            );
+          })}
+
+          {/* Pending session blocks (tentative) */}
+          {currentUserId && pendingSessions.map((session) => {
+            const columnInfo = pendingSessionColumns.get(session.id);
+            return (
+              <SessionBlock
+                key={`pending-${session.id}`}
+                session={session}
+                currentUserId={currentUserId}
+                hourHeight={HOUR_HEIGHT}
+                startHour={START_HOUR}
+                columnIndex={columnInfo?.columnIndex}
+                totalColumns={columnInfo?.totalColumns}
+                isTentative
+              />
+            );
+          })}
         </View>
 
         {/* Now indicator (only for today) */}
@@ -203,8 +303,8 @@ export function TimelineView({
         )}
       </View>
 
-      {/* Empty state for no events */}
-      {events.length === 0 && (
+      {/* Empty state for no events and no sessions */}
+      {events.length === 0 && sessions.length === 0 && (
         <View style={styles.emptyState}>
           <Text style={[styles.emptyStateText, { color: colors.mutedForeground }]}>
             No events scheduled

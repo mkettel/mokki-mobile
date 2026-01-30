@@ -14,6 +14,7 @@ import { GeometricBackground } from "@/components/GeometricBackground";
 import { PageContainer } from "@/components/PageContainer";
 import { TopBar } from "@/components/TopBar";
 import { ItineraryView } from "@/components/itinerary";
+import { BookSessionModal } from "@/components/itinerary/BookSessionModal";
 import { typography } from "@/constants/theme";
 import {
   getHouseItinerary,
@@ -23,6 +24,11 @@ import {
   signUpForEvent,
   withdrawFromEvent,
 } from "@/lib/api/itinerary";
+import {
+  getPendingRequestsForAdmin,
+  getAcceptedSessionsInRange,
+  getMyPendingRequestsInRange,
+} from "@/lib/api/sessionBooking";
 import { updateHouseSettings } from "@/lib/api/house";
 import { useAuth } from "@/lib/context/auth";
 import { useHouse } from "@/lib/context/house";
@@ -33,6 +39,7 @@ import type {
   ItineraryEventCategory,
   ItineraryLink,
   ItineraryChecklistItem,
+  SessionRequestWithProfiles,
 } from "@/types/database";
 
 export default function ItineraryScreen() {
@@ -46,12 +53,22 @@ export default function ItineraryScreen() {
   const tripEndDate = houseSettings?.tripTimer?.endDate;
   const hasTripDates = !!tripStartDate;
 
+  // Get session booking config
+  const sessionBookingEnabled = houseSettings?.sessionBookingEnabled ?? false;
+  const sessionBookingConfig = houseSettings?.sessionBookingConfig;
+
   // Check if user is admin
   const isAdmin = activeHouse?.role === "admin";
 
   // Data state
   const [events, setEvents] = useState<ItineraryEventWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Session booking state
+  const [showBookSessionModal, setShowBookSessionModal] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState<SessionRequestWithProfiles[]>([]);
+  const [acceptedSessions, setAcceptedSessions] = useState<SessionRequestWithProfiles[]>([]);
+  const [myPendingRequests, setMyPendingRequests] = useState<SessionRequestWithProfiles[]>([]);
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -61,6 +78,7 @@ export default function ItineraryScreen() {
     }
 
     try {
+      // Fetch itinerary events
       const { events: fetchedEvents, error } = await getHouseItinerary(
         activeHouse.id
       );
@@ -69,12 +87,48 @@ export default function ItineraryScreen() {
       } else {
         setEvents(fetchedEvents);
       }
+
+      // Fetch session booking data if enabled
+      if (sessionBookingEnabled && user?.id && tripStartDate) {
+        // Fetch pending requests for admins
+        if (isAdmin) {
+          const { requests, error: requestsError } = await getPendingRequestsForAdmin(
+            activeHouse.id,
+            user.id
+          );
+          if (!requestsError) {
+            setPendingRequests(requests);
+          }
+        }
+
+        // Fetch accepted sessions (for all users)
+        const endDate = tripEndDate || tripStartDate;
+        const { sessions, error: sessionsError } = await getAcceptedSessionsInRange(
+          activeHouse.id,
+          tripStartDate,
+          endDate
+        );
+        if (!sessionsError) {
+          setAcceptedSessions(sessions);
+        }
+
+        // Fetch user's own pending requests (for tentative display on itinerary)
+        const { requests: myRequests, error: myRequestsError } = await getMyPendingRequestsInRange(
+          activeHouse.id,
+          user.id,
+          tripStartDate,
+          endDate
+        );
+        if (!myRequestsError) {
+          setMyPendingRequests(myRequests);
+        }
+      }
     } catch (error) {
       console.error("Error fetching itinerary:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [activeHouse?.id, hasTripDates]);
+  }, [activeHouse?.id, hasTripDates, sessionBookingEnabled, user?.id, isAdmin, tripStartDate, tripEndDate]);
 
   useEffect(() => {
     fetchData();
@@ -282,7 +336,32 @@ export default function ItineraryScreen() {
         onSignUp={handleSignUp}
         onWithdraw={handleWithdraw}
         onChangeTripDates={isAdmin ? handleChangeTripDates : undefined}
+        pendingSessionRequests={pendingRequests}
+        acceptedSessions={acceptedSessions}
+        myPendingRequests={myPendingRequests}
+        houseName={activeHouse?.name}
+        currentUserName={user?.user_metadata?.display_name || user?.email?.split("@")[0]}
+        onSessionRequestHandled={fetchData}
+        sessionBookingEnabled={sessionBookingEnabled}
+        sessionBookingLabel={sessionBookingConfig?.label}
+        onBookSession={() => setShowBookSessionModal(true)}
       />
+
+      {/* Book Session Modal */}
+      {sessionBookingEnabled && user?.id && (
+        <BookSessionModal
+          visible={showBookSessionModal}
+          houseId={activeHouse?.id || ""}
+          houseName={activeHouse?.name}
+          currentUserId={user.id}
+          currentUserName={user?.user_metadata?.display_name || user?.email?.split("@")[0]}
+          tripStartDate={tripStartDate!}
+          tripEndDate={tripEndDate}
+          config={sessionBookingConfig}
+          onClose={() => setShowBookSessionModal(false)}
+          onSuccess={fetchData}
+        />
+      )}
     </PageContainer>
   );
 }

@@ -3,6 +3,10 @@ import { GeometricBackground } from "@/components/GeometricBackground";
 import { ColorPicker } from "@/components/settings";
 import { TopBar } from "@/components/TopBar";
 import { DEFAULT_FEATURE_CONFIG, FEATURE_ORDER } from "@/constants/features";
+import {
+  DEFAULT_SESSION_BOOKING_CONFIG,
+  DURATION_OPTIONS,
+} from "@/constants/sessionBooking";
 import { typography } from "@/constants/theme";
 import {
   closeSignupWindow,
@@ -37,6 +41,23 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+// Tab configuration
+type SettingsTab = "general" | "features" | "trip" | "members" | "bookings";
+
+interface TabConfig {
+  id: SettingsTab;
+  label: string;
+  icon: string;
+}
+
+const SETTINGS_TABS: TabConfig[] = [
+  { id: "general", label: "General", icon: "home" },
+  { id: "features", label: "Features", icon: "th-large" },
+  { id: "trip", label: "Trip", icon: "calendar" },
+  { id: "members", label: "Members", icon: "users" },
+  { id: "bookings", label: "Bookings", icon: "clock-o" },
+];
 
 interface FeatureRowProps {
   featureId: FeatureId;
@@ -184,6 +205,17 @@ export default function HouseSettingsScreen() {
   // Member profile settings
   const [showRiderType, setShowRiderType] = useState(false);
 
+  // Session booking state
+  const [sessionBookingEnabled, setSessionBookingEnabled] = useState(false);
+  const [sessionBookingLabel, setSessionBookingLabel] = useState(
+    DEFAULT_SESSION_BOOKING_CONFIG.label || "Book a Session"
+  );
+  const [sessionBookingDuration, setSessionBookingDuration] = useState(
+    DEFAULT_SESSION_BOOKING_CONFIG.defaultDuration || 45
+  );
+  const [sessionBookingDescription, setSessionBookingDescription] = useState("");
+  const [showDurationPicker, setShowDurationPicker] = useState(false);
+
   // Bed sign-up state
   const [bedSignupEnabled, setBedSignupEnabled] = useState(false);
   const [autoScheduleWindows, setAutoScheduleWindows] = useState(true);
@@ -197,6 +229,9 @@ export default function HouseSettingsScreen() {
 
   // Admin ping modal state
   const [showAdminPingModal, setShowAdminPingModal] = useState(false);
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<SettingsTab>("general");
 
   // Check if user is admin
   const isAdmin = activeHouse?.role === "admin";
@@ -241,6 +276,22 @@ export default function HouseSettingsScreen() {
 
       // Initialize member profile settings
       setShowRiderType(houseSettings?.showRiderType ?? false);
+
+      // Initialize session booking settings
+      setSessionBookingEnabled(houseSettings?.sessionBookingEnabled ?? false);
+      setSessionBookingLabel(
+        houseSettings?.sessionBookingConfig?.label ||
+          DEFAULT_SESSION_BOOKING_CONFIG.label ||
+          "Book a Session"
+      );
+      setSessionBookingDuration(
+        houseSettings?.sessionBookingConfig?.defaultDuration ||
+          DEFAULT_SESSION_BOOKING_CONFIG.defaultDuration ||
+          45
+      );
+      setSessionBookingDescription(
+        houseSettings?.sessionBookingConfig?.description || ""
+      );
     }
   }, [activeHouse]);
 
@@ -621,6 +672,123 @@ export default function HouseSettingsScreen() {
     setIsSaving(false);
   };
 
+  const handleSessionBookingToggle = async (enabled: boolean) => {
+    if (!activeHouse?.id) return;
+
+    const previousValue = sessionBookingEnabled;
+    setSessionBookingEnabled(enabled);
+    setIsSaving(true);
+
+    const { error } = await updateHouseSettings(activeHouse.id, {
+      sessionBookingEnabled: enabled,
+    });
+
+    if (error) {
+      setSessionBookingEnabled(previousValue);
+      const message = "Failed to update session booking setting";
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Error", message);
+      }
+    } else {
+      await refreshHouses();
+    }
+
+    setIsSaving(false);
+  };
+
+  const handleSessionBookingLabelChange = async (label: string) => {
+    if (!activeHouse?.id) return;
+
+    const previousLabel = sessionBookingLabel;
+    setSessionBookingLabel(label);
+    setIsSaving(true);
+
+    const { error } = await updateHouseSettings(activeHouse.id, {
+      sessionBookingConfig: {
+        label,
+        defaultDuration: sessionBookingDuration,
+        description: sessionBookingDescription || undefined,
+      },
+    });
+
+    if (error) {
+      setSessionBookingLabel(previousLabel);
+      const message = "Failed to update session label";
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Error", message);
+      }
+    } else {
+      await refreshHouses();
+    }
+
+    setIsSaving(false);
+  };
+
+  const handleSessionBookingDurationChange = async (duration: number) => {
+    if (!activeHouse?.id) return;
+
+    const previousDuration = sessionBookingDuration;
+    setSessionBookingDuration(duration);
+    setShowDurationPicker(false);
+    setIsSaving(true);
+
+    const { error } = await updateHouseSettings(activeHouse.id, {
+      sessionBookingConfig: {
+        label: sessionBookingLabel,
+        defaultDuration: duration,
+        description: sessionBookingDescription || undefined,
+      },
+    });
+
+    if (error) {
+      setSessionBookingDuration(previousDuration);
+      const message = "Failed to update session duration";
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Error", message);
+      }
+    } else {
+      await refreshHouses();
+    }
+
+    setIsSaving(false);
+  };
+
+  const handleSessionBookingDescriptionChange = async (description: string) => {
+    if (!activeHouse?.id) return;
+
+    const previousDescription = sessionBookingDescription;
+    setSessionBookingDescription(description);
+    setIsSaving(true);
+
+    const { error } = await updateHouseSettings(activeHouse.id, {
+      sessionBookingConfig: {
+        label: sessionBookingLabel,
+        defaultDuration: sessionBookingDuration,
+        description: description || undefined,
+      },
+    });
+
+    if (error) {
+      setSessionBookingDescription(previousDescription);
+      const message = "Failed to update session description";
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Error", message);
+      }
+    } else {
+      await refreshHouses();
+    }
+
+    setIsSaving(false);
+  };
+
   const handleBedSignupToggle = async (enabled: boolean) => {
     if (!activeHouse?.id) return;
 
@@ -896,875 +1064,1117 @@ export default function HouseSettingsScreen() {
         </View>
       </View>
 
+      {/* Tab Bar */}
+      <View style={[styles.tabBarContainer, { borderBottomColor: colors.border }]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabBarContent}
+        >
+          {SETTINGS_TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                style={[
+                  styles.tabButton,
+                  isActive && [styles.tabButtonActive, { borderBottomColor: colors.primary }],
+                ]}
+                onPress={() => setActiveTab(tab.id)}
+              >
+                <FontAwesome
+                  name={tab.icon as any}
+                  size={16}
+                  color={isActive ? colors.primary : colors.mutedForeground}
+                />
+                <Text
+                  style={[
+                    styles.tabButtonText,
+                    { color: isActive ? colors.primary : colors.mutedForeground },
+                    isActive && styles.tabButtonTextActive,
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* House Name */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-            House
-          </Text>
-          <View
-            style={[
-              styles.houseNameCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.houseName, { color: colors.foreground }]}>
-              {activeHouse.name}
-            </Text>
-          </View>
-        </View>
-
-        {/* Features Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-            Features
-          </Text>
-          <Text
-            style={[styles.sectionDescription, { color: colors.foreground }]}
-          >
-            Toggle features on or off and customize their labels. Disabled
-            features won't appear in navigation.
-          </Text>
-
-          <View style={styles.featuresList}>
-            {FEATURE_ORDER.map((featureId) => (
-              <FeatureRow
-                key={featureId}
-                featureId={featureId}
-                enabled={localFeatures[featureId]?.enabled ?? true}
-                label={
-                  localFeatures[featureId]?.label ??
-                  DEFAULT_FEATURE_CONFIG[featureId].label
-                }
-                defaultLabel={DEFAULT_FEATURE_CONFIG[featureId].label}
-                onToggle={(enabled) => handleFeatureToggle(featureId, enabled)}
-                onLabelChange={(label) => handleLabelChange(featureId, label)}
-              />
-            ))}
-          </View>
-        </View>
-
-        {/* Theme Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-            Theme
-          </Text>
-          <Text
-            style={[styles.sectionDescription, { color: colors.foreground }]}
-          >
-            Customize the mountain color for your house.
-          </Text>
-
-          <View
-            style={[
-              styles.themeCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.themeLabel, { color: colors.foreground }]}>
-              Mountain Color
-            </Text>
-            <ColorPicker
-              selectedColor={localAccentColor}
-              onColorSelect={handleAccentColorChange}
-            />
-          </View>
-        </View>
-
-        {/* Trip Timer Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-            Trip Timer
-          </Text>
-          <Text
-            style={[styles.sectionDescription, { color: colors.foreground }]}
-          >
-            Display a countdown or trip day counter on the home screen.
-          </Text>
-
-          <View
-            style={[
-              styles.themeCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            {/* Enable/Disable Toggle */}
-            <View style={styles.tripTimerToggleRow}>
-              <Text
+        {/* GENERAL TAB */}
+        {activeTab === "general" && (
+          <>
+            {/* House Name */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                House
+              </Text>
+              <View
                 style={[
-                  styles.themeLabel,
-                  { color: colors.foreground, marginBottom: 0 },
+                  styles.houseNameCard,
+                  { backgroundColor: colors.card, borderColor: colors.border },
                 ]}
               >
-                Show Trip Timer
-              </Text>
-              <Switch
-                value={tripTimerEnabled}
-                onValueChange={handleTripTimerToggle}
-                trackColor={{ false: colors.muted, true: colors.primary }}
-                thumbColor={colors.background}
-              />
-            </View>
-
-            {tripTimerEnabled && (
-              <>
-                {/* Start Date Picker */}
-                <View style={styles.dateField}>
-                  <Text
-                    style={[styles.dateLabel, { color: colors.foreground }]}
-                  >
-                    Trip Start Date
-                  </Text>
-                  <TouchableOpacity
-                    style={[
-                      styles.dateButton,
-                      {
-                        backgroundColor: colors.muted,
-                        borderColor: colors.border,
-                      },
-                    ]}
-                    onPress={() => setShowStartDatePicker(true)}
-                  >
-                    <FontAwesome
-                      name="calendar"
-                      size={16}
-                      color={colors.foreground}
-                    />
-                    <Text
-                      style={[styles.dateText, { color: colors.foreground }]}
-                    >
-                      {tripStartDate
-                        ? formatDateDisplay(tripStartDate)
-                        : "Select date..."}
-                    </Text>
-                  </TouchableOpacity>
-                  {showStartDatePicker && (
-                    <>
-                      <DateTimePicker
-                        value={tripStartDate || new Date()}
-                        mode="date"
-                        display={Platform.OS === "ios" ? "spinner" : "default"}
-                        onChange={(event, date) => {
-                          if (Platform.OS === "android") {
-                            setShowStartDatePicker(false);
-                          }
-                          if (date) handleStartDateChange(date);
-                        }}
-                        style={
-                          Platform.OS === "ios" ? styles.iosPicker : undefined
-                        }
-                      />
-                      {Platform.OS === "ios" && (
-                        <TouchableOpacity
-                          style={styles.pickerDoneButton}
-                          onPress={() => setShowStartDatePicker(false)}
-                        >
-                          <Text style={[styles.pickerDoneText, { color: colors.primary }]}>
-                            Done
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </>
-                  )}
-                </View>
-
-                {/* End Date Picker (Optional) */}
-                <View style={styles.dateField}>
-                  <Text
-                    style={[styles.dateLabel, { color: colors.foreground }]}
-                  >
-                    Trip End Date (Optional)
-                  </Text>
-                  <TouchableOpacity
-                    style={[
-                      styles.dateButton,
-                      {
-                        backgroundColor: colors.muted,
-                        borderColor: colors.border,
-                      },
-                    ]}
-                    onPress={() => setShowEndDatePicker(true)}
-                  >
-                    <FontAwesome
-                      name="calendar"
-                      size={16}
-                      color={colors.foreground}
-                    />
-                    <Text
-                      style={[styles.dateText, { color: colors.foreground }]}
-                    >
-                      {tripEndDate
-                        ? formatDateDisplay(tripEndDate)
-                        : "No end date"}
-                    </Text>
-                  </TouchableOpacity>
-                  {showEndDatePicker && (
-                    <>
-                      <DateTimePicker
-                        value={tripEndDate || tripStartDate || new Date()}
-                        mode="date"
-                        display={Platform.OS === "ios" ? "spinner" : "default"}
-                        onChange={(event, date) => {
-                          if (Platform.OS === "android") {
-                            setShowEndDatePicker(false);
-                          }
-                          if (date) handleEndDateChange(date);
-                        }}
-                        minimumDate={tripStartDate || undefined}
-                        style={
-                          Platform.OS === "ios" ? styles.iosPicker : undefined
-                        }
-                      />
-                      {Platform.OS === "ios" && (
-                        <TouchableOpacity
-                          style={styles.pickerDoneButton}
-                          onPress={() => setShowEndDatePicker(false)}
-                        >
-                          <Text style={[styles.pickerDoneText, { color: colors.primary }]}>
-                            Done
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </>
-                  )}
-                </View>
-
-                {/* Clear Dates Button */}
-                {(tripStartDate || tripEndDate) && (
-                  <TouchableOpacity
-                    onPress={handleClearDates}
-                    style={styles.clearDatesButton}
-                  >
-                    <Text
-                      style={[
-                        styles.clearDatesText,
-                        { color: colors.destructive },
-                      ]}
-                    >
-                      Clear Dates
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* Guest Fees Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-            Guest Fees
-          </Text>
-          <Text
-            style={[styles.sectionDescription, { color: colors.foreground }]}
-          >
-            Set the nightly rate charged per guest. Set to 0 for free guests.
-          </Text>
-
-          <View
-            style={[
-              styles.themeCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            <Text
-              style={[
-                styles.themeLabel,
-                { color: colors.foreground, marginBottom: 0 },
-              ]}
-            >
-              Nightly Rate
-            </Text>
-            <View style={styles.guestRateRow}>
-              <Text
-                style={[styles.currencyPrefix, { color: colors.foreground }]}
-              >
-                $
-              </Text>
-              <TextInput
-                style={[
-                  styles.guestRateInput,
-                  {
-                    color: colors.foreground,
-                    borderColor: colors.border,
-                    backgroundColor: colors.muted,
-                  },
-                ]}
-                value={guestRateInput}
-                onChangeText={handleGuestRateChange}
-                onBlur={handleGuestRateBlur}
-                keyboardType="numeric"
-                maxLength={5}
-                selectTextOnFocus
-              />
-              <Text style={[styles.rateSuffix, { color: colors.foreground }]}>
-                per guest per night
-              </Text>
-            </View>
-          </View>
-
-          {/* Guest Fee Recipient */}
-          <Text
-            style={[
-              styles.themeLabel,
-              { color: colors.foreground, marginTop: 16 },
-            ]}
-          >
-            Fee Recipient
-          </Text>
-          <Text
-            style={[
-              styles.sectionDescription,
-              { color: colors.foreground, marginBottom: 12 },
-            ]}
-          >
-            Who receives guest fee payments. Defaults to the first admin.
-          </Text>
-
-          <View style={styles.recipientList}>
-            {members.map((member) => {
-              const isSelected = localGuestFeeRecipient === member.id;
-              const displayName =
-                member.display_name || member.email.split("@")[0];
-              const initial = displayName.charAt(0).toUpperCase();
-
-              return (
-                <TouchableOpacity
-                  key={member.id}
-                  style={[
-                    styles.recipientOption,
-                    {
-                      backgroundColor: isSelected
-                        ? colors.primary + "20"
-                        : colors.card,
-                      borderColor: isSelected ? colors.primary : colors.border,
-                    },
-                  ]}
-                  onPress={() => handleGuestFeeRecipientChange(member.id)}
-                >
-                  {member.avatar_url ? (
-                    <Image
-                      source={{ uri: member.avatar_url }}
-                      style={styles.recipientAvatar}
-                    />
-                  ) : (
-                    <View
-                      style={[
-                        styles.recipientAvatar,
-                        { backgroundColor: colors.muted },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.recipientAvatarText,
-                          { color: colors.foreground },
-                        ]}
-                      >
-                        {initial}
-                      </Text>
-                    </View>
-                  )}
-                  <Text
-                    style={[styles.recipientName, { color: colors.foreground }]}
-                  >
-                    {displayName}
-                  </Text>
-                  {isSelected && (
-                    <FontAwesome
-                      name="check"
-                      size={16}
-                      color={colors.primary}
-                    />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Member Profiles Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-            Member Profiles
-          </Text>
-          <Text
-            style={[styles.sectionDescription, { color: colors.foreground }]}
-          >
-            Configure which fields appear in member profiles.
-          </Text>
-
-          <View
-            style={[
-              styles.themeCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            <View style={styles.tripTimerToggleRow}>
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    styles.themeLabel,
-                    { color: colors.foreground, marginBottom: 4 },
-                  ]}
-                >
-                  Rider Type
-                </Text>
-                <Text
-                  style={[
-                    styles.sectionDescription,
-                    { color: colors.mutedForeground, marginBottom: 0 },
-                  ]}
-                >
-                  Show skier/snowboarder option
+                <Text style={[styles.houseName, { color: colors.foreground }]}>
+                  {activeHouse.name}
                 </Text>
               </View>
-              <Switch
-                value={showRiderType}
-                onValueChange={handleShowRiderTypeToggle}
-                trackColor={{ false: colors.muted, true: colors.primary }}
-                thumbColor={colors.background}
-              />
             </View>
-          </View>
-        </View>
 
-        {/* Send Notification Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-            Notifications
-          </Text>
-          <Text
-            style={[styles.sectionDescription, { color: colors.foreground }]}
-          >
-            Send push notifications to all house members.
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.notificationButton,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-              },
-            ]}
-            onPress={() => setShowAdminPingModal(true)}
-          >
-            <View
-              style={[
-                styles.notificationButtonIcon,
-                { backgroundColor: colors.primary + "20" },
-              ]}
-            >
-              <FontAwesome name="bell" size={18} color={colors.primary} />
-            </View>
-            <View style={styles.notificationButtonContent}>
-              <Text
-                style={[
-                  styles.notificationButtonTitle,
-                  { color: colors.foreground },
-                ]}
-              >
-                Send Notification
+            {/* Theme Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                Theme
               </Text>
               <Text
+                style={[styles.sectionDescription, { color: colors.foreground }]}
+              >
+                Customize the mountain color for your house.
+              </Text>
+
+              <View
                 style={[
-                  styles.notificationButtonSubtitle,
-                  { color: colors.mutedForeground },
+                  styles.themeCard,
+                  { backgroundColor: colors.card, borderColor: colors.border },
                 ]}
               >
-                Ping all members with a message
-              </Text>
-            </View>
-            <FontAwesome
-              name="chevron-right"
-              size={14}
-              color={colors.mutedForeground}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Bed Sign-Up Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-            Bed Sign-Up
-          </Text>
-          <Text
-            style={[styles.sectionDescription, { color: colors.foreground }]}
-          >
-            Allow house members to sign up for specific beds each week.
-          </Text>
-
-          <View
-            style={[
-              styles.themeCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            {/* Enable/Disable Toggle */}
-            <View style={styles.tripTimerToggleRow}>
-              <Text
-                style={[
-                  styles.themeLabel,
-                  { color: colors.foreground, marginBottom: 0 },
-                ]}
-              >
-                Enable Bed Sign-Up
-              </Text>
-              <Switch
-                value={bedSignupEnabled}
-                onValueChange={handleBedSignupToggle}
-                trackColor={{ false: colors.muted, true: colors.primary }}
-                thumbColor={colors.background}
-              />
-            </View>
-
-            {bedSignupEnabled && (
-              <>
-                {/* Room Configuration Status */}
-                <View style={styles.bedSignupStatus}>
-                  <FontAwesome
-                    name={roomCount > 0 ? "check-circle" : "info-circle"}
-                    size={16}
-                    color={roomCount > 0 ? colors.primary : colors.mutedForeground}
-                  />
-                  <Text
-                    style={[
-                      styles.bedSignupStatusText,
-                      { color: roomCount > 0 ? colors.foreground : colors.mutedForeground },
-                    ]}
-                  >
-                    {roomCount > 0
-                      ? `${roomCount} room${roomCount !== 1 ? "s" : ""}, ${bedCount} bed${bedCount !== 1 ? "s" : ""} configured`
-                      : "No rooms configured yet"}
-                  </Text>
-                </View>
-
-                {/* Configure Rooms Button */}
-                <TouchableOpacity
-                  style={[
-                    styles.configureRoomsButton,
-                    {
-                      backgroundColor: colors.primary,
-                    },
-                  ]}
-                  onPress={() => router.push("/room-configuration")}
-                >
-                  <FontAwesome
-                    name="bed"
-                    size={16}
-                    color={colors.primaryForeground}
-                  />
-                  <Text
-                    style={[
-                      styles.configureRoomsButtonText,
-                      { color: colors.primaryForeground },
-                    ]}
-                  >
-                    Configure Rooms & Beds
-                  </Text>
-                </TouchableOpacity>
-
-                {/* View History Button */}
-                <TouchableOpacity
-                  style={[
-                    styles.viewHistoryButton,
-                    {
-                      borderColor: colors.border,
-                    },
-                  ]}
-                  onPress={() => router.push("/bed-history")}
-                >
-                  <FontAwesome
-                    name="history"
-                    size={16}
-                    color={colors.foreground}
-                  />
-                  <Text
-                    style={[
-                      styles.viewHistoryButtonText,
-                      { color: colors.foreground },
-                    ]}
-                  >
-                    View Bed History
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-
-          {/* Sign-Up Windows Section (only when bed signup is enabled) */}
-          {bedSignupEnabled && (
-            <View
-              style={[
-                styles.themeCard,
-                { backgroundColor: colors.card, borderColor: colors.border, marginTop: 16 },
-              ]}
-            >
-              <Text style={[styles.themeLabel, { color: colors.foreground }]}>
-                Sign-Up Windows
-              </Text>
-
-              {/* Current Status */}
-              {isLoadingWindowStatus ? (
-                <ActivityIndicator size="small" color={colors.foreground} />
-              ) : windowStatus?.activeWindow ? (
-                // Active window
-                <View style={styles.windowStatusSection}>
-                  <View style={[styles.statusBadge, { backgroundColor: colors.primary + "20" }]}>
-                    <View style={[styles.statusDot, { backgroundColor: colors.primary }]} />
-                    <Text style={[styles.statusBadgeText, { color: colors.primary }]}>
-                      SIGN-UP OPEN
-                    </Text>
-                  </View>
-                  <Text style={[styles.windowDateText, { color: colors.foreground }]}>
-                    {formatWeekendDates(
-                      windowStatus.activeWindow.target_weekend_start,
-                      windowStatus.activeWindow.target_weekend_end
-                    )} weekend
-                  </Text>
-                  <Text style={[styles.windowSubtext, { color: colors.mutedForeground }]}>
-                    {windowStatus.activeWindow.claimedBeds} of {windowStatus.activeWindow.totalBeds} beds claimed
-                  </Text>
-
-                  <TouchableOpacity
-                    style={[styles.closeWindowButton, { borderColor: colors.destructive }]}
-                    onPress={handleCloseWindow}
-                  >
-                    <FontAwesome name="times-circle" size={14} color={colors.destructive} />
-                    <Text style={[styles.closeWindowButtonText, { color: colors.destructive }]}>
-                      Close Sign-Up Early
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : windowStatus?.nextScheduledWindow ? (
-                // Scheduled window
-                <View style={styles.windowStatusSection}>
-                  <View style={[styles.statusBadge, { backgroundColor: colors.muted }]}>
-                    <FontAwesome name="clock-o" size={12} color={colors.mutedForeground} />
-                    <Text style={[styles.statusBadgeText, { color: colors.mutedForeground }]}>
-                      SCHEDULED
-                    </Text>
-                  </View>
-                  <Text style={[styles.windowDateText, { color: colors.foreground }]}>
-                    {formatWeekendDates(
-                      windowStatus.nextScheduledWindow.target_weekend_start,
-                      windowStatus.nextScheduledWindow.target_weekend_end
-                    )} weekend
-                  </Text>
-                  <Text style={[styles.windowSubtext, { color: colors.mutedForeground }]}>
-                    Opens: {formatScheduledTime(windowStatus.nextScheduledWindow.opens_at)}
-                  </Text>
-
-                  <TouchableOpacity
-                    style={[styles.openNowButton, { backgroundColor: colors.primary }]}
-                    onPress={handleOpenWindowNow}
-                  >
-                    <FontAwesome name="unlock" size={14} color={colors.primaryForeground} />
-                    <Text style={[styles.openNowButtonText, { color: colors.primaryForeground }]}>
-                      Open Sign-Up Now
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                // No window
-                <View style={styles.windowStatusSection}>
-                  <Text style={[styles.noWindowText, { color: colors.mutedForeground }]}>
-                    No sign-up window scheduled
-                  </Text>
-                </View>
-              )}
-
-              {/* Create Custom Window Button (when no active window) */}
-              {!windowStatus?.activeWindow && (
-                <TouchableOpacity
-                  style={[styles.createCustomButton, { borderColor: colors.border }]}
-                  onPress={() => {
-                    setCustomWeekendStart(getNextFriday());
-                    setShowCustomWindowModal(true);
-                  }}
-                >
-                  <FontAwesome name="plus" size={14} color={colors.foreground} />
-                  <Text style={[styles.createCustomButtonText, { color: colors.foreground }]}>
-                    Create Custom Window
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              {/* Auto-Schedule Toggle */}
-              <View style={[styles.autoScheduleRow, { borderTopColor: colors.border }]}>
-                <View style={styles.autoScheduleInfo}>
-                  <Text style={[styles.autoScheduleLabel, { color: colors.foreground }]}>
-                    Auto-schedule
-                  </Text>
-                  <Text style={[styles.autoScheduleHint, { color: colors.mutedForeground }]}>
-                    Open at random time Mon/Tue
-                  </Text>
-                </View>
-                <Switch
-                  value={autoScheduleWindows}
-                  onValueChange={handleAutoScheduleToggle}
-                  trackColor={{ false: colors.muted, true: colors.primary }}
-                  thumbColor={colors.background}
+                <Text style={[styles.themeLabel, { color: colors.foreground }]}>
+                  Mountain Color
+                </Text>
+                <ColorPicker
+                  selectedColor={localAccentColor}
+                  onColorSelect={handleAccentColorChange}
                 />
               </View>
             </View>
-          )}
-        </View>
 
-        {/* Custom Window Modal */}
-        {showCustomWindowModal && (
-          <View style={styles.modalOverlay}>
-            <View
-              style={[
-                styles.customWindowModal,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: colors.foreground }]}>
-                  Create Custom Window
-                </Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowCustomWindowModal(false);
-                    setCustomWeekendStart(null);
-                  }}
-                >
-                  <FontAwesome name="times" size={20} color={colors.foreground} />
-                </TouchableOpacity>
-              </View>
+            {/* Archive House Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                Archive
+              </Text>
+              <Text
+                style={[styles.sectionDescription, { color: colors.foreground }]}
+              >
+                {activeHouse.isArchived
+                  ? "This house is currently archived. Unarchive it to show it in your house picker."
+                  : "Archive this house to hide it from your house picker. You can unarchive it anytime."}
+              </Text>
 
-              <View style={styles.modalBody}>
-                <Text style={[styles.modalLabel, { color: colors.foreground }]}>
-                  Weekend Start (Friday)
-                </Text>
-                <TouchableOpacity
+              <TouchableOpacity
+                style={[
+                  styles.archiveButton,
+                  {
+                    backgroundColor: activeHouse.isArchived
+                      ? colors.primary
+                      : colors.muted,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={handleArchiveHouse}
+              >
+                <FontAwesome
+                  name={activeHouse.isArchived ? "eye" : "archive"}
+                  size={16}
+                  color={
+                    activeHouse.isArchived
+                      ? colors.primaryForeground
+                      : colors.foreground
+                  }
+                  style={styles.archiveButtonIcon}
+                />
+                <Text
                   style={[
-                    styles.dateButton,
-                    { backgroundColor: colors.muted, borderColor: colors.border },
-                  ]}
-                  onPress={() => setShowCustomDatePicker(true)}
-                >
-                  <FontAwesome name="calendar" size={16} color={colors.foreground} />
-                  <Text style={[styles.dateText, { color: colors.foreground }]}>
-                    {customWeekendStart
-                      ? formatDateDisplay(customWeekendStart)
-                      : "Select Friday..."}
-                  </Text>
-                </TouchableOpacity>
-
-                {(showCustomDatePicker || Platform.OS === "ios") && (
-                  <DateTimePicker
-                    value={customWeekendStart || getNextFriday()}
-                    mode="date"
-                    display={Platform.OS === "ios" ? "spinner" : "default"}
-                    onChange={(event, date) => {
-                      setShowCustomDatePicker(false);
-                      if (date) setCustomWeekendStart(date);
-                    }}
-                    minimumDate={new Date()}
-                    style={Platform.OS === "ios" ? styles.iosPicker : undefined}
-                  />
-                )}
-
-                <Text style={[styles.modalHint, { color: colors.mutedForeground }]}>
-                  This will immediately open sign-up for the selected weekend.
-                </Text>
-              </View>
-
-              <View style={styles.modalFooter}>
-                <TouchableOpacity
-                  style={[styles.modalCancelButton, { borderColor: colors.border }]}
-                  onPress={() => {
-                    setShowCustomWindowModal(false);
-                    setCustomWeekendStart(null);
-                  }}
-                >
-                  <Text style={[styles.modalCancelText, { color: colors.foreground }]}>
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.modalCreateButton,
+                    styles.archiveButtonText,
                     {
-                      backgroundColor: customWeekendStart ? colors.primary : colors.muted,
+                      color: activeHouse.isArchived
+                        ? colors.primaryForeground
+                        : colors.foreground,
                     },
                   ]}
-                  onPress={handleCreateCustomWindow}
-                  disabled={!customWeekendStart || isSaving}
                 >
-                  {isSaving ? (
-                    <ActivityIndicator size="small" color={colors.primaryForeground} />
-                  ) : (
-                    <Text
-                      style={[
-                        styles.modalCreateText,
-                        { color: customWeekendStart ? colors.primaryForeground : colors.mutedForeground },
-                      ]}
-                    >
-                      Create & Open
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </View>
+                  {activeHouse.isArchived ? "Unarchive House" : "Archive House"}
+                </Text>
+              </TouchableOpacity>
             </View>
-          </View>
+          </>
         )}
 
-        {/* Archive House Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-            Archive
-          </Text>
-          <Text
-            style={[styles.sectionDescription, { color: colors.foreground }]}
-          >
-            {activeHouse.isArchived
-              ? "This house is currently archived. Unarchive it to show it in your house picker."
-              : "Archive this house to hide it from your house picker. You can unarchive it anytime."}
-          </Text>
+        {/* FEATURES TAB */}
+        {activeTab === "features" && (
+          <>
+            {/* Features Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                Features
+              </Text>
+              <Text
+                style={[styles.sectionDescription, { color: colors.foreground }]}
+              >
+                Toggle features on or off and customize their labels. Disabled
+                features won't appear in navigation.
+              </Text>
 
-          <TouchableOpacity
-            style={[
-              styles.archiveButton,
-              {
-                backgroundColor: activeHouse.isArchived
-                  ? colors.primary
-                  : colors.muted,
-                borderColor: colors.border,
-              },
-            ]}
-            onPress={handleArchiveHouse}
-          >
-            <FontAwesome
-              name={activeHouse.isArchived ? "eye" : "archive"}
-              size={16}
-              color={
-                activeHouse.isArchived
-                  ? colors.primaryForeground
-                  : colors.foreground
-              }
-              style={styles.archiveButtonIcon}
-            />
-            <Text
-              style={[
-                styles.archiveButtonText,
-                {
-                  color: activeHouse.isArchived
-                    ? colors.primaryForeground
-                    : colors.foreground,
-                },
-              ]}
-            >
-              {activeHouse.isArchived ? "Unarchive House" : "Archive House"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <View style={styles.featuresList}>
+                {FEATURE_ORDER.map((featureId) => (
+                  <FeatureRow
+                    key={featureId}
+                    featureId={featureId}
+                    enabled={localFeatures[featureId]?.enabled ?? true}
+                    label={
+                      localFeatures[featureId]?.label ??
+                      DEFAULT_FEATURE_CONFIG[featureId].label
+                    }
+                    defaultLabel={DEFAULT_FEATURE_CONFIG[featureId].label}
+                    onToggle={(enabled) => handleFeatureToggle(featureId, enabled)}
+                    onLabelChange={(label) => handleLabelChange(featureId, label)}
+                  />
+                ))}
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* TRIP TAB */}
+        {activeTab === "trip" && (
+          <>
+            {/* Trip Timer Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                Trip Timer
+              </Text>
+              <Text
+                style={[styles.sectionDescription, { color: colors.foreground }]}
+              >
+                Display a countdown or trip day counter on the home screen.
+              </Text>
+
+              <View
+                style={[
+                  styles.themeCard,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+              >
+                {/* Enable/Disable Toggle */}
+                <View style={styles.tripTimerToggleRow}>
+                  <Text
+                    style={[
+                      styles.themeLabel,
+                      { color: colors.foreground, marginBottom: 0 },
+                    ]}
+                  >
+                    Show Trip Timer
+                  </Text>
+                  <Switch
+                    value={tripTimerEnabled}
+                    onValueChange={handleTripTimerToggle}
+                    trackColor={{ false: colors.muted, true: colors.primary }}
+                    thumbColor={colors.background}
+                  />
+                </View>
+
+                {tripTimerEnabled && (
+                  <>
+                    {/* Start Date Picker */}
+                    <View style={styles.dateField}>
+                      <Text
+                        style={[styles.dateLabel, { color: colors.foreground }]}
+                      >
+                        Trip Start Date
+                      </Text>
+                      <TouchableOpacity
+                        style={[
+                          styles.dateButton,
+                          {
+                            backgroundColor: colors.muted,
+                            borderColor: colors.border,
+                          },
+                        ]}
+                        onPress={() => setShowStartDatePicker(true)}
+                      >
+                        <FontAwesome
+                          name="calendar"
+                          size={16}
+                          color={colors.foreground}
+                        />
+                        <Text
+                          style={[styles.dateText, { color: colors.foreground }]}
+                        >
+                          {tripStartDate
+                            ? formatDateDisplay(tripStartDate)
+                            : "Select date..."}
+                        </Text>
+                      </TouchableOpacity>
+                      {showStartDatePicker && (
+                        <>
+                          <DateTimePicker
+                            value={tripStartDate || new Date()}
+                            mode="date"
+                            display={Platform.OS === "ios" ? "spinner" : "default"}
+                            onChange={(event, date) => {
+                              if (Platform.OS === "android") {
+                                setShowStartDatePicker(false);
+                              }
+                              if (date) handleStartDateChange(date);
+                            }}
+                            style={
+                              Platform.OS === "ios" ? styles.iosPicker : undefined
+                            }
+                          />
+                          {Platform.OS === "ios" && (
+                            <TouchableOpacity
+                              style={styles.pickerDoneButton}
+                              onPress={() => setShowStartDatePicker(false)}
+                            >
+                              <Text style={[styles.pickerDoneText, { color: colors.primary }]}>
+                                Done
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                        </>
+                      )}
+                    </View>
+
+                    {/* End Date Picker (Optional) */}
+                    <View style={styles.dateField}>
+                      <Text
+                        style={[styles.dateLabel, { color: colors.foreground }]}
+                      >
+                        Trip End Date (Optional)
+                      </Text>
+                      <TouchableOpacity
+                        style={[
+                          styles.dateButton,
+                          {
+                            backgroundColor: colors.muted,
+                            borderColor: colors.border,
+                          },
+                        ]}
+                        onPress={() => setShowEndDatePicker(true)}
+                      >
+                        <FontAwesome
+                          name="calendar"
+                          size={16}
+                          color={colors.foreground}
+                        />
+                        <Text
+                          style={[styles.dateText, { color: colors.foreground }]}
+                        >
+                          {tripEndDate
+                            ? formatDateDisplay(tripEndDate)
+                            : "No end date"}
+                        </Text>
+                      </TouchableOpacity>
+                      {showEndDatePicker && (
+                        <>
+                          <DateTimePicker
+                            value={tripEndDate || tripStartDate || new Date()}
+                            mode="date"
+                            display={Platform.OS === "ios" ? "spinner" : "default"}
+                            onChange={(event, date) => {
+                              if (Platform.OS === "android") {
+                                setShowEndDatePicker(false);
+                              }
+                              if (date) handleEndDateChange(date);
+                            }}
+                            minimumDate={tripStartDate || undefined}
+                            style={
+                              Platform.OS === "ios" ? styles.iosPicker : undefined
+                            }
+                          />
+                          {Platform.OS === "ios" && (
+                            <TouchableOpacity
+                              style={styles.pickerDoneButton}
+                              onPress={() => setShowEndDatePicker(false)}
+                            >
+                              <Text style={[styles.pickerDoneText, { color: colors.primary }]}>
+                                Done
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                        </>
+                      )}
+                    </View>
+
+                    {/* Clear Dates Button */}
+                    {(tripStartDate || tripEndDate) && (
+                      <TouchableOpacity
+                        onPress={handleClearDates}
+                        style={styles.clearDatesButton}
+                      >
+                        <Text
+                          style={[
+                            styles.clearDatesText,
+                            { color: colors.destructive },
+                          ]}
+                        >
+                          Clear Dates
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
+              </View>
+            </View>
+
+            {/* Guest Fees Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                Guest Fees
+              </Text>
+              <Text
+                style={[styles.sectionDescription, { color: colors.foreground }]}
+              >
+                Set the nightly rate charged per guest. Set to 0 for free guests.
+              </Text>
+
+              <View
+                style={[
+                  styles.themeCard,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.themeLabel,
+                    { color: colors.foreground, marginBottom: 0 },
+                  ]}
+                >
+                  Nightly Rate
+                </Text>
+                <View style={styles.guestRateRow}>
+                  <Text
+                    style={[styles.currencyPrefix, { color: colors.foreground }]}
+                  >
+                    $
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.guestRateInput,
+                      {
+                        color: colors.foreground,
+                        borderColor: colors.border,
+                        backgroundColor: colors.muted,
+                      },
+                    ]}
+                    value={guestRateInput}
+                    onChangeText={handleGuestRateChange}
+                    onBlur={handleGuestRateBlur}
+                    keyboardType="numeric"
+                    maxLength={5}
+                    selectTextOnFocus
+                  />
+                  <Text style={[styles.rateSuffix, { color: colors.foreground }]}>
+                    per guest per night
+                  </Text>
+                </View>
+              </View>
+
+              {/* Guest Fee Recipient */}
+              <Text
+                style={[
+                  styles.themeLabel,
+                  { color: colors.foreground, marginTop: 16 },
+                ]}
+              >
+                Fee Recipient
+              </Text>
+              <Text
+                style={[
+                  styles.sectionDescription,
+                  { color: colors.foreground, marginBottom: 12 },
+                ]}
+              >
+                Who receives guest fee payments. Defaults to the first admin.
+              </Text>
+
+              <View style={styles.recipientList}>
+                {members.map((member) => {
+                  const isSelected = localGuestFeeRecipient === member.id;
+                  const displayName =
+                    member.display_name || member.email.split("@")[0];
+                  const initial = displayName.charAt(0).toUpperCase();
+
+                  return (
+                    <TouchableOpacity
+                      key={member.id}
+                      style={[
+                        styles.recipientOption,
+                        {
+                          backgroundColor: isSelected
+                            ? colors.primary + "20"
+                            : colors.card,
+                          borderColor: isSelected ? colors.primary : colors.border,
+                        },
+                      ]}
+                      onPress={() => handleGuestFeeRecipientChange(member.id)}
+                    >
+                      {member.avatar_url ? (
+                        <Image
+                          source={{ uri: member.avatar_url }}
+                          style={styles.recipientAvatar}
+                        />
+                      ) : (
+                        <View
+                          style={[
+                            styles.recipientAvatar,
+                            { backgroundColor: colors.muted },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.recipientAvatarText,
+                              { color: colors.foreground },
+                            ]}
+                          >
+                            {initial}
+                          </Text>
+                        </View>
+                      )}
+                      <Text
+                        style={[styles.recipientName, { color: colors.foreground }]}
+                      >
+                        {displayName}
+                      </Text>
+                      {isSelected && (
+                        <FontAwesome
+                          name="check"
+                          size={16}
+                          color={colors.primary}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* MEMBERS TAB */}
+        {activeTab === "members" && (
+          <>
+            {/* Member Profiles Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                Member Profiles
+              </Text>
+              <Text
+                style={[styles.sectionDescription, { color: colors.foreground }]}
+              >
+                Configure which fields appear in member profiles.
+              </Text>
+
+              <View
+                style={[
+                  styles.themeCard,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+              >
+                <View style={styles.tripTimerToggleRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.themeLabel,
+                        { color: colors.foreground, marginBottom: 4 },
+                      ]}
+                    >
+                      Rider Type
+                    </Text>
+                    <Text
+                      style={[
+                        styles.sectionDescription,
+                        { color: colors.mutedForeground, marginBottom: 0 },
+                      ]}
+                    >
+                      Show skier/snowboarder option
+                    </Text>
+                  </View>
+                  <Switch
+                    value={showRiderType}
+                    onValueChange={handleShowRiderTypeToggle}
+                    trackColor={{ false: colors.muted, true: colors.primary }}
+                    thumbColor={colors.background}
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* Send Notification Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                Notifications
+              </Text>
+              <Text
+                style={[styles.sectionDescription, { color: colors.foreground }]}
+              >
+                Send push notifications to all house members.
+              </Text>
+
+              <TouchableOpacity
+                style={[
+                  styles.notificationButton,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() => setShowAdminPingModal(true)}
+              >
+                <View
+                  style={[
+                    styles.notificationButtonIcon,
+                    { backgroundColor: colors.primary + "20" },
+                  ]}
+                >
+                  <FontAwesome name="bell" size={18} color={colors.primary} />
+                </View>
+                <View style={styles.notificationButtonContent}>
+                  <Text
+                    style={[
+                      styles.notificationButtonTitle,
+                      { color: colors.foreground },
+                    ]}
+                  >
+                    Send Notification
+                  </Text>
+                  <Text
+                    style={[
+                      styles.notificationButtonSubtitle,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
+                    Ping all members with a message
+                  </Text>
+                </View>
+                <FontAwesome
+                  name="chevron-right"
+                  size={14}
+                  color={colors.mutedForeground}
+                />
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+
+        {/* BOOKINGS TAB */}
+        {activeTab === "bookings" && (
+          <>
+            {/* Session Booking Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                Session Booking
+              </Text>
+              <Text
+                style={[styles.sectionDescription, { color: colors.foreground }]}
+              >
+                Allow members to request one-on-one sessions with admins (e.g., check-ins).
+              </Text>
+
+              <View
+                style={[
+                  styles.themeCard,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+              >
+                {/* Enable/Disable Toggle */}
+                <View style={styles.tripTimerToggleRow}>
+                  <Text
+                    style={[
+                      styles.themeLabel,
+                      { color: colors.foreground, marginBottom: 0 },
+                    ]}
+                  >
+                    Enable Session Booking
+                  </Text>
+                  <Switch
+                    value={sessionBookingEnabled}
+                    onValueChange={handleSessionBookingToggle}
+                    trackColor={{ false: colors.muted, true: colors.primary }}
+                    thumbColor={colors.background}
+                  />
+                </View>
+
+                {sessionBookingEnabled && (
+                  <>
+                    {/* Custom Label */}
+                    <View style={styles.sessionBookingField}>
+                      <Text
+                        style={[styles.dateLabel, { color: colors.foreground }]}
+                      >
+                        Button Label
+                      </Text>
+                      <TextInput
+                        style={[
+                          styles.sessionBookingInput,
+                          {
+                            color: colors.foreground,
+                            borderColor: colors.border,
+                            backgroundColor: colors.muted,
+                          },
+                        ]}
+                        value={sessionBookingLabel}
+                        onChangeText={setSessionBookingLabel}
+                        onBlur={() => handleSessionBookingLabelChange(sessionBookingLabel)}
+                        placeholder="Book a Session"
+                        placeholderTextColor={colors.mutedForeground}
+                        maxLength={30}
+                      />
+                    </View>
+
+                    {/* Duration Picker */}
+                    <View style={styles.sessionBookingField}>
+                      <Text
+                        style={[styles.dateLabel, { color: colors.foreground }]}
+                      >
+                        Default Duration
+                      </Text>
+                      <TouchableOpacity
+                        style={[
+                          styles.dateButton,
+                          {
+                            backgroundColor: colors.muted,
+                            borderColor: colors.border,
+                          },
+                        ]}
+                        onPress={() => setShowDurationPicker(!showDurationPicker)}
+                      >
+                        <FontAwesome
+                          name="clock-o"
+                          size={16}
+                          color={colors.foreground}
+                        />
+                        <Text
+                          style={[styles.dateText, { color: colors.foreground }]}
+                        >
+                          {DURATION_OPTIONS.find(
+                            (opt) => opt.value === sessionBookingDuration
+                          )?.label || `${sessionBookingDuration} minutes`}
+                        </Text>
+                        <FontAwesome
+                          name={showDurationPicker ? "chevron-up" : "chevron-down"}
+                          size={12}
+                          color={colors.foreground}
+                          style={{ marginLeft: "auto" }}
+                        />
+                      </TouchableOpacity>
+
+                      {showDurationPicker && (
+                        <View style={styles.durationPickerOptions}>
+                          {DURATION_OPTIONS.map((option) => (
+                            <TouchableOpacity
+                              key={option.value}
+                              style={[
+                                styles.durationOption,
+                                {
+                                  backgroundColor:
+                                    sessionBookingDuration === option.value
+                                      ? colors.primary + "20"
+                                      : colors.card,
+                                  borderColor:
+                                    sessionBookingDuration === option.value
+                                      ? colors.primary
+                                      : colors.border,
+                                },
+                              ]}
+                              onPress={() => handleSessionBookingDurationChange(option.value)}
+                            >
+                              <Text
+                                style={[
+                                  styles.durationOptionText,
+                                  {
+                                    color:
+                                      sessionBookingDuration === option.value
+                                        ? colors.primary
+                                        : colors.foreground,
+                                  },
+                                ]}
+                              >
+                                {option.label}
+                              </Text>
+                              {sessionBookingDuration === option.value && (
+                                <FontAwesome
+                                  name="check"
+                                  size={14}
+                                  color={colors.primary}
+                                />
+                              )}
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Description (Optional) */}
+                    <View style={styles.sessionBookingField}>
+                      <Text
+                        style={[styles.dateLabel, { color: colors.foreground }]}
+                      >
+                        Description (Optional)
+                      </Text>
+                      <TextInput
+                        style={[
+                          styles.sessionBookingInput,
+                          styles.sessionBookingTextarea,
+                          {
+                            color: colors.foreground,
+                            borderColor: colors.border,
+                            backgroundColor: colors.muted,
+                          },
+                        ]}
+                        value={sessionBookingDescription}
+                        onChangeText={setSessionBookingDescription}
+                        onBlur={() =>
+                          handleSessionBookingDescriptionChange(sessionBookingDescription)
+                        }
+                        placeholder="Shown in booking modal..."
+                        placeholderTextColor={colors.mutedForeground}
+                        multiline
+                        numberOfLines={3}
+                        maxLength={200}
+                      />
+                    </View>
+                  </>
+                )}
+              </View>
+            </View>
+
+            {/* Bed Sign-Up Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                Bed Sign-Up
+              </Text>
+              <Text
+                style={[styles.sectionDescription, { color: colors.foreground }]}
+              >
+                Allow house members to sign up for specific beds each week.
+              </Text>
+
+              <View
+                style={[
+                  styles.themeCard,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+              >
+                {/* Enable/Disable Toggle */}
+                <View style={styles.tripTimerToggleRow}>
+                  <Text
+                    style={[
+                      styles.themeLabel,
+                      { color: colors.foreground, marginBottom: 0 },
+                    ]}
+                  >
+                    Enable Bed Sign-Up
+                  </Text>
+                  <Switch
+                    value={bedSignupEnabled}
+                    onValueChange={handleBedSignupToggle}
+                    trackColor={{ false: colors.muted, true: colors.primary }}
+                    thumbColor={colors.background}
+                  />
+                </View>
+
+                {bedSignupEnabled && (
+                  <>
+                    {/* Room Configuration Status */}
+                    <View style={styles.bedSignupStatus}>
+                      <FontAwesome
+                        name={roomCount > 0 ? "check-circle" : "info-circle"}
+                        size={16}
+                        color={roomCount > 0 ? colors.primary : colors.mutedForeground}
+                      />
+                      <Text
+                        style={[
+                          styles.bedSignupStatusText,
+                          { color: roomCount > 0 ? colors.foreground : colors.mutedForeground },
+                        ]}
+                      >
+                        {roomCount > 0
+                          ? `${roomCount} room${roomCount !== 1 ? "s" : ""}, ${bedCount} bed${bedCount !== 1 ? "s" : ""} configured`
+                          : "No rooms configured yet"}
+                      </Text>
+                    </View>
+
+                    {/* Configure Rooms Button */}
+                    <TouchableOpacity
+                      style={[
+                        styles.configureRoomsButton,
+                        {
+                          backgroundColor: colors.primary,
+                        },
+                      ]}
+                      onPress={() => router.push("/room-configuration")}
+                    >
+                      <FontAwesome
+                        name="bed"
+                        size={16}
+                        color={colors.primaryForeground}
+                      />
+                      <Text
+                        style={[
+                          styles.configureRoomsButtonText,
+                          { color: colors.primaryForeground },
+                        ]}
+                      >
+                        Configure Rooms & Beds
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* View History Button */}
+                    <TouchableOpacity
+                      style={[
+                        styles.viewHistoryButton,
+                        {
+                          borderColor: colors.border,
+                        },
+                      ]}
+                      onPress={() => router.push("/bed-history")}
+                    >
+                      <FontAwesome
+                        name="history"
+                        size={16}
+                        color={colors.foreground}
+                      />
+                      <Text
+                        style={[
+                          styles.viewHistoryButtonText,
+                          { color: colors.foreground },
+                        ]}
+                      >
+                        View Bed History
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+
+              {/* Sign-Up Windows Section (only when bed signup is enabled) */}
+              {bedSignupEnabled && (
+                <View
+                  style={[
+                    styles.themeCard,
+                    { backgroundColor: colors.card, borderColor: colors.border, marginTop: 16 },
+                  ]}
+                >
+                  <Text style={[styles.themeLabel, { color: colors.foreground }]}>
+                    Sign-Up Windows
+                  </Text>
+
+                  {/* Current Status */}
+                  {isLoadingWindowStatus ? (
+                    <ActivityIndicator size="small" color={colors.foreground} />
+                  ) : windowStatus?.activeWindow ? (
+                    // Active window
+                    <View style={styles.windowStatusSection}>
+                      <View style={[styles.statusBadge, { backgroundColor: colors.primary + "20" }]}>
+                        <View style={[styles.statusDot, { backgroundColor: colors.primary }]} />
+                        <Text style={[styles.statusBadgeText, { color: colors.primary }]}>
+                          SIGN-UP OPEN
+                        </Text>
+                      </View>
+                      <Text style={[styles.windowDateText, { color: colors.foreground }]}>
+                        {formatWeekendDates(
+                          windowStatus.activeWindow.target_weekend_start,
+                          windowStatus.activeWindow.target_weekend_end
+                        )} weekend
+                      </Text>
+                      <Text style={[styles.windowSubtext, { color: colors.mutedForeground }]}>
+                        {windowStatus.activeWindow.claimedBeds} of {windowStatus.activeWindow.totalBeds} beds claimed
+                      </Text>
+
+                      <TouchableOpacity
+                        style={[styles.closeWindowButton, { borderColor: colors.destructive }]}
+                        onPress={handleCloseWindow}
+                      >
+                        <FontAwesome name="times-circle" size={14} color={colors.destructive} />
+                        <Text style={[styles.closeWindowButtonText, { color: colors.destructive }]}>
+                          Close Sign-Up Early
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : windowStatus?.nextScheduledWindow ? (
+                    // Scheduled window
+                    <View style={styles.windowStatusSection}>
+                      <View style={[styles.statusBadge, { backgroundColor: colors.muted }]}>
+                        <FontAwesome name="clock-o" size={12} color={colors.mutedForeground} />
+                        <Text style={[styles.statusBadgeText, { color: colors.mutedForeground }]}>
+                          SCHEDULED
+                        </Text>
+                      </View>
+                      <Text style={[styles.windowDateText, { color: colors.foreground }]}>
+                        {formatWeekendDates(
+                          windowStatus.nextScheduledWindow.target_weekend_start,
+                          windowStatus.nextScheduledWindow.target_weekend_end
+                        )} weekend
+                      </Text>
+                      <Text style={[styles.windowSubtext, { color: colors.mutedForeground }]}>
+                        Opens: {formatScheduledTime(windowStatus.nextScheduledWindow.opens_at)}
+                      </Text>
+
+                      <TouchableOpacity
+                        style={[styles.openNowButton, { backgroundColor: colors.primary }]}
+                        onPress={handleOpenWindowNow}
+                      >
+                        <FontAwesome name="unlock" size={14} color={colors.primaryForeground} />
+                        <Text style={[styles.openNowButtonText, { color: colors.primaryForeground }]}>
+                          Open Sign-Up Now
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    // No window
+                    <View style={styles.windowStatusSection}>
+                      <Text style={[styles.noWindowText, { color: colors.mutedForeground }]}>
+                        No sign-up window scheduled
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Create Custom Window Button (when no active window) */}
+                  {!windowStatus?.activeWindow && (
+                    <TouchableOpacity
+                      style={[styles.createCustomButton, { borderColor: colors.border }]}
+                      onPress={() => {
+                        setCustomWeekendStart(getNextFriday());
+                        setShowCustomWindowModal(true);
+                      }}
+                    >
+                      <FontAwesome name="plus" size={14} color={colors.foreground} />
+                      <Text style={[styles.createCustomButtonText, { color: colors.foreground }]}>
+                        Create Custom Window
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Auto-Schedule Toggle */}
+                  <View style={[styles.autoScheduleRow, { borderTopColor: colors.border }]}>
+                    <View style={styles.autoScheduleInfo}>
+                      <Text style={[styles.autoScheduleLabel, { color: colors.foreground }]}>
+                        Auto-schedule
+                      </Text>
+                      <Text style={[styles.autoScheduleHint, { color: colors.mutedForeground }]}>
+                        Open at random time Mon/Tue
+                      </Text>
+                    </View>
+                    <Switch
+                      value={autoScheduleWindows}
+                      onValueChange={handleAutoScheduleToggle}
+                      trackColor={{ false: colors.muted, true: colors.primary }}
+                      thumbColor={colors.background}
+                    />
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* Custom Window Modal */}
+            {showCustomWindowModal && (
+              <View style={styles.modalOverlay}>
+                <View
+                  style={[
+                    styles.customWindowModal,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
+                >
+                  <View style={styles.modalHeader}>
+                    <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                      Create Custom Window
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setShowCustomWindowModal(false);
+                        setCustomWeekendStart(null);
+                      }}
+                    >
+                      <FontAwesome name="times" size={20} color={colors.foreground} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.modalBody}>
+                    <Text style={[styles.modalLabel, { color: colors.foreground }]}>
+                      Weekend Start (Friday)
+                    </Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.dateButton,
+                        { backgroundColor: colors.muted, borderColor: colors.border },
+                      ]}
+                      onPress={() => setShowCustomDatePicker(true)}
+                    >
+                      <FontAwesome name="calendar" size={16} color={colors.foreground} />
+                      <Text style={[styles.dateText, { color: colors.foreground }]}>
+                        {customWeekendStart
+                          ? formatDateDisplay(customWeekendStart)
+                          : "Select Friday..."}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {(showCustomDatePicker || Platform.OS === "ios") && (
+                      <DateTimePicker
+                        value={customWeekendStart || getNextFriday()}
+                        mode="date"
+                        display={Platform.OS === "ios" ? "spinner" : "default"}
+                        onChange={(event, date) => {
+                          setShowCustomDatePicker(false);
+                          if (date) setCustomWeekendStart(date);
+                        }}
+                        minimumDate={new Date()}
+                        style={Platform.OS === "ios" ? styles.iosPicker : undefined}
+                      />
+                    )}
+
+                    <Text style={[styles.modalHint, { color: colors.mutedForeground }]}>
+                      This will immediately open sign-up for the selected weekend.
+                    </Text>
+                  </View>
+
+                  <View style={styles.modalFooter}>
+                    <TouchableOpacity
+                      style={[styles.modalCancelButton, { borderColor: colors.border }]}
+                      onPress={() => {
+                        setShowCustomWindowModal(false);
+                        setCustomWeekendStart(null);
+                      }}
+                    >
+                      <Text style={[styles.modalCancelText, { color: colors.foreground }]}>
+                        Cancel
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.modalCreateButton,
+                        {
+                          backgroundColor: customWeekendStart ? colors.primary : colors.muted,
+                        },
+                      ]}
+                      onPress={handleCreateCustomWindow}
+                      disabled={!customWeekendStart || isSaving}
+                    >
+                      {isSaving ? (
+                        <ActivityIndicator size="small" color={colors.primaryForeground} />
+                      ) : (
+                        <Text
+                          style={[
+                            styles.modalCreateText,
+                            { color: customWeekendStart ? colors.primaryForeground : colors.mutedForeground },
+                          ]}
+                        >
+                          Create & Open
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
+          </>
+        )}
       </ScrollView>
 
       {/* Admin Ping Modal */}
@@ -1805,6 +2215,33 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 32,
     alignItems: "flex-end",
+  },
+  tabBarContainer: {
+    borderBottomWidth: 1,
+  },
+  tabBarContent: {
+    flexDirection: "row",
+    paddingHorizontal: 12,
+    gap: 4,
+  },
+  tabButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 6,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  tabButtonActive: {
+    borderBottomWidth: 2,
+  },
+  tabButtonText: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.chillax,
+  },
+  tabButtonTextActive: {
+    fontFamily: typography.fontFamily.chillaxMedium,
   },
   scrollView: {
     flex: 1,
@@ -2242,5 +2679,39 @@ const styles = StyleSheet.create({
   notificationButtonSubtitle: {
     fontSize: 13,
     fontFamily: typography.fontFamily.chillax,
+  },
+  // Session booking styles
+  sessionBookingField: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(128, 128, 128, 0.2)",
+  },
+  sessionBookingInput: {
+    fontSize: 15,
+    fontFamily: typography.fontFamily.chillax,
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  sessionBookingTextarea: {
+    minHeight: 80,
+    textAlignVertical: "top",
+  },
+  durationPickerOptions: {
+    marginTop: 8,
+    gap: 6,
+  },
+  durationOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  durationOptionText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
   },
 });

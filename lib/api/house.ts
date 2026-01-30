@@ -375,6 +375,14 @@ export async function updateHouseSettings(
               ...newSettings.tripTimer,
             }
           : currentSettings.tripTimer,
+      // Deep merge sessionBookingConfig if both exist
+      sessionBookingConfig:
+        newSettings.sessionBookingConfig !== undefined
+          ? {
+              ...currentSettings.sessionBookingConfig,
+              ...newSettings.sessionBookingConfig,
+            }
+          : currentSettings.sessionBookingConfig,
     };
 
     // Update

@@ -7,11 +7,13 @@ import { EventDetailModal } from "./EventDetailModal";
 import { AddEventModal } from "./AddEventModal";
 import { EditEventModal } from "./EditEventModal";
 import { ChangeTripDatesModal } from "./ChangeTripDatesModal";
+import { SessionRequestsSection } from "./SessionRequestsSection";
 import type {
   ItineraryEventWithDetails,
   ItineraryEventCategory,
   ItineraryLink,
   ItineraryChecklistItem,
+  SessionRequestWithProfiles,
 } from "@/types/database";
 
 interface ItineraryViewProps {
@@ -53,6 +55,17 @@ interface ItineraryViewProps {
   onSignUp: (eventId: string) => Promise<void>;
   onWithdraw: (eventId: string) => Promise<void>;
   onChangeTripDates?: (startDate: string, endDate: string) => Promise<void>;
+  // Session booking props
+  pendingSessionRequests?: SessionRequestWithProfiles[];
+  acceptedSessions?: SessionRequestWithProfiles[];
+  myPendingRequests?: SessionRequestWithProfiles[];
+  houseName?: string;
+  currentUserName?: string;
+  onSessionRequestHandled?: () => void;
+  // Session booking button props
+  sessionBookingEnabled?: boolean;
+  sessionBookingLabel?: string;
+  onBookSession?: () => void;
 }
 
 // Get today's date in YYYY-MM-DD format
@@ -92,6 +105,15 @@ export function ItineraryView({
   onSignUp,
   onWithdraw,
   onChangeTripDates,
+  pendingSessionRequests = [],
+  acceptedSessions = [],
+  myPendingRequests = [],
+  houseName,
+  currentUserName,
+  onSessionRequestHandled,
+  sessionBookingEnabled,
+  sessionBookingLabel,
+  onBookSession,
 }: ItineraryViewProps) {
   const colors = useColors();
 
@@ -113,6 +135,18 @@ export function ItineraryView({
   const eventsForDate = useMemo(
     () => events.filter((event) => event.event_date === selectedDate),
     [events, selectedDate]
+  );
+
+  // Filter accepted sessions for selected date
+  const sessionsForDate = useMemo(
+    () => acceptedSessions.filter((session) => session.requested_date === selectedDate),
+    [acceptedSessions, selectedDate]
+  );
+
+  // Filter user's pending requests for selected date (tentative display)
+  const pendingForDate = useMemo(
+    () => myPendingRequests.filter((request) => request.requested_date === selectedDate),
+    [myPendingRequests, selectedDate]
   );
 
   // Check if selected date is today
@@ -212,11 +246,27 @@ export function ItineraryView({
         onSelectDate={setSelectedDate}
         isAdmin={isAdmin}
         onChangeDates={onChangeTripDates ? () => setShowChangeDatesModal(true) : undefined}
+        sessionBookingEnabled={sessionBookingEnabled}
+        sessionBookingLabel={sessionBookingLabel}
+        onBookSession={onBookSession}
       />
+
+      {/* Session Requests Section (Admin only) */}
+      {isAdmin && pendingSessionRequests.length > 0 && onSessionRequestHandled && (
+        <SessionRequestsSection
+          requests={pendingSessionRequests}
+          houseName={houseName}
+          adminName={currentUserName}
+          onRequestHandled={onSessionRequestHandled}
+        />
+      )}
 
       {/* Timeline View */}
       <TimelineView
         events={eventsForDate}
+        sessions={sessionsForDate}
+        pendingSessions={pendingForDate}
+        currentUserId={currentUserId}
         selectedDate={selectedDate}
         isToday={isToday}
         isAdmin={isAdmin}
