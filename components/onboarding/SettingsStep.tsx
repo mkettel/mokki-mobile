@@ -1,6 +1,7 @@
 import { ColorPicker } from "@/components/settings/ColorPicker";
 import { typography } from "@/constants/theme";
 import { useColors } from "@/lib/context/theme";
+import type { BackgroundPattern } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
 import {
@@ -8,6 +9,7 @@ import {
   Switch,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -16,6 +18,8 @@ interface SettingsStepProps {
   onGuestNightlyRateChange: (rate: number) => void;
   accentColor: string | undefined;
   onAccentColorChange: (color: string | undefined) => void;
+  backgroundPattern: BackgroundPattern;
+  onBackgroundPatternChange: (pattern: BackgroundPattern) => void;
   bedSignupEnabled: boolean;
   onBedSignupEnabledChange: (enabled: boolean) => void;
 }
@@ -25,6 +29,8 @@ export function SettingsStep({
   onGuestNightlyRateChange,
   accentColor,
   onAccentColorChange,
+  backgroundPattern,
+  onBackgroundPatternChange,
   bedSignupEnabled,
   onBedSignupEnabledChange,
 }: SettingsStepProps) {
@@ -99,17 +105,107 @@ export function SettingsStep({
         <View style={styles.cardHeader}>
           <FontAwesome name="paint-brush" size={16} color={colors.foreground} />
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-            Theme Color
+            Background Style
           </Text>
         </View>
         <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
-          Choose a mountain color for your house.
+          Choose a background style for your house.
         </Text>
 
-        <ColorPicker
-          selectedColor={accentColor}
-          onColorSelect={onAccentColorChange}
-        />
+        {/* Background Style Picker */}
+        <View style={styles.backgroundStylePicker}>
+          <TouchableOpacity
+            style={[
+              styles.backgroundStyleOption,
+              {
+                backgroundColor:
+                  backgroundPattern === "mountains"
+                    ? colors.primary
+                    : colors.muted,
+                borderColor:
+                  backgroundPattern === "mountains"
+                    ? colors.primary
+                    : colors.border,
+              },
+            ]}
+            onPress={() => onBackgroundPatternChange("mountains")}
+          >
+            <FontAwesome
+              name="area-chart"
+              size={18}
+              color={
+                backgroundPattern === "mountains"
+                  ? colors.primaryForeground
+                  : colors.foreground
+              }
+            />
+            <Text
+              style={[
+                styles.backgroundStyleText,
+                {
+                  color:
+                    backgroundPattern === "mountains"
+                      ? colors.primaryForeground
+                      : colors.foreground,
+                },
+              ]}
+            >
+              Mountains
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.backgroundStyleOption,
+              {
+                backgroundColor:
+                  backgroundPattern === "none"
+                    ? colors.primary
+                    : colors.muted,
+                borderColor:
+                  backgroundPattern === "none"
+                    ? colors.primary
+                    : colors.border,
+              },
+            ]}
+            onPress={() => onBackgroundPatternChange("none")}
+          >
+            <FontAwesome
+              name="square"
+              size={18}
+              color={
+                backgroundPattern === "none"
+                  ? colors.primaryForeground
+                  : colors.foreground
+              }
+            />
+            <Text
+              style={[
+                styles.backgroundStyleText,
+                {
+                  color:
+                    backgroundPattern === "none"
+                      ? colors.primaryForeground
+                      : colors.foreground,
+                },
+              ]}
+            >
+              Solid
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Mountain Color Picker - only show when mountains selected */}
+        {backgroundPattern === "mountains" && (
+          <View style={styles.colorPickerContainer}>
+            <Text style={[styles.colorPickerLabel, { color: colors.foreground }]}>
+              Mountain Color
+            </Text>
+            <ColorPicker
+              selectedColor={accentColor}
+              onColorSelect={onAccentColorChange}
+            />
+          </View>
+        )}
       </View>
 
       {/* Bed Sign-Up */}
@@ -222,5 +318,35 @@ const styles = StyleSheet.create({
   toggleInfo: {
     flex: 1,
     marginRight: 12,
+  },
+  backgroundStylePicker: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 4,
+  },
+  backgroundStyleOption: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  backgroundStyleText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  colorPickerContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.1)",
+  },
+  colorPickerLabel: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
+    marginBottom: 12,
   },
 });

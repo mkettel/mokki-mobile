@@ -23,7 +23,7 @@ import { GUEST_FEE_PER_NIGHT } from "@/lib/api/stays";
 import { useHouse } from "@/lib/context/house";
 import { useColors } from "@/lib/context/theme";
 import { getFeatureConfig } from "@/lib/utils/features";
-import type { FeatureId, HouseSettings, Profile } from "@/types/database";
+import type { BackgroundPattern, FeatureId, HouseSettings, Profile } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
@@ -181,6 +181,9 @@ export default function HouseSettingsScreen() {
   const [localAccentColor, setLocalAccentColor] = useState<string | undefined>(
     undefined
   );
+  const [localBackgroundPattern, setLocalBackgroundPattern] = useState<BackgroundPattern>(
+    "mountains"
+  );
 
   // Trip timer state
   const [tripTimerEnabled, setTripTimerEnabled] = useState(false);
@@ -253,6 +256,7 @@ export default function HouseSettingsScreen() {
 
       setLocalFeatures(features);
       setLocalAccentColor(houseSettings?.theme?.accentColor);
+      setLocalBackgroundPattern(houseSettings?.theme?.backgroundPattern ?? "mountains");
 
       // Initialize trip timer settings
       const tripTimer = houseSettings?.tripTimer;
@@ -439,6 +443,40 @@ export default function HouseSettingsScreen() {
       setLocalAccentColor(previousColor);
 
       const message = "Failed to update accent color";
+      if (Platform.OS === "web") {
+        window.alert(message);
+      } else {
+        Alert.alert("Error", message);
+      }
+    } else {
+      // Refresh houses to sync the settings
+      await refreshHouses();
+    }
+
+    setIsSaving(false);
+  };
+
+  const handleBackgroundPatternChange = async (pattern: BackgroundPattern) => {
+    if (!activeHouse?.id) return;
+
+    const previousPattern = localBackgroundPattern;
+
+    // Update local state immediately
+    setLocalBackgroundPattern(pattern);
+
+    // Save to server
+    setIsSaving(true);
+    const { success, error } = await updateHouseSettings(activeHouse.id, {
+      theme: {
+        backgroundPattern: pattern,
+      },
+    });
+
+    if (error) {
+      // Revert on error
+      setLocalBackgroundPattern(previousPattern);
+
+      const message = "Failed to update background style";
       if (Platform.OS === "web") {
         window.alert(message);
       } else {
@@ -1135,9 +1173,10 @@ export default function HouseSettingsScreen() {
               <Text
                 style={[styles.sectionDescription, { color: colors.foreground }]}
               >
-                Customize the mountain color for your house.
+                Customize the background style and colors for your house.
               </Text>
 
+              {/* Background Style Picker */}
               <View
                 style={[
                   styles.themeCard,
@@ -1145,13 +1184,107 @@ export default function HouseSettingsScreen() {
                 ]}
               >
                 <Text style={[styles.themeLabel, { color: colors.foreground }]}>
-                  Mountain Color
+                  Background Style
                 </Text>
-                <ColorPicker
-                  selectedColor={localAccentColor}
-                  onColorSelect={handleAccentColorChange}
-                />
+                <View style={styles.backgroundStylePicker}>
+                  <TouchableOpacity
+                    style={[
+                      styles.backgroundStyleOption,
+                      {
+                        backgroundColor:
+                          localBackgroundPattern === "mountains"
+                            ? colors.primary
+                            : colors.muted,
+                        borderColor:
+                          localBackgroundPattern === "mountains"
+                            ? colors.primary
+                            : colors.border,
+                      },
+                    ]}
+                    onPress={() => handleBackgroundPatternChange("mountains")}
+                  >
+                    <FontAwesome
+                      name="area-chart"
+                      size={18}
+                      color={
+                        localBackgroundPattern === "mountains"
+                          ? colors.primaryForeground
+                          : colors.foreground
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.backgroundStyleText,
+                        {
+                          color:
+                            localBackgroundPattern === "mountains"
+                              ? colors.primaryForeground
+                              : colors.foreground,
+                        },
+                      ]}
+                    >
+                      Mountains
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.backgroundStyleOption,
+                      {
+                        backgroundColor:
+                          localBackgroundPattern === "none"
+                            ? colors.primary
+                            : colors.muted,
+                        borderColor:
+                          localBackgroundPattern === "none"
+                            ? colors.primary
+                            : colors.border,
+                      },
+                    ]}
+                    onPress={() => handleBackgroundPatternChange("none")}
+                  >
+                    <FontAwesome
+                      name="square"
+                      size={18}
+                      color={
+                        localBackgroundPattern === "none"
+                          ? colors.primaryForeground
+                          : colors.foreground
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.backgroundStyleText,
+                        {
+                          color:
+                            localBackgroundPattern === "none"
+                              ? colors.primaryForeground
+                              : colors.foreground,
+                        },
+                      ]}
+                    >
+                      Solid
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
+
+              {/* Mountain Color Picker - only show when mountains selected */}
+              {localBackgroundPattern === "mountains" && (
+                <View
+                  style={[
+                    styles.themeCard,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
+                >
+                  <Text style={[styles.themeLabel, { color: colors.foreground }]}>
+                    Mountain Color
+                  </Text>
+                  <ColorPicker
+                    selectedColor={localAccentColor}
+                    onColorSelect={handleAccentColorChange}
+                  />
+                </View>
+              )}
             </View>
 
             {/* Archive House Section */}
@@ -2323,6 +2456,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: typography.fontFamily.chillaxMedium,
     marginBottom: 12,
+  },
+  backgroundStylePicker: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  backgroundStyleOption: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  backgroundStyleText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily.chillaxMedium,
   },
   tripTimerToggleRow: {
     flexDirection: "row",

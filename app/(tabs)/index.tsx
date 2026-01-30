@@ -107,7 +107,7 @@ function getHouseNameSize(name: string): number {
 export default function HomeScreen() {
   const { signOut } = useAuth();
   const colors = useColors();
-  const { isDark } = useTheme();
+  const { isDark, houseTheme } = useTheme();
   const { activeHouse, isLoading } = useHouse();
   const { unreadHouseChat } = useChat();
   const insets = useSafeAreaInsets();
@@ -115,8 +115,17 @@ export default function HomeScreen() {
   const [currentWeather, setCurrentWeather] =
     useState<OpenMeteoCurrentWeather | null>(null);
 
-  // Link text color: cream in light mode, black in dark mode
-  const linkTextColor = isDark ? darkColors.background : lightColors.background;
+  // Check if using solid background (no mountains)
+  const isSolidBackground = houseTheme?.backgroundPattern === "none";
+
+  // Link text color:
+  // - With mountains: cream in light mode, dark in dark mode (contrast against mountain)
+  // - Solid background: use foreground color (contrast against solid background)
+  const linkTextColor = isSolidBackground
+    ? colors.foreground
+    : isDark
+      ? darkColors.background
+      : lightColors.background;
 
   // Generate dynamic links based on house feature settings
   const houseSettings = activeHouse?.settings as HouseSettings | undefined;
@@ -290,6 +299,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     textTransform: "uppercase",
     letterSpacing: 1,
+    lineHeight: 60,
   },
   clockContainer: {
     marginTop: 2,
@@ -324,7 +334,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   linkText: {
-    fontSize: 30,
+    fontSize: 32,
     fontFamily: typography.fontFamily.boskaMedium,
     textTransform: "uppercase",
     textAlign: "center",

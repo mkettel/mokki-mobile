@@ -1,4 +1,4 @@
-import { useColors } from "@/lib/context/theme";
+import { useColors, useTheme } from "@/lib/context/theme";
 import React from "react";
 import {
   Image,
@@ -30,7 +30,14 @@ function getNoiseUri(): string {
 
 export function GeometricBackground() {
   const colors = useColors();
+  const { houseTheme } = useTheme();
   const { width, height } = useWindowDimensions();
+
+  // Check if background pattern is set to "none" - render nothing (solid background shows through)
+  const backgroundPattern = houseTheme?.backgroundPattern ?? "mountains";
+  if (backgroundPattern === "none") {
+    return null;
+  }
 
   if (width === 0 || height === 0) {
     return null;

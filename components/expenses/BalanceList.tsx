@@ -127,7 +127,16 @@ export function BalanceList({ balances, onSettleAll, onSelectBalance, refreshing
             key={balance.userId}
             style={[
               styles.balanceCard,
-              { backgroundColor: colors.card },
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                // Subtle overlay for depth on solid backgrounds
+                shadowColor: colors.foreground,
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
+              },
               allSettled && styles.balanceCardSettled,
             ]}
             onPress={() => onSelectBalance?.(balance)}
@@ -276,6 +285,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
   },
   balanceCardSettled: {
     opacity: 0.8,

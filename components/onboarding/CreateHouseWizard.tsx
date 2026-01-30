@@ -5,7 +5,7 @@ import {
 } from "@/constants/templates";
 import { useColors } from "@/lib/context/theme";
 import { formatLocalDate } from "@/lib/utils/dates";
-import type { FeatureId, HouseSettings } from "@/types/database";
+import type { BackgroundPattern, FeatureId, HouseSettings } from "@/types/database";
 import { FontAwesome } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
@@ -61,6 +61,7 @@ export function CreateHouseWizard({ onComplete, isLoading }: CreateHouseWizardPr
   });
   const [guestNightlyRate, setGuestNightlyRate] = useState(50);
   const [accentColor, setAccentColor] = useState<string | undefined>(DEFAULT_ACCENT_COLOR);
+  const [backgroundPattern, setBackgroundPattern] = useState<BackgroundPattern>("mountains");
   const [bedSignupEnabled, setBedSignupEnabled] = useState(false);
 
   // Apply template defaults when selected
@@ -137,6 +138,7 @@ export function CreateHouseWizard({ onComplete, isLoading }: CreateHouseWizardPr
       // Theme
       theme: {
         accentColor,
+        backgroundPattern,
       },
 
       // Guest fees
@@ -190,6 +192,8 @@ export function CreateHouseWizard({ onComplete, isLoading }: CreateHouseWizardPr
             onGuestNightlyRateChange={setGuestNightlyRate}
             accentColor={accentColor}
             onAccentColorChange={setAccentColor}
+            backgroundPattern={backgroundPattern}
+            onBackgroundPatternChange={setBackgroundPattern}
             bedSignupEnabled={bedSignupEnabled}
             onBedSignupEnabledChange={setBedSignupEnabled}
           />

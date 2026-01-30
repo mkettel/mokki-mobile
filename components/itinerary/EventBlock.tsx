@@ -110,9 +110,9 @@ export function EventBlock({
           height,
           left: `${leftPercent + 1}%`,
           width: `${columnWidth - 2}%`,
-          backgroundColor: colors.card,
+          backgroundColor: categoryConfig.color + "10",
           borderLeftColor: categoryConfig.color,
-          borderColor: colors.border,
+          borderColor: categoryConfig.color,
         },
       ]}
       onPress={onPress}
@@ -234,9 +234,9 @@ const styles = StyleSheet.create({
   container: {
     position: "absolute",
     right: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderLeftWidth: 4,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderLeftWidth: 2,
     overflow: "hidden",
   },
   content: {

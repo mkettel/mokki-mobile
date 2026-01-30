@@ -1,15 +1,15 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
-import { useColors } from "@/lib/context/theme";
 import { typography } from "@/constants/theme";
 import { formatCurrency, getCategoryInfo } from "@/lib/api/expenses";
+import { useColors } from "@/lib/context/theme";
 import type { ExpenseWithDetails } from "@/types/database";
+import { FontAwesome } from "@expo/vector-icons";
+import React, { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { ReceiptViewer } from "./ReceiptViewer";
 
 interface ExpenseCardProps {
