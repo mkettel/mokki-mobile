@@ -9,12 +9,14 @@ import {
   Alert,
   Modal,
   Platform,
+  ScrollView,
   Share,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 
 interface InviteModalProps {
   visible: boolean;
@@ -145,49 +147,50 @@ export function InviteModal({
         </View>
 
         {/* Content */}
-        <View style={styles.content}>
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.foreground} />
-              <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
-                Creating invite link...
-              </Text>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.foreground} />
+            <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
+              Creating invite link...
+            </Text>
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <View style={[styles.errorIcon, { backgroundColor: colors.destructive + "20" }]}>
+              <FontAwesome name="exclamation-circle" size={32} color={colors.destructive} />
             </View>
-          ) : error ? (
-            <View style={styles.errorContainer}>
-              <View style={[styles.errorIcon, { backgroundColor: colors.destructive + "20" }]}>
-                <FontAwesome name="exclamation-circle" size={32} color={colors.destructive} />
-              </View>
-              <Text style={[styles.errorTitle, { color: colors.foreground }]}>
-                Something went wrong
+            <Text style={[styles.errorTitle, { color: colors.foreground }]}>
+              Something went wrong
+            </Text>
+            <Text style={[styles.errorText, { color: colors.mutedForeground }]}>
+              {error}
+            </Text>
+            <TouchableOpacity
+              style={[styles.retryButton, { backgroundColor: colors.primary }]}
+              onPress={generateInviteCode}
+            >
+              <FontAwesome name="refresh" size={14} color={colors.primaryForeground} />
+              <Text style={[styles.retryButtonText, { color: colors.primaryForeground }]}>
+                Try Again
               </Text>
-              <Text style={[styles.errorText, { color: colors.mutedForeground }]}>
-                {error}
-              </Text>
-              <TouchableOpacity
-                style={[styles.retryButton, { backgroundColor: colors.primary }]}
-                onPress={generateInviteCode}
-              >
-                <FontAwesome name="refresh" size={14} color={colors.primaryForeground} />
-                <Text style={[styles.retryButtonText, { color: colors.primaryForeground }]}>
-                  Try Again
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              <View style={styles.iconContainer}>
-                <View style={[styles.iconCircle, { backgroundColor: colors.primary + "20" }]}>
-                  <FontAwesome name="link" size={32} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <ScrollView
+            style={styles.flex}
+            contentContainerStyle={styles.scrollContent}
+          >
+              <View style={styles.sectionHeader}>
+                <View style={[styles.sectionIconCircle, { backgroundColor: colors.primary + "20" }]}>
+                  <FontAwesome name="link" size={22} color={colors.primary} />
                 </View>
+                <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                  Share Invite Link
+                </Text>
+                <Text style={[styles.sectionSubtitle, { color: colors.mutedForeground }]}>
+                  Share via link, QR code, or invite code.
+                </Text>
               </View>
-
-              <Text style={[styles.title, { color: colors.foreground }]}>
-                Invite to {houseName}
-              </Text>
-              <Text style={[styles.description, { color: colors.mutedForeground }]}>
-                Share this invite link with anyone you want to join your house.
-              </Text>
 
               {/* Invite Link Box */}
               <View style={[styles.linkBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -205,6 +208,22 @@ export function InviteModal({
                   />
                 </TouchableOpacity>
               </View>
+
+              {/* QR Code */}
+              {Platform.OS !== "web" && inviteCode && (
+                <View style={styles.qrSection}>
+                  <View style={styles.qrContainer}>
+                    <QRCode
+                      value={getInviteUrl()}
+                      size={180}
+                      backgroundColor="white"
+                    />
+                  </View>
+                  <Text style={[styles.qrLabel, { color: colors.mutedForeground }]}>
+                    Scan to join
+                  </Text>
+                </View>
+              )}
 
               {/* Invite Code */}
               <View style={styles.codeSection}>
@@ -240,9 +259,8 @@ export function InviteModal({
               <Text style={[styles.note, { color: colors.mutedForeground }]}>
                 This invite link expires in 7 days. Anyone with the link can join your house.
               </Text>
-            </>
-          )}
-        </View>
+          </ScrollView>
+        )}
       </View>
     </Modal>
   );
@@ -250,6 +268,9 @@ export function InviteModal({
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  flex: {
     flex: 1,
   },
   header: {
@@ -271,9 +292,9 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 40,
   },
-  content: {
-    flex: 1,
+  scrollContent: {
     padding: 24,
+    paddingBottom: 40,
   },
   loadingContainer: {
     flex: 1,
@@ -290,6 +311,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 16,
+    padding: 24,
   },
   errorIcon: {
     width: 80,
@@ -320,30 +342,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: typography.fontFamily.chillaxMedium,
   },
-  iconContainer: {
+
+  // Section header (email & link sections)
+  sectionHeader: {
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  sectionIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 12,
   },
-  title: {
-    fontSize: 22,
+  sectionTitle: {
+    fontSize: 18,
     fontFamily: typography.fontFamily.chillaxBold,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  description: {
-    fontSize: 14,
+  sectionSubtitle: {
+    fontSize: 13,
     fontFamily: typography.fontFamily.chillax,
     textAlign: "center",
-    lineHeight: 20,
-    marginBottom: 24,
+    lineHeight: 18,
   },
+
+  // Link section
   linkBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -362,6 +388,20 @@ const styles = StyleSheet.create({
   copyButton: {
     padding: 10,
     borderRadius: 6,
+  },
+  qrSection: {
+    alignItems: "center",
+    marginBottom: 20,
+    gap: 8,
+  },
+  qrContainer: {
+    padding: 16,
+    backgroundColor: "white",
+    borderRadius: 12,
+  },
+  qrLabel: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily.chillax,
   },
   codeSection: {
     alignItems: "center",

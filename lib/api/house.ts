@@ -306,7 +306,7 @@ export async function acceptAllPendingInvites(userId?: string, userEmail?: strin
     const { data: pendingInvites } = await supabase
       .from("house_members")
       .select("id")
-      .eq("email", emailToUse)
+      .eq("invited_email", emailToUse)
       .eq("invite_status", "pending");
 
     if (!pendingInvites || pendingInvites.length === 0) return;
@@ -317,8 +317,9 @@ export async function acceptAllPendingInvites(userId?: string, userEmail?: strin
       .update({
         user_id: userIdToUse,
         invite_status: "accepted",
+        joined_at: new Date().toISOString(),
       })
-      .eq("email", emailToUse)
+      .eq("invited_email", emailToUse)
       .eq("invite_status", "pending");
   } catch (error) {
     console.error("Error accepting pending invites:", error);
