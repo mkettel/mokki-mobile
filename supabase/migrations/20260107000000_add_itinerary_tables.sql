@@ -181,5 +181,5 @@ GRANT SELECT, INSERT, DELETE ON public.itinerary_event_signups TO authenticated;
 -- 5. Enable Realtime (optional)
 -- ============================================
 -- Note: Run this in Supabase dashboard if you want realtime updates:
--- ALTER PUBLICATION supabase_realtime ADD TABLE itinerary_events;
--- ALTER PUBLICATION supabase_realtime ADD TABLE itinerary_event_signups;
+ALTER PUBLICATION supabase_realtime ADD TABLE itinerary_events;
+ALTER PUBLICATION supabase_realtime ADD TABLE itinerary_event_signups;

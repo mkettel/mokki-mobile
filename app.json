@@ -29,7 +29,10 @@
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
           "remote-notification"
-        ]
+        ],
+        "NSCameraUsageDescription": "Mokki uses your camera to take photos and videos for group chat, capture media for the shared gallery, and photograph receipts for expense tracking.",
+        "NSMicrophoneUsageDescription": "Mokki uses your microphone to record audio when capturing videos for group chat and the shared media gallery.",
+        "NSPhotoLibraryUsageDescription": "Mokki uses your photo library to set your profile picture, share photos and videos in group chat, upload media to the shared gallery, and attach receipt photos to expenses."
       },
       "associatedDomains": [
         "applinks:mokkiski.com",

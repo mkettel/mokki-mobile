@@ -1,3 +1,4 @@
+import { deleteAccount as deleteAccountApi } from "@/lib/api/profile";
 import {
   authenticateWithBiometric,
   disableBiometricLogin,
@@ -21,6 +22,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<{ error: Error | null }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   // Biometric auth
   biometricType: BiometricType;
@@ -126,6 +128,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const deleteAccount = async (): Promise<{ error: Error | null }> => {
+    try {
+      const { success, error } = await deleteAccountApi();
+      if (!success || error) {
+        return { error: error || new Error("Failed to delete account") };
+      }
+
+      // Clear biometric data
+      await disableBiometricLogin();
+      setBiometricEnabled(false);
+
+      // Sign out locally
+      await supabase.auth.signOut();
+
+      return { error: null };
+    } catch (err) {
+      return { error: err as Error };
+    }
+  };
+
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: "mokki://auth/callback",
@@ -199,6 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signUp,
         signOut,
+        deleteAccount,
         resetPassword,
         biometricType,
         biometricName,

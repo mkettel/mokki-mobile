@@ -15,6 +15,7 @@ import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -29,6 +30,7 @@ export default function AccountScreen() {
   const {
     user,
     signOut,
+    deleteAccount,
     biometricSupported,
     biometricEnabled,
     biometricName,
@@ -40,6 +42,7 @@ export default function AccountScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isBiometricToggling, setIsBiometricToggling] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Check if user is admin of active house
   const isAdmin = activeHouse?.role === "admin";
@@ -92,6 +95,44 @@ export default function AccountScreen() {
         { text: "Cancel", style: "cancel" },
         { text: "Sign Out", style: "destructive", onPress: doSignOut },
       ]);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    const doDelete = async () => {
+      setIsDeleting(true);
+      const { error } = await deleteAccount();
+      if (error) {
+        setIsDeleting(false);
+        if (Platform.OS === "web") {
+          window.alert(error.message);
+        } else {
+          Alert.alert("Error", error.message);
+        }
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (
+        window.confirm(
+          "Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed."
+        )
+      ) {
+        doDelete();
+      }
+    } else {
+      Alert.alert(
+        "Delete Account",
+        "Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete Account",
+            style: "destructive",
+            onPress: doDelete,
+          },
+        ]
+      );
     }
   };
 
@@ -282,6 +323,29 @@ export default function AccountScreen() {
             </Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={[styles.signOutButton, { borderColor: colors.destructive }]}
+            onPress={handleDeleteAccount}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <ActivityIndicator size="small" color={colors.destructive} />
+            ) : (
+              <FontAwesome name="trash" size={18} color={colors.destructive} />
+            )}
+            <Text style={[styles.signOutText, { color: colors.destructive }]}>
+              {isDeleting ? "Deleting..." : "Delete Account"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => Linking.openURL("https://mokkiski.com/privacy")}
+          >
+            <Text style={[styles.linkText, { color: colors.primary }]}>
+              Privacy Policy
+            </Text>
+          </TouchableOpacity>
+
           <Text style={[styles.versionText, { color: colors.mutedForeground }]}>
             Mokki Mobile v1.0.0
           </Text>
@@ -430,6 +494,11 @@ const styles = StyleSheet.create({
   signOutText: {
     fontSize: 15,
     fontFamily: typography.fontFamily.chillaxMedium,
+  },
+  linkText: {
+    fontSize: 13,
+    fontFamily: typography.fontFamily.chillaxMedium,
+    textDecorationLine: "underline",
   },
   versionText: {
     fontSize: 12,

@@ -304,6 +304,31 @@ export async function uploadAvatar(imageUri: string, mimeType: string): Promise<
 }
 
 /**
+ * Delete the current user's account and all associated data
+ */
+export async function deleteAccount(): Promise<{
+  success: boolean;
+  error: Error | null;
+}> {
+  try {
+    const { data, error } = await supabase.functions.invoke("delete-account");
+
+    if (error) {
+      return { success: false, error };
+    }
+
+    if (data?.error) {
+      return { success: false, error: new Error(data.error) };
+    }
+
+    return { success: true, error: null };
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    return { success: false, error: error as Error };
+  }
+}
+
+/**
  * Remove avatar image
  */
 export async function removeAvatar(): Promise<{

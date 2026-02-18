@@ -19,6 +19,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import Animated, {
@@ -30,13 +31,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
+// Tablet detection threshold (iPad mini is 768px wide in portrait)
+const TABLET_BREAKPOINT = 768;
+
 interface LiveClockProps {
   color: string;
   weather?: OpenMeteoCurrentWeather | null;
+  isTablet?: boolean;
 }
 
-function LiveClock({ color, weather }: LiveClockProps) {
+function LiveClock({ color, weather, isTablet = false }: LiveClockProps) {
   const [time, setTime] = useState<Date | null>(null);
+  const clockFontSize = isTablet ? 22 : 14;
+  const weatherIconSize = isTablet ? 22 : 14;
 
   useEffect(() => {
     setTime(new Date());
@@ -68,12 +75,12 @@ function LiveClock({ color, weather }: LiveClockProps) {
 
   return (
     <View style={styles.clockRow}>
-      <Text style={[styles.clockText, { color }]}>
+      <Text style={[styles.clockText, { color, fontSize: clockFontSize }]}>
         {formatDate(time)} · {formatTime(time)}
       </Text>
       {weather && (
         <>
-          <Text style={[styles.clockText, { color }]}> · </Text>
+          <Text style={[styles.clockText, { color, fontSize: clockFontSize }]}> · </Text>
           <Animated.View
             entering={SlideInRight.duration(400).delay(400)}
             style={styles.weatherContainer}
@@ -81,9 +88,9 @@ function LiveClock({ color, weather }: LiveClockProps) {
             <WeatherIcon
               code={weather.weather_code}
               isDay={weather.is_day}
-              size={14}
+              size={weatherIconSize}
             />
-            <Text style={[styles.clockText, { color }]}>
+            <Text style={[styles.clockText, { color, fontSize: clockFontSize }]}>
               {Math.round(weather.temperature)}°F
             </Text>
           </Animated.View>
@@ -93,15 +100,17 @@ function LiveClock({ color, weather }: LiveClockProps) {
   );
 }
 
-// Get responsive font size based on house name length
-function getHouseNameSize(name: string): number {
+// Get responsive font size based on house name length and device type
+function getHouseNameSize(name: string, isTablet: boolean): number {
   const len = name.length;
+  // Scale up for tablets
+  const scale = isTablet ? 1.5 : 1;
   // text-7xl = 72px on mobile in web app
-  if (len <= 6) return 72;
-  if (len <= 12) return 56;
-  if (len <= 16) return 48;
-  if (len <= 20) return 40;
-  return 32;
+  if (len <= 6) return 72 * scale;
+  if (len <= 12) return 56 * scale;
+  if (len <= 16) return 48 * scale;
+  if (len <= 20) return 40 * scale;
+  return 32 * scale;
 }
 
 export default function HomeScreen() {
@@ -112,8 +121,16 @@ export default function HomeScreen() {
   const { unreadHouseChat } = useChat();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
+  const isTablet = screenWidth >= TABLET_BREAKPOINT;
   const [currentWeather, setCurrentWeather] =
     useState<OpenMeteoCurrentWeather | null>(null);
+
+  // Responsive sizing for tablet
+  const linkFontSize = isTablet ? 52 : 32;
+  const linkPadding = isTablet ? 10 : 4;
+  const linksMarginTop = isTablet ? screenWidth * 0.08 : SCREEN_HEIGHT * 0.14;
+  const houseNameLineHeight = isTablet ? 100 : 60;
 
   // Check if using solid background (no mountains)
   const isSolidBackground = houseTheme?.backgroundPattern === "none";
@@ -211,7 +228,8 @@ export default function HomeScreen() {
               styles.houseName,
               {
                 color: colors.red,
-                fontSize: getHouseNameSize(houseName),
+                fontSize: getHouseNameSize(houseName, isTablet),
+                lineHeight: houseNameLineHeight,
               },
             ]}
           >
@@ -222,7 +240,7 @@ export default function HomeScreen() {
             entering={FadeIn.delay(400).duration(500)}
             style={styles.clockContainer}
           >
-            <LiveClock color={colors.foreground} weather={currentWeather} />
+            <LiveClock color={colors.foreground} weather={currentWeather} isTablet={isTablet} />
           </Animated.View>
 
           {/* Trip Timer - countdown or day counter */}
@@ -236,7 +254,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Navigation Links - Centered vertically, stacked in column */}
-        <View style={styles.linksContainer}>
+        <View style={[styles.linksContainer, { marginTop: linksMarginTop }]}>
           {links.map((link, index) => {
             const isChatLink = link.href.includes("chat");
             const showUnreadDot = isChatLink && unreadHouseChat > 0;
@@ -245,11 +263,11 @@ export default function HomeScreen() {
               <TouchableOpacity
                 key={link.href}
                 onPress={() => router.push(link.href as any)}
-                style={styles.linkButton}
+                style={[styles.linkButton, { paddingVertical: linkPadding }]}
                 activeOpacity={0.7}
               >
                 <View style={styles.linkRow}>
-                  <Text style={[styles.linkText, { color: linkTextColor }]}>
+                  <Text style={[styles.linkText, { color: linkTextColor, fontSize: linkFontSize }]}>
                     {link.label}
                   </Text>
                   {showUnreadDot && (
@@ -321,8 +339,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    // Position links in the mountain area (lower half of screen)
-    marginTop: SCREEN_HEIGHT * 0.14,
+    // marginTop is set dynamically based on device type
   },
   linkButton: {
     paddingVertical: 4,
