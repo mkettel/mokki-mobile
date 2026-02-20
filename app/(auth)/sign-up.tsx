@@ -3,7 +3,6 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   View,
   Text,
   TouchableOpacity,
@@ -61,16 +60,7 @@ export default function SignUpScreen() {
     if (signUpError) {
       setError(signUpError.message);
     } else {
-      Alert.alert(
-        "Check your email",
-        "We sent you a confirmation link. Please check your email to verify your account.",
-        [
-          {
-            text: "OK",
-            onPress: () => router.replace("/(auth)/login"),
-          },
-        ]
-      );
+      router.replace("/(tabs)");
     }
   };
 
